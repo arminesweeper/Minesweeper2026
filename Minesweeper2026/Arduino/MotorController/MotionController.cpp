@@ -12,18 +12,18 @@ void MotionController::begin() { reset(); }
 
 void MotionController::setRightTarget(double velocity) {
   // Sanity check
-  if (abs(velocity) > Safety::MAX_VELOCITY_RAD_S) {
-    velocity = (velocity > 0) ? Safety::MAX_VELOCITY_RAD_S
-                              : -Safety::MAX_VELOCITY_RAD_S;
+  if (abs(velocity) > SafetyConfig::MAX_VELOCITY_RAD_S) {
+    velocity = (velocity > 0) ? SafetyConfig::MAX_VELOCITY_RAD_S
+                              : -SafetyConfig::MAX_VELOCITY_RAD_S;
   }
   right_state_.target_velocity = velocity;
 }
 
 void MotionController::setLeftTarget(double velocity) {
   // Sanity check
-  if (abs(velocity) > Safety::MAX_VELOCITY_RAD_S) {
-    velocity = (velocity > 0) ? Safety::MAX_VELOCITY_RAD_S
-                              : -Safety::MAX_VELOCITY_RAD_S;
+  if (abs(velocity) > SafetyConfig::MAX_VELOCITY_RAD_S) {
+    velocity = (velocity > 0) ? SafetyConfig::MAX_VELOCITY_RAD_S
+                              : -SafetyConfig::MAX_VELOCITY_RAD_S;
   }
   left_state_.target_velocity = velocity;
 }
