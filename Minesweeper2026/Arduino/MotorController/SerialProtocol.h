@@ -2,6 +2,14 @@
  * ============================================================================
  * SERIALPROTOCOL.H - Serial Communication Protocol
  * ============================================================================
+ * Handles bidirectional serial communication:
+ * - Incoming: Velocity commands ("rp02.50,ln01.30,") and Extended ("C...\n")
+ * - Outgoing: Telemetry, Odometry, IMU, Sensors, Diagnostics, etc.
+ *
+ * @file   SerialProtocol.h
+ * @author Assiut Robotics Team
+ * @date   2026
+ * ============================================================================
  */
 
 #ifndef SERIALPROTOCOL_H
@@ -10,15 +18,14 @@
 #include "Config.h"
 #include <Arduino.h>
 
-
 /**
- * @brief Parsed command structure
+ * @brief Parsed command structure for wheel velocities.
  */
 struct ParsedCommand {
-  char wheel;      // 'r' for right, 'l' for left
-  char sign;       // 'p' for positive, 'n' for negative
-  double velocity; // Velocity magnitude in rad/s
-  bool valid;      // True if command was successfully parsed
+    char wheel;      ///< 'r' for right, 'l' for left
+    char sign;       ///< 'p' for positive, 'n' for negative
+    double velocity; ///< Velocity magnitude in rad/s
+    bool valid;      ///< True if command was successfully parsed
 };
 
 /**
@@ -36,98 +43,77 @@ struct ParsedCommand {
  */
 class SerialProtocol {
 public:
-  /**
-   * @brief Parser state machine states
-   */
-  enum class State : uint8_t {
-    WAITING_PREFIX,
-    READING_DIRECTION,
-    READING_VALUE,
-    COMPLETE
-  };
+    /**
+     * @brief Parser state machine states
+     */
+    enum class State : uint8_t {
+        WAITING_PREFIX,
+        READING_DIRECTION,
+        READING_VALUE,
+        READING_COMMAND,
+        COMPLETE
+    };
 
-  /**
-   * @brief Construct a new Serial Protocol handler
-   */
-  SerialProtocol();
+    SerialProtocol();
+    void begin();
 
-  /**
-   * @brief Initialize serial communication
-   */
-  void begin();
+    /**
+     * @brief Process incoming serial data
+     * @param right_vel Output: right wheel command velocity
+     * @param left_vel Output: left wheel command velocity
+     * @return true if a complete velocity command packet was received
+     */
+    bool processInput(double& right_vel, double& left_vel);
 
-  /**
-   * @brief Process incoming serial data
-   * @param right_vel Output: right wheel command velocity
-   * @param left_vel Output: left wheel command velocity
-   * @return true if a complete command packet was received
-   */
-  bool processInput(double &right_vel, double &left_vel);
+    /**
+     * @brief Check if an extended command was received.
+     * @param cmd_buf Buffer to store the command
+     * @param buf_size Size of the buffer
+     * @return true if a command is available
+     */
+    bool getExtendedCommand(char* cmd_buf, size_t buf_size);
 
-  /**
-   * @brief Send telemetry data
-   * @param right_vel Right wheel measured velocity (rad/s)
-   * @param left_vel Left wheel measured velocity (rad/s)
-   */
-  void sendTelemetry(double right_vel, double left_vel) const;
+    void sendTelemetry(double right_vel, double left_vel) const;
+    void sendOdometry(double x, double y, double theta) const;
+    void sendIMU(double yaw, double pitch, double roll) const;
+    void sendProximity(const uint16_t* values, uint8_t count) const;
+    void sendMetalDetect(bool detected) const;
+    void sendLiftState(const char* state_str, uint8_t magnet_mask) const;
+    void sendStatus(const char* message) const;
+    void sendError(uint8_t error_code, const char* message) const;
 
-  /**
-   * @brief Send odometry data
-   * @param x X position in meters
-   * @param y Y position in meters
-   * @param theta Heading in radians
-   */
-  void sendOdometry(double x, double y, double theta) const;
-
-  /**
-   * @brief Send status message
-   * @param message Null-terminated string message
-   */
-  void sendStatus(const char *message) const;
-
-  /**
-   * @brief Send error message
-   * @param error_code Error identifier
-   * @param message Description
-   */
-  void sendError(uint8_t error_code, const char *message) const;
-
-  /**
-   * @brief Get time of last received command
-   * @return millis() timestamp of last complete command
-   */
-  unsigned long getLastCommandTime() const { return last_command_time_; }
-
-  /**
-   * @brief Check if data is available
-   * @return true if there's data in the receive buffer
-   */
-  bool dataAvailable() const { return Serial.available() > 0; }
+    unsigned long getLastCommandTime() const { return last_command_time_; }
+    bool dataAvailable() const { return Serial.available() > 0; }
 
 private:
-  State parser_state_;
-  char rx_buffer_[SerialConfig::RX_BUFFER_SIZE];
-  size_t rx_index_;
-  unsigned long last_command_time_;
+    State parser_state_;
+    char rx_buffer_[SerialConfig::RX_BUFFER_SIZE];
+    size_t rx_index_;
+    unsigned long last_command_time_;
 
-  // Temporary parsing storage
-  bool parsing_right_;
-  char current_sign_;
-  char value_buffer_[8];
-  size_t value_index_;
+    // Extended command state
+    char cmd_buffer_[SerialConfig::CMD_BUFFER_SIZE];
+    size_t cmd_index_;
+    bool cmd_ready_;
 
-  // Pending command values
-  double pending_right_vel_;
-  double pending_left_vel_;
-  bool right_received_;
-  bool left_received_;
+    // Temporary parsing storage
+    bool parsing_right_;
+    char current_sign_;
+    char value_buffer_[8];
+    size_t value_index_;
 
-  void resetParser();
-  void resetValueBuffer();
-  ParsedCommand parseSingleCommand(const char *wheel_char,
-                                   const char *sign_char,
-                                   const char *value_str);
-  void processCompletePacket();
+    // Pending command values
+    double pending_right_vel_;
+    double pending_left_vel_;
+    bool right_received_;
+    bool left_received_;
+
+    void resetParser();
+    void resetValueBuffer();
+    ParsedCommand parseSingleCommand(const char* wheel_char,
+                                     const char* sign_char,
+                                     const char* value_str);
+    void processCompletePacket();
 };
 
 #endif // SERIALPROTOCOL_H

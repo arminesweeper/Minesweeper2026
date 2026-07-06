@@ -8,6 +8,9 @@
  *   - Arduino Mega 2560 (ATmega2560-16U2)
  *   - Cytron MDD10A Rev 2.0 Motor Driver
  *   - Dual Quadrature Encoders
+ *   - MPU6050 IMU
+ *   - Lift Mechanism with 5 Electromagnets
+ *   - 5 Analog Proximity Sensors, Digital Metal Detector
  *
  * Architecture:
  *   - Modular multi-file design
@@ -20,13 +23,15 @@
 #include "Config.h"
 #include "Diagnostics.h"
 #include "Encoder.h"
+#include "IMU.h"
+#include "LiftController.h"
 #include "MotionController.h"
 #include "MotorDriver.h"
 #include "Odometry.h"
 #include "PIDController.h"
 #include "Safety.h"
+#include "Sensors.h"
 #include "SerialProtocol.h"
-
 
 // ============================================================================
 // GLOBAL OBJECT INSTANTIATION
@@ -57,9 +62,9 @@ const EncoderPinConfig left_encoder_config = {
 Encoder encoderRight(right_encoder_config, false);
 Encoder encoderLeft(left_encoder_config, true); // Inverted
 
-// Set static instance pointers for ISR access
-Encoder *Encoder::instance_right_ = &encoderRight;
-Encoder *Encoder::instance_left_ = &encoderLeft;
+// ISR forward declarations (defined in Encoder.cpp)
+extern void rightEncoderISR();
+extern void leftEncoderISR();
 
 // PID Controllers
 PIDController pidRight(PIDTuning::KP_RIGHT, PIDTuning::KI_RIGHT,
@@ -72,7 +77,7 @@ PIDController pidLeft(PIDTuning::KP_LEFT, PIDTuning::KI_LEFT,
                       PIDTuning::OUTPUT_MAX,
                       static_cast<int>(Timing::CONTROL_INTERVAL_MS));
 
-// Serial Protocol Handler
+// Serial Protocol Handler (Core Subsystems)
 SerialProtocol serialProtocol;
 
 // Motion Controller
@@ -87,9 +92,20 @@ Diagnostics diagnostics;
 // Odometry
 Odometry odometry;
 
-// Timing
+// Peripheral Subsystems
+IMU imu;
+LiftController liftController;
+Sensors sensors;
+
+// Timing Variables
 unsigned long last_control_time_ms = 0;
 unsigned long last_telemetry_time_ms = 0;
+unsigned long last_imu_time_ms = 0;
+unsigned long last_sensor_time_ms = 0;
+unsigned long last_lift_time_ms = 0;
+
+// Metal detector latch (to ensure we send the telemetry message exactly once per trigger)
+bool last_metal_detect_state = false;
 
 // ============================================================================
 // FUNCTION DECLARATIONS
@@ -99,6 +115,7 @@ void initializeHardware();
 void processControlLoop();
 void processTelemetry();
 void handleSafetyState(SystemState state);
+void processExtendedCommand();
 
 // ============================================================================
 // SETUP - System Initialization
@@ -113,8 +130,12 @@ void setup() {
   serialProtocol.sendStatus("READY");
 
   // Initialize timing
-  last_control_time_ms = millis();
-  last_telemetry_time_ms = millis();
+  unsigned long now = millis();
+  last_control_time_ms = now;
+  last_telemetry_time_ms = now;
+  last_imu_time_ms = now;
+  last_sensor_time_ms = now;
+  last_lift_time_ms = now;
 }
 
 // ============================================================================
@@ -133,7 +154,7 @@ void loop() {
   double cmd_left_vel = 0.0;
 
   if (serialProtocol.processInput(cmd_right_vel, cmd_left_vel)) {
-    // Valid command received
+    // Valid velocity command received
     motionController.setRightTarget(cmd_right_vel);
     motionController.setLeftTarget(cmd_left_vel);
     diagnostics.incrementCommandCount();
@@ -142,19 +163,70 @@ void loop() {
     if (safetyMonitor.getState() == SystemState::ESTOP_TIMEOUT) {
       safetyMonitor.clearEStop();
     }
+    
+    // Acknowledge command with a beep
+    sensors.beep();
   }
 
-  // Run control loop at fixed interval
-  unsigned long current_time = millis();
-  if (current_time - last_control_time_ms >= Timing::CONTROL_INTERVAL_MS) {
-    double dt = (current_time - last_control_time_ms) / 1000.0;
-    last_control_time_ms = current_time;
+  // Process extended commands
+  processExtendedCommand();
 
+  unsigned long current_time = millis();
+
+  // 1. Run control loop (10 Hz)
+  if (current_time - last_control_time_ms >= Timing::CONTROL_INTERVAL_MS) {
+    last_control_time_ms = current_time;
     processControlLoop();
     diagnostics.incrementControlCycleCount();
   }
 
-  // Send telemetry at fixed interval
+  // 2. Read IMU (50 Hz)
+#if ENABLE_IMU
+  if (current_time - last_imu_time_ms >= Timing::IMU_INTERVAL_MS) {
+    double dt = (current_time - last_imu_time_ms) / 1000.0;
+    last_imu_time_ms = current_time;
+    imu.update(dt);
+    safetyMonitor.setIMUFault(imu.hasError());
+  }
+#endif
+
+  // 3. Read Sensors (20 Hz)
+#if ENABLE_SENSORS
+  if (current_time - last_sensor_time_ms >= Timing::SENSOR_INTERVAL_MS) {
+    last_sensor_time_ms = current_time;
+    sensors.update();
+
+    // Send metal detect message on rising edge, and trigger buzzer
+    bool current_metal = sensors.isMetalDetected();
+    if (current_metal && !last_metal_detect_state) {
+        serialProtocol.sendMetalDetect(true);
+        sensors.setBuzzerPattern(BuzzerPattern::MINE_DETECT);
+    } else if (!current_metal && last_metal_detect_state) {
+        serialProtocol.sendMetalDetect(false);
+        sensors.setBuzzerPattern(BuzzerPattern::SILENT);
+    }
+    last_metal_detect_state = current_metal;
+  }
+#endif
+
+  // 4. Update Lift Controller (20 Hz)
+#if ENABLE_LIFT
+  if (current_time - last_lift_time_ms >= Timing::LIFT_INTERVAL_MS) {
+    last_lift_time_ms = current_time;
+    LiftState prev_state = liftController.getState();
+    liftController.update();
+    
+    // Check for lift faults
+    safetyMonitor.setLiftFault(liftController.hasFault());
+
+    // Send telemetry on state change
+    if (liftController.getState() != prev_state) {
+        serialProtocol.sendLiftState(liftController.getStateString(), liftController.getMagnetState());
+    }
+  }
+#endif
+
+  // 5. Send telemetry (10 Hz)
   if (current_time - last_telemetry_time_ms >= Timing::TELEMETRY_INTERVAL_MS) {
     last_telemetry_time_ms = current_time;
     processTelemetry();
@@ -182,6 +254,10 @@ void loop() {
 // ============================================================================
 
 void initializeHardware() {
+  // Set ISR instance pointers
+  Encoder::instance_right_ = &encoderRight;
+  Encoder::instance_left_ = &encoderLeft;
+
   // Initialize motor drivers
   motorRight.begin();
   motorLeft.begin();
@@ -200,14 +276,28 @@ void initializeHardware() {
   // Initialize motion controller
   motionController.begin();
 
-  // Initialize safety monitor (enables watchdog)
-  safetyMonitor.begin();
-
   // Initialize diagnostics
   diagnostics.begin();
 
   // Initialize odometry
   odometry.begin();
+
+#if ENABLE_IMU
+  if (!imu.begin()) {
+    serialProtocol.sendError(3, "IMU init failed");
+  }
+#endif
+
+#if ENABLE_SENSORS
+  sensors.begin();
+#endif
+
+#if ENABLE_LIFT
+  liftController.begin();
+#endif
+
+  // Initialize safety monitor last (enables watchdog)
+  safetyMonitor.begin();
 
   // Ensure motors are stopped
   motorRight.stop();
@@ -264,6 +354,59 @@ void processControlLoop() {
 }
 
 // ============================================================================
+// EXTENDED COMMAND PROCESSING
+// ============================================================================
+
+void processExtendedCommand() {
+  char cmd_buf[SerialConfig::CMD_BUFFER_SIZE];
+  if (serialProtocol.getExtendedCommand(cmd_buf, sizeof(cmd_buf))) {
+    
+    if (strncmp(cmd_buf, "CLIFT:", 6) == 0) {
+      if (strcmp(cmd_buf, "CLIFT:UP") == 0) liftController.raise();
+      else if (strcmp(cmd_buf, "CLIFT:DN") == 0) liftController.lower();
+      else if (strcmp(cmd_buf, "CLIFT:STOP") == 0) liftController.stop();
+    } 
+    else if (strncmp(cmd_buf, "CMAG:", 5) == 0) {
+      if (strcmp(cmd_buf, "CMAG:ALL:ON") == 0) liftController.setAllMagnets(true);
+      else if (strcmp(cmd_buf, "CMAG:ALL:OFF") == 0) liftController.setAllMagnets(false);
+      else {
+        // Parse single magnet command e.g. "CMAG:1:ON"
+        int mag_num = cmd_buf[5] - '1'; // 0-based index
+        if (mag_num >= 0 && mag_num < 5) {
+            bool on = (strcmp(&cmd_buf[7], "ON") == 0);
+            liftController.setMagnet(mag_num, on);
+        }
+      }
+    }
+    else if (strncmp(cmd_buf, "CBUZZ:", 6) == 0) {
+      if (strcmp(cmd_buf, "CBUZZ:SILENT") == 0) sensors.setBuzzerPattern(BuzzerPattern::SILENT);
+      else if (strcmp(cmd_buf, "CBUZZ:BEEP") == 0) sensors.beep();
+      else if (strcmp(cmd_buf, "CBUZZ:ALERT") == 0) sensors.setBuzzerPattern(BuzzerPattern::ALERT);
+      else if (strcmp(cmd_buf, "CBUZZ:ALARM") == 0) sensors.setBuzzerPattern(BuzzerPattern::ALARM);
+    }
+    else if (strcmp(cmd_buf, "CRESET") == 0) {
+      odometry.reset();
+      imu.resetYaw();
+      diagnostics.resetStats();
+      serialProtocol.sendStatus("Reset complete");
+    }
+    else if (strcmp(cmd_buf, "CDIAG") == 0) {
+      diagnostics.sendStatusReport(safetyMonitor.getState(), safetyMonitor.getFaults());
+    }
+    else if (strcmp(cmd_buf, "CESTOP") == 0) {
+      safetyMonitor.triggerEStop();
+    }
+    else if (strcmp(cmd_buf, "CCLEAR") == 0) {
+      safetyMonitor.clearEStop();
+      liftController.clearFault();
+    }
+    else {
+      serialProtocol.sendError(1, "Unknown extended command");
+    }
+  }
+}
+
+// ============================================================================
 // TELEMETRY
 // ============================================================================
 
@@ -278,6 +421,16 @@ void processTelemetry() {
   serialProtocol.sendOdometry(odometry.getX(), odometry.getY(),
                               odometry.getTheta());
 #endif
+
+#if ENABLE_IMU
+  serialProtocol.sendIMU(imu.getYaw(), imu.getPitch(), imu.getRoll());
+#endif
+
+#if ENABLE_SENSORS
+  uint16_t prox[5];
+  sensors.getAllProximity(prox);
+  serialProtocol.sendProximity(prox, 5);
+#endif
 }
 
 // ============================================================================
@@ -287,19 +440,17 @@ void processTelemetry() {
 void handleSafetyState(SystemState state) {
   switch (state) {
   case SystemState::ACTIVE:
-    // Normal operation - do nothing special
+    // Normal operation
+    sensors.setLEDPattern(LEDPattern::OFF);
     break;
 
   case SystemState::ESTOP_TIMEOUT:
   case SystemState::ESTOP_MANUAL:
-  case SystemState::FAULT_ENCODER:
-  case SystemState::FAULT_BATTERY:
-  case SystemState::FAULT_UNKNOWN:
-    // Any non-active state - ensure motors are stopped
     motorRight.emergencyStop();
     motorLeft.emergencyStop();
     motionController.emergencyStop();
-
+    sensors.setLEDPattern(LEDPattern::SLOW_BLINK);
+    
     // Increment timeout counter if this is a timeout
     if (state == SystemState::ESTOP_TIMEOUT) {
       static bool timeout_counted = false;
@@ -311,6 +462,19 @@ void handleSafetyState(SystemState state) {
       // Reset timeout counted flag when not in timeout state
       static_cast<void>(false); // No-op, placeholder for clarity
     }
+    break;
+
+  case SystemState::FAULT_LIFT:
+    liftController.stop();
+    // Fall-through intended to stop drive motors as well
+  case SystemState::FAULT_ENCODER:
+  case SystemState::FAULT_BATTERY:
+  case SystemState::FAULT_UNKNOWN:
+  case SystemState::FAULT_IMU:
+    motorRight.emergencyStop();
+    motorLeft.emergencyStop();
+    motionController.emergencyStop();
+    sensors.setLEDPattern(LEDPattern::FAST_BLINK);
     break;
 
   default:

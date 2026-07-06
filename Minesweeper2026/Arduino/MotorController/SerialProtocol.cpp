@@ -1,171 +1,242 @@
 /**
  * ============================================================================
- * SERIALPROTOCOL.CPP - Serial Protocol Implementation
+ * SERIALPROTOCOL.CPP - Serial Communication Protocol Implementation
+ * ============================================================================
+ * @file   SerialProtocol.cpp
+ * @author Assiut Robotics Team
+ * @date   2026
  * ============================================================================
  */
 
 #include "SerialProtocol.h"
+#include <stdlib.h>
+#include <string.h>
+
+/* ============================================================================
+ * CONSTRUCTOR & INITIALIZATION
+ * ============================================================================ */
 
 SerialProtocol::SerialProtocol()
-    : parser_state_(State::WAITING_PREFIX), rx_index_(0), last_command_time_(0),
-      parsing_right_(true), current_sign_('p'), value_index_(0),
-      pending_right_vel_(0.0), pending_left_vel_(0.0), right_received_(false),
+    : parser_state_(State::WAITING_PREFIX),
+      rx_index_(0),
+      last_command_time_(0),
+      cmd_index_(0),
+      cmd_ready_(false),
+      parsing_right_(false),
+      current_sign_('p'),
+      value_index_(0),
+      pending_right_vel_(0.0),
+      pending_left_vel_(0.0),
+      right_received_(false),
       left_received_(false) {
-  resetValueBuffer();
+    memset(rx_buffer_, 0, sizeof(rx_buffer_));
+    memset(value_buffer_, 0, sizeof(value_buffer_));
+    memset(cmd_buffer_, 0, sizeof(cmd_buffer_));
 }
 
 void SerialProtocol::begin() {
-  Serial.begin(SerialConfig::BAUD_RATE);
-  last_command_time_ = millis();
-
-  // Send startup message
-  Serial.println(F("MC:READY"));
-  Serial.println(F("FMT:r[p|n]XX.XX,l[p|n]XX.XX,"));
-}
-
-bool SerialProtocol::processInput(double &right_vel, double &left_vel) {
-  bool command_complete = false;
-
-  while (Serial.available() > 0) {
-    char chr = Serial.read();
-
-    switch (parser_state_) {
-    case State::WAITING_PREFIX:
-      if (chr == 'r') {
-        parsing_right_ = true;
-        parser_state_ = State::READING_DIRECTION;
-      } else if (chr == 'l') {
-        parsing_right_ = false;
-        parser_state_ = State::READING_DIRECTION;
-      } else if (chr == '\n' || chr == '\r') {
-        // Handle empty lines
-      } else {
-        // Unknown character, could be start of status command
-        // For now, reset parser
-      }
-      break;
-
-    case State::READING_DIRECTION:
-      if (chr == 'p' || chr == 'n') {
-        current_sign_ = chr;
-        parser_state_ = State::READING_VALUE;
-        resetValueBuffer();
-      } else {
-        // Invalid direction character
-        resetParser();
-      }
-      break;
-
-    case State::READING_VALUE:
-      if (chr == ',') {
-        // End of value
-        value_buffer_[value_index_] = '\0';
-        double velocity = atof(value_buffer_);
-
-        if (parsing_right_) {
-          pending_right_vel_ = (current_sign_ == 'p') ? velocity : -velocity;
-          right_received_ = true;
-        } else {
-          pending_left_vel_ = (current_sign_ == 'p') ? velocity : -velocity;
-          left_received_ = true;
-        }
-
-        parser_state_ = State::WAITING_PREFIX;
-      } else if (chr == '\n' || chr == '\r') {
-        // End of packet
-        value_buffer_[value_index_] = '\0';
-        double velocity = atof(value_buffer_);
-
-        if (parsing_right_) {
-          pending_right_vel_ = (current_sign_ == 'p') ? velocity : -velocity;
-          right_received_ = true;
-        } else {
-          pending_left_vel_ = (current_sign_ == 'p') ? velocity : -velocity;
-          left_received_ = true;
-        }
-
-        // Check if we have a complete command pair
-        if (right_received_ && left_received_) {
-          right_vel = pending_right_vel_;
-          left_vel = pending_left_vel_;
-          last_command_time_ = millis();
-          command_complete = true;
-
-          // Reset for next command
-          right_received_ = false;
-          left_received_ = false;
-        }
-
-        resetParser();
-      } else if (value_index_ < 7) {
-        // Accept digits and decimal point
-        if ((chr >= '0' && chr <= '9') || chr == '.') {
-          value_buffer_[value_index_++] = chr;
-        } else {
-          // Invalid character in value
-          resetParser();
-        }
-      } else {
-        // Value too long
-        resetParser();
-      }
-      break;
-
-    default:
-      resetParser();
-      break;
+    Serial.begin(SerialConfig::BAUD_RATE);
+    while (!Serial) {
+        ; // Wait for serial port to connect
     }
-  }
-
-  return command_complete;
+    last_command_time_ = millis();
 }
 
-void SerialProtocol::sendTelemetry(double right_vel, double left_vel) const {
-  // Format: r[p|n]X.XXX,l[p|n]X.XXX,
-  Serial.print('r');
-  Serial.print(right_vel >= 0 ? 'p' : 'n');
-  Serial.print(abs(right_vel), 3);
-  Serial.print(F(",l"));
-  Serial.print(left_vel >= 0 ? 'p' : 'n');
-  Serial.print(abs(left_vel), 3);
-  Serial.println(',');
+/* ============================================================================
+ * INPUT PROCESSING (STATE MACHINE)
+ * ============================================================================ */
+
+bool SerialProtocol::processInput(double& right_vel, double& left_vel) {
+    bool packet_complete = false;
+
+    while (Serial.available() > 0 && !packet_complete) {
+        char c = Serial.read();
+
+        switch (parser_state_) {
+        case State::WAITING_PREFIX:
+            if (c == 'r') {
+                parsing_right_ = true;
+                parser_state_ = State::READING_DIRECTION;
+            } else if (c == 'l') {
+                parsing_right_ = false;
+                parser_state_ = State::READING_DIRECTION;
+            } else if (c == 'C') {
+                cmd_index_ = 0;
+                parser_state_ = State::READING_COMMAND;
+            }
+            break;
+
+        case State::READING_DIRECTION:
+            if (c == 'p' || c == 'n') {
+                current_sign_ = c;
+                resetValueBuffer();
+                parser_state_ = State::READING_VALUE;
+            } else {
+                resetParser();
+            }
+            break;
+
+        case State::READING_VALUE:
+            if (c == ',' || c == '\n') {
+                /* Field complete */
+                double velocity = atof(value_buffer_);
+                if (current_sign_ == 'n') {
+                    velocity = -velocity;
+                }
+
+                if (parsing_right_) {
+                    pending_right_vel_ = velocity;
+                    right_received_ = true;
+                } else {
+                    pending_left_vel_ = velocity;
+                    left_received_ = true;
+                }
+
+                if (right_received_ && left_received_) {
+                    right_vel = pending_right_vel_;
+                    left_vel = pending_left_vel_;
+                    processCompletePacket();
+                    packet_complete = true;
+                } else {
+                    parser_state_ = State::WAITING_PREFIX;
+                }
+            } else if ((c >= '0' && c <= '9') || c == '.') {
+                if (value_index_ < sizeof(value_buffer_) - 1) {
+                    value_buffer_[value_index_++] = c;
+                    value_buffer_[value_index_] = '\0';
+                } else {
+                    resetParser(); // Buffer overflow
+                }
+            } else {
+                resetParser(); // Invalid character
+            }
+            break;
+
+        case State::READING_COMMAND:
+            if (c == '\n' || c == '\r') {
+                if (cmd_index_ > 0) {
+                    cmd_buffer_[cmd_index_] = '\0';
+                    cmd_ready_ = true;
+                }
+                resetParser();
+            } else {
+                if (cmd_index_ < SerialConfig::CMD_BUFFER_SIZE - 1) {
+                    cmd_buffer_[cmd_index_++] = c;
+                } else {
+                    resetParser(); // Buffer overflow
+                }
+            }
+            break;
+
+        case State::COMPLETE:
+            resetParser();
+            break;
+        }
+    }
+
+    return packet_complete;
 }
 
-void SerialProtocol::sendOdometry(double x, double y, double theta) const {
-  // Format: O:X.XXX,Y.XXX,T.XXX,
-  Serial.print(F("O:"));
-  Serial.print(x, 4);
-  Serial.print(',');
-  Serial.print(y, 4);
-  Serial.print(',');
-  Serial.print(theta, 4);
-  Serial.println(',');
+bool SerialProtocol::getExtendedCommand(char* cmd_buf, size_t buf_size) {
+    if (cmd_ready_) {
+        strlcpy(cmd_buf, cmd_buffer_, buf_size);
+        cmd_ready_ = false;
+        return true;
+    }
+    return false;
 }
 
-void SerialProtocol::sendStatus(const char *message) const {
-  Serial.print(F("S:"));
-  Serial.println(message);
-}
-
-void SerialProtocol::sendError(uint8_t error_code, const char *message) const {
-  Serial.print(F("E:"));
-  Serial.print(error_code);
-  Serial.print(':');
-  Serial.println(message);
+void SerialProtocol::processCompletePacket() {
+    last_command_time_ = millis();
+    parser_state_ = State::COMPLETE;
+    right_received_ = false;
+    left_received_ = false;
 }
 
 void SerialProtocol::resetParser() {
-  parser_state_ = State::WAITING_PREFIX;
-  value_index_ = 0;
-  resetValueBuffer();
+    parser_state_ = State::WAITING_PREFIX;
+    rx_index_ = 0;
+    right_received_ = false;
+    left_received_ = false;
 }
 
 void SerialProtocol::resetValueBuffer() {
-  value_buffer_[0] = '0';
-  value_buffer_[1] = '0';
-  value_buffer_[2] = '.';
-  value_buffer_[3] = '0';
-  value_buffer_[4] = '0';
-  value_buffer_[5] = '\0';
-  value_index_ = 0;
+    value_index_ = 0;
+    value_buffer_[0] = '\0';
+}
+
+/* ============================================================================
+ * TELEMETRY OUTPUT
+ * ============================================================================ */
+
+void SerialProtocol::sendTelemetry(double right_vel, double left_vel) const {
+    char buffer[SerialConfig::TX_BUFFER_SIZE];
+
+    char r_sign = (right_vel >= 0) ? 'p' : 'n';
+    char l_sign = (left_vel >= 0)  ? 'p' : 'n';
+
+    /* dtostrf isn't strictly standard C++, but AVR libc provides it */
+    char r_val[10];
+    char l_val[10];
+    dtostrf(abs(right_vel), 4, 3, r_val);
+    dtostrf(abs(left_vel), 4, 3, l_val);
+
+    snprintf(buffer, sizeof(buffer), "r%c%s,l%c%s,", r_sign, r_val, l_sign, l_val);
+    Serial.println(buffer);
+}
+
+void SerialProtocol::sendOdometry(double x, double y, double theta) const {
+    char buffer[SerialConfig::TX_BUFFER_SIZE];
+    char x_val[10], y_val[10], t_val[10];
+
+    dtostrf(x, 6, 4, x_val);
+    dtostrf(y, 6, 4, y_val);
+    dtostrf(theta, 6, 4, t_val);
+
+    snprintf(buffer, sizeof(buffer), "O:%s,%s,%s,", x_val, y_val, t_val);
+    Serial.println(buffer);
+}
+
+void SerialProtocol::sendIMU(double yaw, double pitch, double roll) const {
+    char buffer[SerialConfig::TX_BUFFER_SIZE];
+    char y_val[8], p_val[8], r_val[8];
+
+    dtostrf(yaw, 5, 1, y_val);
+    dtostrf(pitch, 5, 1, p_val);
+    dtostrf(roll, 5, 1, r_val);
+
+    snprintf(buffer, sizeof(buffer), "I:%s,%s,%s", y_val, p_val, r_val);
+    Serial.println(buffer);
+}
+
+void SerialProtocol::sendProximity(const uint16_t* values, uint8_t count) const {
+    if (count != 5) return;
+    char buffer[SerialConfig::TX_BUFFER_SIZE];
+    snprintf(buffer, sizeof(buffer), "P:%u,%u,%u,%u,%u",
+             values[0], values[1], values[2], values[3], values[4]);
+    Serial.println(buffer);
+}
+
+void SerialProtocol::sendMetalDetect(bool detected) const {
+    Serial.print(F("M:"));
+    Serial.println(detected ? '1' : '0');
+}
+
+void SerialProtocol::sendLiftState(const char* state_str, uint8_t magnet_mask) const {
+    Serial.print(F("L:"));
+    Serial.print(state_str);
+    Serial.print(F(","));
+    Serial.println(magnet_mask, HEX);
+}
+
+void SerialProtocol::sendStatus(const char* message) const {
+    Serial.print(F("S:"));
+    Serial.println(message);
+}
+
+void SerialProtocol::sendError(uint8_t error_code, const char* message) const {
+    Serial.print(F("E:"));
+    Serial.print(error_code);
+    Serial.print(F(":"));
+    Serial.println(message);
 }

@@ -1,6 +1,17 @@
 /**
  * ============================================================================
- * DIAGNOSTICS.H - System Diagnostics & Telemetry
+ * DIAGNOSTICS.H - System Diagnostics & Statistics
+ * ============================================================================
+ * Tracks runtime performance metrics:
+ *   - Loop iteration count and timing
+ *   - PID control cycle count
+ *   - Serial command statistics
+ *   - SRAM usage estimation
+ *   - Uptime
+ *
+ * @file   Diagnostics.h
+ * @author Assiut Robotics Team
+ * @date   2026
  * ============================================================================
  */
 
@@ -8,96 +19,73 @@
 #define DIAGNOSTICS_H
 
 #include "Config.h"
-#include "Safety.h"
+#include "Safety.h" // For SystemState and FaultFlags
 #include <Arduino.h>
 
-
 /**
- * @brief System statistics
+ * @brief Runtime performance statistics
  */
 struct SystemStats {
-  uint32_t loop_count;
-  uint32_t command_count;
-  uint32_t timeout_count;
-  uint32_t control_cycles;
-  uint32_t max_loop_time_us;
-  uint32_t min_loop_time_us;
-  uint32_t avg_loop_time_us;
-  uint32_t last_loop_time_us;
+    uint32_t loop_count;        ///< Total loop() iterations
+    uint32_t command_count;     ///< Valid commands received
+    uint32_t timeout_count;     ///< Timeout events
+    uint32_t control_cycles;    ///< PID computation cycles
+    uint32_t max_loop_time_us;  ///< Worst-case loop time (µs)
+    uint32_t min_loop_time_us;  ///< Best-case loop time (µs)
+    uint32_t avg_loop_time_us;  ///< Average loop time (µs)
+    uint32_t last_loop_time_us; ///< Most recent loop time (µs)
 };
 
 /**
  * @brief Diagnostics Manager
- *
- * Provides:
- * - Loop timing statistics
- * - Command statistics
- * - Periodic status reporting
- * - Debug output control
  */
 class Diagnostics {
 public:
-  /**
-   * @brief Construct a new Diagnostics manager
-   */
-  Diagnostics();
+    Diagnostics();
 
-  /**
-   * @brief Initialize diagnostics
-   */
-  void begin();
+    void begin();
 
-  /**
-   * @brief Mark start of loop iteration
-   */
-  void loopStart();
+    /** @brief Call at the very beginning of loop() */
+    void loopStart();
 
-  /**
-   * @brief Mark end of loop iteration and update stats
-   */
-  void loopEnd();
+    /** @brief Call at the very end of loop() */
+    void loopEnd();
 
-  /**
-   * @brief Increment command counter
-   */
-  void incrementCommandCount() { stats_.command_count++; }
+    void incrementCommandCount() { stats_.command_count++; }
+    void incrementTimeoutCount() { stats_.timeout_count++; }
+    void incrementControlCycleCount() { stats_.control_cycles++; }
 
-  /**
-   * @brief Increment timeout counter
-   */
-  void incrementTimeoutCount() { stats_.timeout_count++; }
+    /**
+     * @brief Output periodic diagnostic report via serial.
+     * @param state Current system state
+     * @param faults Current fault flags
+     */
+    void sendStatusReport(SystemState state, FaultFlags faults);
 
-  /**
-   * @brief Increment control cycle counter
-   */
-  void incrementControlCycleCount() { stats_.control_cycles++; }
+    const SystemStats& getStats() const { return stats_; }
+    void resetStats();
 
-  /**
-   * @brief Send periodic status report
-   * @param state Current system state
-   * @param faults Current fault flags
-   */
-  void sendStatusReport(SystemState state, FaultFlags faults);
+    /**
+     * @brief Estimate free SRAM.
+     * @return Number of free bytes between heap and stack.
+     */
+    static uint16_t getFreeSRAM();
 
-  /**
-   * @brief Get current statistics
-   * @return Const reference to statistics
-   */
-  const SystemStats &getStats() const { return stats_; }
-
-  /**
-   * @brief Reset statistics
-   */
-  void resetStats();
+    /**
+     * @brief Get system uptime.
+     * @return Uptime in seconds
+     */
+    static uint32_t getUptimeSeconds() { return millis() / 1000; }
 
 private:
-  SystemStats stats_;
-  unsigned long loop_start_time_us_;
-  unsigned long last_status_time_ms_;
-  uint32_t loop_time_accumulator_;
-  uint32_t loop_time_samples_;
+    SystemStats stats_;
+    unsigned long loop_start_us_;
+    uint32_t loop_time_accumulator_;
+    uint32_t loop_accumulator_count_;
+    unsigned long last_report_ms_;
 
-  void updateTimingStats(uint32_t loop_time_us);
+    /** @brief Format fault flags as a short string for telemetry */
+    void formatFaultFlags(char* buf, FaultFlags faults) const;
 };
 
 #endif // DIAGNOSTICS_H
