@@ -206,6 +206,21 @@ rp02.50,ln01.30,
 | `XX.XX` | Velocity magnitude in rad/s |
 | `,` | Field separator |
 
+### Extended Commands (Auxiliary Hardware)
+
+Commands prefixed with `C` control auxiliary hardware subsystems. Must be terminated by a newline (`\n`).
+
+| Command | Action |
+|---------|--------|
+| `CLIFT:UP\n` | Raise the lift mechanism |
+| `CLIFT:DN\n` | Lower the lift mechanism |
+| `CLIFT:STOP\n` | Stop the lift motor |
+| `CMAG:<1-5>:ON\n` | Energize specific electromagnet (1-5) |
+| `CMAG:ALL:ON\n` | Energize all electromagnets |
+| `CMAG:ALL:OFF\n` | De-energize all electromagnets |
+| `CBUZZ:BEEP\n` | Trigger a short buzzer beep |
+| `CBUZZ:ALERT\n` | Trigger a repeating alert pattern |
+
 ### Telemetry Format (Arduino → ROS)
 
 ```
@@ -240,6 +255,8 @@ See [Safety.md](Safety.md) for complete documentation.
 | Battery Monitor | Low/high voltage detection via ADC | Enabled |
 | Velocity Sanity | Rejects commands > 10 rad/s | Always |
 | Encoder Fault | Detects disconnected encoders | Enabled |
+| Lift Fault | Stops motors if lift stalls or limit switches fail | Enabled |
+| IMU Disconnect | Stops motors if MPU6050 I2C communication drops | Enabled |
 | E-Stop | Manual emergency stop via serial command | Available |
 | Safe Startup | Motors held off until first valid command | Always |
 

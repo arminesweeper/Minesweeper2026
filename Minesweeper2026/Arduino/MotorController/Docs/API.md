@@ -1038,6 +1038,7 @@ void leftEncoderISR();
 ### Inbound (ROS → Arduino)
 
 #### Velocity Command
+
 ```
 Format:  r[p|n]XX.XX,l[p|n]XX.XX,[\n]
 Example: rp02.50,ln01.30,
@@ -1050,6 +1051,7 @@ Fields:
 ```
 
 #### Extended Command
+
 ```
 Format:  C<COMMAND>\n
 Examples:
@@ -1069,6 +1071,7 @@ Examples:
 ### Outbound (Arduino → ROS)
 
 #### Velocity Telemetry
+
 ```
 Format:  r[p|n]X.XXX,l[p|n]X.XXX,\n
 Example: rp2.310,ln1.280,
@@ -1076,6 +1079,7 @@ Rate:    10 Hz
 ```
 
 #### Odometry
+
 ```
 Format:  O:X.XXXX,Y.YYYY,T.TTTT,\n
 Example: O:0.1234,0.5678,1.2345,
@@ -1083,6 +1087,7 @@ Rate:    10 Hz
 ```
 
 #### Metal Detector
+
 ```
 Format:  M:[0|1]\n
 Example: M:1
@@ -1090,6 +1095,7 @@ Rate:    On change or 20 Hz
 ```
 
 #### Proximity Sensors
+
 ```
 Format:  P:V1,V2,V3,V4,V5\n
 Example: P:120,340,560,780,900
@@ -1098,6 +1104,7 @@ Values:  ADC [0-1023]
 ```
 
 #### IMU
+
 ```
 Format:  I:YAW,PITCH,ROLL\n
 Example: I:45.2,-2.1,0.3
@@ -1106,6 +1113,7 @@ Units:   Degrees
 ```
 
 #### Lift State
+
 ```
 Format:  L:STATE[,MAG_MASK]\n
 Example: L:RAISED,1F
@@ -1115,18 +1123,21 @@ MAG_MASK: Hex bitmask of energized magnets (bits 0-4)
 ```
 
 #### Diagnostics
+
 ```
 Format:  D:STATE=N,LOOPS=N,CMDS=N,TIMEOUTS=N,CYCLES=N,LOOP_US=avg/max,FLT=flags,SRAM=N,UP=N\n
 Rate:    Every 5 seconds
 ```
 
 #### Status Message
+
 ```
 Format:  S:message\n
 Example: S:Minesweeper Motor Controller v2.0
 ```
 
 #### Error Message
+
 ```
 Format:  E:code:message\n
 Example: E:3:IMU communication timeout
