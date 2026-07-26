@@ -3,8 +3,7 @@
  * CONFIG.H - System Configuration & Hardware Definitions
  * ============================================================================
  * Central configuration file for the Minesweeper Robot Motor Controller.
- * All tunable parameters, hardware pin assignments, and feature flags are
- * defined here.  No other file should contain magic numbers or pin literals.
+ * Defines pinouts, compile-time flags, and default EEPROM parameters.
  *
  * @file   Config.h
  * @author Assiut Robotics Team
@@ -21,378 +20,182 @@
  * COMPILE-TIME FEATURE FLAGS
  * ============================================================================ */
 
-/** @brief Enable ATmega2560 hardware watchdog timer (2-second timeout). */
 #define ENABLE_WATCHDOG         1
-
-/** @brief Enable differential-drive odometry (x, y, theta tracking). */
 #define ENABLE_ODOMETRY         1
-
-/** @brief Enable periodic diagnostics output via serial. */
 #define ENABLE_DIAGNOSTICS      1
-
-/** @brief Enable safety monitoring (command timeout, fault detection). */
 #define ENABLE_SAFETY_MONITOR   1
-
-/** @brief Enable MPU6050 IMU integration (yaw, pitch, roll). */
 #define ENABLE_IMU              1
-
-/** @brief Enable lift mechanism controller (DC motor + limit switches). */
 #define ENABLE_LIFT             1
-
-/** @brief Enable sensor subsystem (proximity, metal detector, buzzer, LED). */
 #define ENABLE_SENSORS          1
 
 /* ============================================================================
  * HARDWARE PIN DEFINITIONS
  * ============================================================================ */
 
-/**
- * @brief Pin assignments for all hardware connected to the Arduino Mega 2560.
- *
- * Grouped by subsystem.  Timer conflicts and interrupt assignments are
- * documented inline.
- */
 namespace Pins {
+    /* Motor Driver */
+    constexpr uint8_t MOTOR_R_PWM = 9;
+    constexpr uint8_t MOTOR_R_DIR = 12;
+    constexpr uint8_t MOTOR_L_PWM = 11;
+    constexpr uint8_t MOTOR_L_DIR = 7;
 
-/* --- Motor Driver: Cytron MDD10A Rev 2.0 (Sign-Magnitude Mode) ----------- */
+    /* Encoders */
+    constexpr uint8_t ENCODER_R_A = 3; // INT5
+    constexpr uint8_t ENCODER_R_B = 5;
+    constexpr uint8_t ENCODER_L_A = 2; // INT4
+    constexpr uint8_t ENCODER_L_B = 4;
 
-/** @brief Right motor PWM output (Timer 2, OC2B, 8-bit, ~490 Hz). */
-constexpr uint8_t MOTOR_R_PWM = 9;
+    /* IMU */
+    constexpr uint8_t IMU_SDA = 20;
+    constexpr uint8_t IMU_SCL = 21;
 
-/** @brief Right motor direction pin (HIGH = forward, LOW = reverse). */
-constexpr uint8_t MOTOR_R_DIR = 12;
+    /* Lift */
+    constexpr uint8_t LIFT_PWM = 10;
+    constexpr uint8_t LIFT_DIR = 8;
+    constexpr uint8_t LIMIT_SW_TOP = 28;
+    constexpr uint8_t LIMIT_SW_BOTTOM = 29;
 
-/** @brief Left motor PWM output (Timer 1, OC1A, 16-bit, ~490 Hz). */
-constexpr uint8_t MOTOR_L_PWM = 11;
+    /* Electromagnets */
+    constexpr uint8_t MAGNET_PINS[] = {22, 23, 24, 25, 26};
 
-/** @brief Left motor direction pin (HIGH = forward, LOW = reverse). */
-constexpr uint8_t MOTOR_L_DIR = 7;
+    /* Sensors */
+    constexpr uint8_t METAL_DETECTOR = 27;
+    constexpr uint8_t PROXIMITY_PINS[] = {A1, A2, A3, A4, A5};
 
-/* --- Wheel Encoders ------------------------------------------------------- */
-
-/** @brief Right encoder Phase A (INT5, external interrupt, RISING). */
-constexpr uint8_t ENCODER_R_A = 3;
-
-/** @brief Right encoder Phase B (general digital input with pull-up). */
-constexpr uint8_t ENCODER_R_B = 5;
-
-/** @brief Left encoder Phase A (INT4, external interrupt, RISING). */
-constexpr uint8_t ENCODER_L_A = 2;
-
-/** @brief Left encoder Phase B (general digital input with pull-up). */
-constexpr uint8_t ENCODER_L_B = 4;
-
-/* --- IMU: MPU6050 via I2C ------------------------------------------------- */
-
-/** @brief I2C data line (Wire library default on Mega). */
-constexpr uint8_t IMU_SDA = 20;
-
-/** @brief I2C clock line (Wire library default on Mega). */
-constexpr uint8_t IMU_SCL = 21;
-
-/* --- Lift Mechanism ------------------------------------------------------- */
-
-/** @brief Lift motor PWM output (Timer 2, OC2A, ~490 Hz). */
-constexpr uint8_t LIFT_PWM = 10;
-
-/** @brief Lift motor direction pin (HIGH = up, LOW = down). */
-constexpr uint8_t LIFT_DIR = 8;
-
-/** @brief Top limit switch input (active LOW, internal pull-up enabled). */
-constexpr uint8_t LIMIT_SW_TOP = 28;
-
-/** @brief Bottom limit switch input (active LOW, internal pull-up enabled). */
-constexpr uint8_t LIMIT_SW_BOTTOM = 29;
-
-/* --- Electromagnets (5 channels, via MOSFET/relay drivers) ---------------- */
-
-constexpr uint8_t MAGNET_1 = 22;  ///< Electromagnet channel 1
-constexpr uint8_t MAGNET_2 = 23;  ///< Electromagnet channel 2
-constexpr uint8_t MAGNET_3 = 24;  ///< Electromagnet channel 3
-constexpr uint8_t MAGNET_4 = 25;  ///< Electromagnet channel 4
-constexpr uint8_t MAGNET_5 = 26;  ///< Electromagnet channel 5
-
-/** @brief Array of all magnet pins for indexed access. */
-constexpr uint8_t MAGNET_PINS[] = {22, 23, 24, 25, 26};
-
-/* --- Sensors -------------------------------------------------------------- */
-
-/** @brief Metal detector digital input (active LOW, internal pull-up). */
-constexpr uint8_t METAL_DETECTOR = 27;
-
-/** @brief Proximity sensor analog inputs (ADC, 0-1023). */
-constexpr uint8_t PROXIMITY_1 = A1;
-constexpr uint8_t PROXIMITY_2 = A2;
-constexpr uint8_t PROXIMITY_3 = A3;
-constexpr uint8_t PROXIMITY_4 = A4;
-constexpr uint8_t PROXIMITY_5 = A5;
-
-/** @brief Array of all proximity sensor pins for indexed access. */
-constexpr uint8_t PROXIMITY_PINS[] = {A1, A2, A3, A4, A5};
-
-/* --- Indicators ----------------------------------------------------------- */
-
-/** @brief Buzzer output (Timer 4, OC4A, PWM capable for tone()). */
-constexpr uint8_t BUZZER = 6;
-
-/** @brief Warning LED output (also Arduino built-in LED). */
-constexpr uint8_t WARNING_LED = 13;
-
-/* --- Battery Monitoring --------------------------------------------------- */
-
-/** @brief Battery voltage divider analog input (ADC). */
-constexpr uint8_t BATTERY_SENSE = A0;
-
-} // namespace Pins
+    /* Indicators & Battery */
+    constexpr uint8_t BUZZER = 6;
+    constexpr uint8_t WARNING_LED = 13;
+    constexpr uint8_t BATTERY_SENSE = A0;
+}
 
 /* ============================================================================
- * ENCODER SPECIFICATIONS
- * ============================================================================ */
-
-namespace EncoderSpec {
-
-/** @brief Pulses Per Revolution of the wheel encoder. */
-constexpr double PPR = 385.0;
-
-/** @brief Radians per encoder pulse. */
-constexpr double RADIANS_PER_PULSE = (2.0 * 3.14159265359) / PPR;
-
-/** @brief Conversion factor: RPM to rad/s. */
-constexpr double RPM_TO_RADS = (2.0 * 3.14159265359) / 60.0;
-
-} // namespace EncoderSpec
-
-/* ============================================================================
- * ROBOT PHYSICAL PARAMETERS
- * ============================================================================ */
-
-namespace RobotParams {
-
-/** @brief Wheel diameter in millimeters. */
-constexpr double WHEEL_DIAMETER_MM = 65.0;
-
-/** @brief Wheel radius in meters. */
-constexpr double WHEEL_RADIUS_M = (WHEEL_DIAMETER_MM / 1000.0) / 2.0;
-
-/** @brief Center-to-center distance between left and right wheels (mm). */
-constexpr double WHEEL_BASE_MM = 150.0;
-
-/** @brief Wheel base in meters. */
-constexpr double WHEEL_BASE_M = WHEEL_BASE_MM / 1000.0;
-
-/** @brief Encoder ticks per meter of wheel travel. */
-constexpr double TICKS_PER_METER =
-    EncoderSpec::PPR / (3.14159265359 * WHEEL_DIAMETER_MM / 1000.0);
-
-} // namespace RobotParams
-
-/* ============================================================================
- * CONTROL LOOP TIMING
- * ============================================================================ */
-
-namespace Timing {
-
-/** @brief Main PID control loop period in milliseconds (10 Hz). */
-constexpr unsigned long CONTROL_INTERVAL_MS = 100;
-
-/** @brief Control interval in seconds (for calculations). */
-constexpr double CONTROL_INTERVAL_S = CONTROL_INTERVAL_MS / 1000.0;
-
-/** @brief Velocity telemetry output rate in milliseconds (10 Hz). */
-constexpr unsigned long TELEMETRY_INTERVAL_MS = 100;
-
-/** @brief IMU read interval in milliseconds (50 Hz). */
-constexpr unsigned long IMU_INTERVAL_MS = 20;
-
-/** @brief Sensor read interval in milliseconds (20 Hz). */
-constexpr unsigned long SENSOR_INTERVAL_MS = 50;
-
-/** @brief Lift controller update interval in milliseconds (20 Hz). */
-constexpr unsigned long LIFT_INTERVAL_MS = 50;
-
-} // namespace Timing
-
-/* ============================================================================
- * PID TUNING PARAMETERS
- * ============================================================================ */
-
-namespace PIDTuning {
-
-/* --- Right Motor PID Gains --- */
-constexpr double KP_RIGHT = 11.5;  ///< Proportional gain
-constexpr double KI_RIGHT = 7.5;   ///< Integral gain
-constexpr double KD_RIGHT = 0.1;   ///< Derivative gain
-
-/* --- Left Motor PID Gains --- */
-constexpr double KP_LEFT = 12.8;   ///< Proportional gain
-constexpr double KI_LEFT = 8.3;    ///< Integral gain
-constexpr double KD_LEFT = 0.1;    ///< Derivative gain
-
-/* --- Output Limits --- */
-constexpr double OUTPUT_MIN = -255.0;  ///< Full reverse PWM
-constexpr double OUTPUT_MAX = 255.0;   ///< Full forward PWM
-
-/* --- Anti-Windup --- */
-constexpr double INTEGRAL_WINDUP_LIMIT = 200.0;  ///< Max integral accumulation
-
-} // namespace PIDTuning
-
-/* ============================================================================
- * MOTION CONSTRAINTS
- * ============================================================================ */
-
-namespace MotionLimits {
-
-/** @brief Maximum acceleration rate (rad/s per second). */
-constexpr double MAX_ACCELERATION = 15.0;
-
-/** @brief Maximum deceleration rate (rad/s per second). */
-constexpr double MAX_DECELERATION = 20.0;
-
-/** @brief Minimum PWM output to overcome motor stiction. */
-constexpr double MIN_OUTPUT_DEADBAND = 8.0;
-
-/** @brief Velocity threshold below which wheel is considered stopped (rad/s). */
-constexpr double VELOCITY_TOLERANCE = 0.01;
-
-} // namespace MotionLimits
-
-/* ============================================================================
- * SAFETY PARAMETERS
+ * FIRMWARE CONSTANTS (Non-configurable runtime bounds)
  * ============================================================================ */
 
 namespace SafetyConfig {
-
-/** @brief Serial command timeout before E-Stop (milliseconds). */
-constexpr unsigned long COMMAND_TIMEOUT_MS = 1500;
-
-/** @brief Hardware watchdog timeout (milliseconds). */
-constexpr unsigned long WATCHDOG_TIMEOUT_MS = 2000;
-
-/** @brief Maximum allowed wheel velocity (rad/s). Commands above this are clamped. */
-constexpr double MAX_VELOCITY_RAD_S = 10.0;
-
-/** @brief Low battery voltage threshold (millivolts). */
-constexpr uint16_t BATTERY_VOLTAGE_LOW = 10800;
-
-/** @brief High battery voltage threshold (millivolts). */
-constexpr uint16_t BATTERY_VOLTAGE_HIGH = 16800;
-
-/** @brief Voltage divider ratio (R1+R2) / R2 for battery sensing. */
-constexpr double VOLTAGE_DIVIDER_RATIO = 3.3;
-
-} // namespace SafetyConfig
-
-/* ============================================================================
- * LIFT MECHANISM CONFIGURATION
- * ============================================================================ */
+    constexpr unsigned long COMMAND_TIMEOUT_MS = 1500;
+    constexpr unsigned long WATCHDOG_TIMEOUT_MS = 2000;
+    constexpr uint16_t BATTERY_VOLTAGE_LOW = 10800; // mV
+    constexpr uint16_t BATTERY_VOLTAGE_CRITICAL = 9600; // mV
+    constexpr uint16_t BATTERY_VOLTAGE_HIGH = 16800; // mV
+    constexpr float VOLTAGE_DIVIDER_RATIO = 3.3f;
+}
 
 namespace LiftConfig {
-
-/** @brief Lift motor PWM speed (0-255). */
-constexpr uint8_t LIFT_PWM_SPEED = 200;
-
-/** @brief Maximum time for a lift travel operation before stall fault (ms). */
-constexpr unsigned long STALL_TIMEOUT_MS = 5000;
-
-/** @brief Limit switch debounce period (ms). */
-constexpr unsigned long DEBOUNCE_MS = 50;
-
-/** @brief Number of electromagnet channels. */
-constexpr uint8_t NUM_MAGNETS = 5;
-
-} // namespace LiftConfig
-
-/* ============================================================================
- * SENSOR CONFIGURATION
- * ============================================================================ */
+    constexpr uint8_t LIFT_PWM_SPEED = 200;
+    constexpr unsigned long STALL_TIMEOUT_MS = 5000;
+    constexpr unsigned long DEBOUNCE_MS = 50;
+    constexpr uint8_t NUM_MAGNETS = 5;
+}
 
 namespace SensorConfig {
-
-/** @brief Proximity sensor ADC threshold for obstacle detection. */
-constexpr uint16_t PROXIMITY_THRESHOLD = 500;
-
-/** @brief Number of proximity sensors. */
-constexpr uint8_t NUM_PROXIMITY = 5;
-
-/** @brief Metal detector input debounce period (ms). */
-constexpr unsigned long METAL_DEBOUNCE_MS = 100;
-
-/** @brief Number of ADC samples to average per proximity read. */
-constexpr uint8_t ADC_SAMPLES = 4;
-
-/** @brief Buzzer tone frequency in Hz for mine detection alert. */
-constexpr uint16_t BUZZER_FREQ_HZ = 500;
-
-} // namespace SensorConfig
-
-/* ============================================================================
- * IMU CONFIGURATION (MPU6050)
- * ============================================================================ */
+    constexpr uint16_t PROXIMITY_THRESHOLD = 500;
+    constexpr uint8_t NUM_PROXIMITY = 5;
+    constexpr unsigned long METAL_DEBOUNCE_MS = 100;
+    constexpr uint8_t ADC_SAMPLES = 4;
+    constexpr uint16_t BUZZER_FREQ_HZ = 500;
+}
 
 namespace IMUConfig {
-
-/** @brief MPU6050 I2C address (AD0 pin = LOW). */
-constexpr uint8_t MPU6050_ADDR = 0x68;
-
-/** @brief WHO_AM_I register expected value for MPU6050. */
-constexpr uint8_t WHO_AM_I_EXPECTED = 0x68;
-
-/** @brief Number of samples for gyroscope bias calibration at startup. */
-constexpr uint16_t CALIBRATION_SAMPLES = 500;
-
-/** @brief Complementary filter coefficient (0.0 = pure accel, 1.0 = pure gyro). */
-constexpr double COMPLEMENTARY_ALPHA = 0.98;
-
-/** @brief Gyroscope sensitivity scale factor (LSB per deg/s for +/-250 dps). */
-constexpr double GYRO_SCALE = 131.0;
-
-/** @brief Accelerometer sensitivity scale factor (LSB per g for +/-2g). */
-constexpr double ACCEL_SCALE = 16384.0;
-
-} // namespace IMUConfig
-
-/* ============================================================================
- * SERIAL COMMUNICATION
- * ============================================================================ */
+    constexpr uint8_t MPU6050_ADDR = 0x68;
+    constexpr uint8_t WHO_AM_I_EXPECTED = 0x68;
+    constexpr float COMPLEMENTARY_ALPHA = 0.98f;
+    constexpr float GYRO_SCALE = 131.0f;
+    constexpr float ACCEL_SCALE = 16384.0f;
+}
 
 namespace SerialConfig {
-
-/** @brief USB serial baud rate. */
-constexpr unsigned long BAUD_RATE = 115200;
-
-/** @brief Receive buffer size (bytes, stack-allocated). */
-constexpr size_t RX_BUFFER_SIZE = 32;
-
-/** @brief Transmit formatting buffer size (bytes, stack-allocated). */
-constexpr size_t TX_BUFFER_SIZE = 64;
-
-/** @brief Extended command buffer size (bytes). */
-constexpr size_t CMD_BUFFER_SIZE = 24;
-
-/** @brief Packet delimiter character. */
-constexpr char PACKET_DELIMITER = '\n';
-
-} // namespace SerialConfig
+    constexpr unsigned long BAUD_RATE = 115200;
+    constexpr size_t RX_BUFFER_SIZE = 32;
+    constexpr size_t TX_BUFFER_SIZE = 64;
+    constexpr size_t CMD_BUFFER_SIZE = 24;
+}
 
 /* ============================================================================
- * DIAGNOSTICS SETTINGS
+ * ROBOT PARAMETERS (EEPROM-Backed)
  * ============================================================================ */
 
-namespace DiagConfig {
+/**
+ * @brief Robot parameters structure stored in EEPROM.
+ * Provides all tuning and kinematic data for the system.
+ */
+struct RobotParameters {
+    uint32_t magic_number; // Used to verify EEPROM validity
+    uint16_t version;
 
-/** @brief Interval between periodic status reports (ms). */
-constexpr unsigned long STATUS_INTERVAL_MS = 5000;
+    // Kinematics
+    float wheel_radius_m;
+    float wheel_base_m;
+    float encoder_ppr;
+    float rad_per_pulse;
 
-/** @brief Enable verbose encoder debug output. */
-constexpr bool VERBOSE_ENCODER = false;
+    // Right PID
+    float kp_right;
+    float ki_right;
+    float kd_right;
+    float ff_right; // Feedforward
 
-/** @brief Enable verbose PID debug output. */
-constexpr bool VERBOSE_PID = false;
+    // Left PID
+    float kp_left;
+    float ki_left;
+    float kd_left;
+    float ff_left;
 
-/** @brief Enable verbose safety state change output. */
-constexpr bool VERBOSE_SAFETY = true;
+    // Motion Limits
+    float max_velocity;
+    float max_acceleration;
+    float max_deceleration;
+    float min_pwm_deadband; // Minimum PWM to overcome stiction
+    float max_pwm_slew_rate; // Max change in PWM per second
 
-} // namespace DiagConfig
+    // IMU Calibration
+    float gyro_bias_x;
+    float gyro_bias_y;
+    float gyro_bias_z;
+
+    // Hardware configuration flags
+    bool invert_right_encoder;
+    bool invert_left_encoder;
+    bool invert_right_motor;
+    bool invert_left_motor;
+
+    uint16_t crc16; // Data integrity check
+};
+
+namespace DefaultParams {
+    constexpr uint32_t MAGIC_NUMBER = 0x4D494E45; // "MINE"
+    constexpr uint16_t VERSION = 1;
+
+    constexpr float WHEEL_DIAMETER_MM = 65.0f;
+    constexpr float WHEEL_RADIUS_M = (WHEEL_DIAMETER_MM / 1000.0f) / 2.0f;
+    constexpr float WHEEL_BASE_M = 150.0f / 1000.0f;
+    constexpr float ENCODER_PPR = 385.0f;
+    constexpr float RAD_PER_PULSE = (2.0f * PI) / ENCODER_PPR;
+
+    constexpr float KP_RIGHT = 11.5f;
+    constexpr float KI_RIGHT = 7.5f;
+    constexpr float KD_RIGHT = 0.1f;
+    constexpr float FF_RIGHT = 0.5f; 
+    
+    constexpr float KP_LEFT = 12.8f;
+    constexpr float KI_LEFT = 8.3f;
+    constexpr float KD_LEFT = 0.1f;
+    constexpr float FF_LEFT = 0.5f;
+
+    constexpr float MAX_VELOCITY = 10.0f;
+    constexpr float MAX_ACCELERATION = 15.0f;
+    constexpr float MAX_DECELERATION = 20.0f;
+    constexpr float MIN_PWM_DEADBAND = 20.0f;
+    constexpr float MAX_PWM_SLEW_RATE = 1000.0f; // 1000 PWM steps per second
+
+    constexpr float GYRO_BIAS_X = 0.0f;
+    constexpr float GYRO_BIAS_Y = 0.0f;
+    constexpr float GYRO_BIAS_Z = 0.0f;
+
+    constexpr bool INVERT_RIGHT_ENCODER = false;
+    constexpr bool INVERT_LEFT_ENCODER = true;
+    constexpr bool INVERT_RIGHT_MOTOR = false;
+    constexpr bool INVERT_LEFT_MOTOR = true;
+}
 
 #endif // CONFIG_H

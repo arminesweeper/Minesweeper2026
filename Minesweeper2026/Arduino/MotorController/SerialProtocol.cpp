@@ -2,19 +2,11 @@
  * ============================================================================
  * SERIALPROTOCOL.CPP - Serial Communication Protocol Implementation
  * ============================================================================
- * @file   SerialProtocol.cpp
- * @author Assiut Robotics Team
- * @date   2026
- * ============================================================================
  */
 
 #include "SerialProtocol.h"
 #include <stdlib.h>
 #include <string.h>
-
-/* ============================================================================
- * CONSTRUCTOR & INITIALIZATION
- * ============================================================================ */
 
 SerialProtocol::SerialProtocol()
     : parser_state_(State::WAITING_PREFIX),
@@ -22,13 +14,15 @@ SerialProtocol::SerialProtocol()
       last_command_time_(0),
       cmd_index_(0),
       cmd_ready_(false),
-      parsing_right_(false),
+      current_motor_(' '),
       current_sign_('p'),
       value_index_(0),
-      pending_right_vel_(0.0),
-      pending_left_vel_(0.0),
+      pending_right_vel_(0.0f),
+      pending_left_vel_(0.0f),
+      pending_gripper_vel_(0.0f),
       right_received_(false),
-      left_received_(false) {
+      left_received_(false),
+      gripper_received_(false) {
     memset(rx_buffer_, 0, sizeof(rx_buffer_));
     memset(value_buffer_, 0, sizeof(value_buffer_));
     memset(cmd_buffer_, 0, sizeof(cmd_buffer_));
@@ -36,17 +30,11 @@ SerialProtocol::SerialProtocol()
 
 void SerialProtocol::begin() {
     Serial.begin(SerialConfig::BAUD_RATE);
-    while (!Serial) {
-        ; // Wait for serial port to connect
-    }
+    while (!Serial) { ; }
     last_command_time_ = millis();
 }
 
-/* ============================================================================
- * INPUT PROCESSING (STATE MACHINE)
- * ============================================================================ */
-
-bool SerialProtocol::processInput(double& right_vel, double& left_vel) {
+bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& gripper_vel) {
     bool packet_complete = false;
 
     while (Serial.available() > 0 && !packet_complete) {
@@ -54,11 +42,8 @@ bool SerialProtocol::processInput(double& right_vel, double& left_vel) {
 
         switch (parser_state_) {
         case State::WAITING_PREFIX:
-            if (c == 'r') {
-                parsing_right_ = true;
-                parser_state_ = State::READING_DIRECTION;
-            } else if (c == 'l') {
-                parsing_right_ = false;
+            if (c == 'r' || c == 'l' || c == 'g') {
+                current_motor_ = c;
                 parser_state_ = State::READING_DIRECTION;
             } else if (c == 'C') {
                 cmd_index_ = 0;
@@ -77,26 +62,36 @@ bool SerialProtocol::processInput(double& right_vel, double& left_vel) {
             break;
 
         case State::READING_VALUE:
-            if (c == ',' || c == '\n') {
-                /* Field complete */
-                double velocity = atof(value_buffer_);
+            if (c == ',' || c == '\n' || c == '\r') {
+                float velocity = atof(value_buffer_);
                 if (current_sign_ == 'n') {
                     velocity = -velocity;
                 }
 
-                if (parsing_right_) {
+                if (current_motor_ == 'r') {
                     pending_right_vel_ = velocity;
                     right_received_ = true;
-                } else {
+                } else if (current_motor_ == 'l') {
                     pending_left_vel_ = velocity;
                     left_received_ = true;
+                } else if (current_motor_ == 'g') {
+                    pending_gripper_vel_ = velocity;
+                    gripper_received_ = true;
                 }
 
-                if (right_received_ && left_received_) {
-                    right_vel = pending_right_vel_;
-                    left_vel = pending_left_vel_;
-                    processCompletePacket();
-                    packet_complete = true;
+                // Consider packet complete if we got at least right and left (gripper is optional or together)
+                // Wait, if packet is "rp02.50,ln01.30,gp01.00,", it ends with ',' followed by nothing, or '\n'
+                // Let's say if we get '\n', we process. If we get ',', we go to WAITING_PREFIX.
+                if (c == '\n' || c == '\r') {
+                    if (right_received_ && left_received_) { // Gripper is optional
+                        right_vel = pending_right_vel_;
+                        left_vel = pending_left_vel_;
+                        if (gripper_received_) gripper_vel = pending_gripper_vel_;
+                        processCompletePacket();
+                        packet_complete = true;
+                    } else {
+                        resetParser();
+                    }
                 } else {
                     parser_state_ = State::WAITING_PREFIX;
                 }
@@ -105,10 +100,10 @@ bool SerialProtocol::processInput(double& right_vel, double& left_vel) {
                     value_buffer_[value_index_++] = c;
                     value_buffer_[value_index_] = '\0';
                 } else {
-                    resetParser(); // Buffer overflow
+                    resetParser();
                 }
             } else {
-                resetParser(); // Invalid character
+                resetParser();
             }
             break;
 
@@ -123,7 +118,7 @@ bool SerialProtocol::processInput(double& right_vel, double& left_vel) {
                 if (cmd_index_ < SerialConfig::CMD_BUFFER_SIZE - 1) {
                     cmd_buffer_[cmd_index_++] = c;
                 } else {
-                    resetParser(); // Buffer overflow
+                    resetParser();
                 }
             }
             break;
@@ -151,6 +146,7 @@ void SerialProtocol::processCompletePacket() {
     parser_state_ = State::COMPLETE;
     right_received_ = false;
     left_received_ = false;
+    gripper_received_ = false;
 }
 
 void SerialProtocol::resetParser() {
@@ -158,6 +154,7 @@ void SerialProtocol::resetParser() {
     rx_index_ = 0;
     right_received_ = false;
     left_received_ = false;
+    gripper_received_ = false;
 }
 
 void SerialProtocol::resetValueBuffer() {
@@ -165,27 +162,23 @@ void SerialProtocol::resetValueBuffer() {
     value_buffer_[0] = '\0';
 }
 
-/* ============================================================================
- * TELEMETRY OUTPUT
- * ============================================================================ */
-
-void SerialProtocol::sendTelemetry(double right_vel, double left_vel) const {
+void SerialProtocol::sendTelemetry(float right_vel, float left_vel, float gripper_vel) const {
     char buffer[SerialConfig::TX_BUFFER_SIZE];
 
     char r_sign = (right_vel >= 0) ? 'p' : 'n';
     char l_sign = (left_vel >= 0)  ? 'p' : 'n';
+    char g_sign = (gripper_vel >= 0) ? 'p' : 'n';
 
-    /* dtostrf isn't strictly standard C++, but AVR libc provides it */
-    char r_val[10];
-    char l_val[10];
-    dtostrf(abs(right_vel), 4, 3, r_val);
-    dtostrf(abs(left_vel), 4, 3, l_val);
+    char r_val[10], l_val[10], g_val[10];
+    dtostrf(abs(right_vel), 5, 2, r_val);
+    dtostrf(abs(left_vel), 5, 2, l_val);
+    dtostrf(abs(gripper_vel), 5, 2, g_val);
 
-    snprintf(buffer, sizeof(buffer), "r%c%s,l%c%s,", r_sign, r_val, l_sign, l_val);
+    snprintf(buffer, sizeof(buffer), "r%c%s,l%c%s,g%c%s,", r_sign, r_val, l_sign, l_val, g_sign, g_val);
     Serial.println(buffer);
 }
 
-void SerialProtocol::sendOdometry(double x, double y, double theta) const {
+void SerialProtocol::sendOdometry(float x, float y, float theta) const {
     char buffer[SerialConfig::TX_BUFFER_SIZE];
     char x_val[10], y_val[10], t_val[10];
 
@@ -193,11 +186,11 @@ void SerialProtocol::sendOdometry(double x, double y, double theta) const {
     dtostrf(y, 6, 4, y_val);
     dtostrf(theta, 6, 4, t_val);
 
-    snprintf(buffer, sizeof(buffer), "O:%s,%s,%s,", x_val, y_val, t_val);
+    snprintf(buffer, sizeof(buffer), "O:%s,%s,%s", x_val, y_val, t_val);
     Serial.println(buffer);
 }
 
-void SerialProtocol::sendIMU(double yaw, double pitch, double roll) const {
+void SerialProtocol::sendIMU(float yaw, float pitch, float roll, float ax, float ay, float az) const {
     char buffer[SerialConfig::TX_BUFFER_SIZE];
     char y_val[8], p_val[8], r_val[8];
 
@@ -227,6 +220,12 @@ void SerialProtocol::sendLiftState(const char* state_str, uint8_t magnet_mask) c
     Serial.print(state_str);
     Serial.print(F(","));
     Serial.println(magnet_mask, HEX);
+}
+
+void SerialProtocol::sendDiagnostics(uint16_t loop_hz, uint8_t cpu_percent, uint8_t fault_code) const {
+    char buffer[SerialConfig::TX_BUFFER_SIZE];
+    snprintf(buffer, sizeof(buffer), "D:%u,%u,%u", loop_hz, cpu_percent, fault_code);
+    Serial.println(buffer);
 }
 
 void SerialProtocol::sendStatus(const char* message) const {

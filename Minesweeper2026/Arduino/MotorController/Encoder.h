@@ -11,7 +11,6 @@
 #include <Arduino.h>
 #include <util/atomic.h>
 
-
 /**
  * @brief Encoder channel pin configuration
  */
@@ -24,37 +23,27 @@ struct EncoderPinConfig {
 /**
  * @brief Quadrature Encoder Reader
  *
- * Provides interrupt-driven quadrature encoder reading with:
- * - Direction detection via Phase B state
- * - Atomic pulse count access
- * - Velocity calculation
- * - Error detection
+ * Provides highly optimized interrupt-driven quadrature encoder reading.
+ * Uses direct AVR port manipulation inside ISR to minimize execution latency.
  */
 class Encoder {
 public:
   /**
    * @brief Construct a new Encoder object
    * @param config Pin configuration
-   @param direction_inverted Set true if encoder counts opposite to wheel
-   direction
+   * @param direction_inverted Set true if encoder counts opposite to wheel direction
    */
-  explicit Encoder(const EncoderPinConfig &config,
-                   bool direction_inverted = false);
+  explicit Encoder(const EncoderPinConfig &config, bool direction_inverted = false);
 
   /**
-   * @brief Initialize encoder pins and attach interrupt
+   * @brief Initialize encoder pins, resolve hardware registers, and attach interrupt
    * @param isr Pointer to the ISR function for this encoder
    */
   void begin(void (*isr)(void));
 
   /**
-   * @brief Get pulse count and reset counter (atomic operation)
-   * @return Number of pulses since last read
-   */
-  int32_t getPulsesAndReset();
-
-  /**
-   * @brief Get current pulse count without resetting
+   * @brief Get current total pulse count continuously (atomic operation).
+   * Used with signed delta arithmetic (current - last) to prevent overflow issues.
    * @return Current pulse count
    */
   int32_t getPulses() const;
@@ -65,12 +54,13 @@ public:
   void reset();
 
   /**
-   * @brief Calculate velocity from pulse count
-   * @param pulses Pulse count over the sample period
+   * @brief Calculate velocity from pulse delta
+   * @param delta_pulses Pulses accumulated over the sample period
    * @param dt_sec Sample period in seconds
-   * @return Velocity in rad/s (signed)
+   * @param rad_per_pulse Conversion factor from pulses to radians
+   * @return Velocity in rad/s
    */
-  double calculateVelocity(int32_t pulses, double dt_sec) const;
+  float calculateVelocity(int32_t delta_pulses, float dt_sec, float rad_per_pulse) const;
 
   /**
    * @brief Get last measured direction
@@ -90,15 +80,9 @@ public:
   void clearError() { error_flag_ = false; }
 
   /**
-   * @brief Get total accumulated pulse count (for odometry)
-   * @return Total pulses since last total reset
+   * @brief Update direction inverted flag at runtime (from EEPROM)
    */
-  int32_t getTotalPulses() const { return total_pulse_count_; }
-
-  /**
-   * @brief Reset total pulse counter
-   */
-  void resetTotal() { total_pulse_count_ = 0; }
+  void setDirectionInverted(bool inverted) { direction_inverted_ = inverted; }
 
   // Static ISR callback targets - called from ISRs
   static void isrCallbackRight();
@@ -112,10 +96,13 @@ private:
   EncoderPinConfig config_;
   bool direction_inverted_;
 
-  volatile int32_t pulse_count_;       // Pulses since last read
-  volatile int32_t total_pulse_count_; // Total pulses (for odometry)
-  volatile int8_t direction_;          // Last detected direction
+  volatile int32_t pulse_count_; // Continuous pulse count
+  volatile int8_t direction_;    // Last detected direction
   volatile bool error_flag_;
+
+  // Direct port manipulation variables for fast ISR execution
+  volatile uint8_t* phase_b_reg_;
+  uint8_t phase_b_mask_;
 
   void handleInterrupt();
 };

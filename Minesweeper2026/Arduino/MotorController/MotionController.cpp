@@ -10,48 +10,43 @@ MotionController::MotionController() { reset(); }
 
 void MotionController::begin() { reset(); }
 
-void MotionController::setRightTarget(double velocity) {
-  // Sanity check
-  if (abs(velocity) > SafetyConfig::MAX_VELOCITY_RAD_S) {
-    velocity = (velocity > 0) ? SafetyConfig::MAX_VELOCITY_RAD_S
-                              : -SafetyConfig::MAX_VELOCITY_RAD_S;
+void MotionController::setRightTarget(float velocity) {
+  const RobotParameters& params = EEPROMManager::getParams();
+  if (abs(velocity) > params.max_velocity) {
+    velocity = (velocity > 0.0f) ? params.max_velocity : -params.max_velocity;
   }
   right_state_.target_velocity = velocity;
 }
 
-void MotionController::setLeftTarget(double velocity) {
-  // Sanity check
-  if (abs(velocity) > SafetyConfig::MAX_VELOCITY_RAD_S) {
-    velocity = (velocity > 0) ? SafetyConfig::MAX_VELOCITY_RAD_S
-                              : -SafetyConfig::MAX_VELOCITY_RAD_S;
+void MotionController::setLeftTarget(float velocity) {
+  const RobotParameters& params = EEPROMManager::getParams();
+  if (abs(velocity) > params.max_velocity) {
+    velocity = (velocity > 0.0f) ? params.max_velocity : -params.max_velocity;
   }
   left_state_.target_velocity = velocity;
 }
 
-void MotionController::updateProfiles(double dt_sec) {
-  if (dt_sec <= 0.0)
-    dt_sec = Timing::CONTROL_INTERVAL_S;
+void MotionController::updateProfiles(float dt_sec) {
+  if (dt_sec <= 0.0f) return;
+  
+  const RobotParameters& params = EEPROMManager::getParams();
 
-  right_state_.profiled_velocity = applyRamping(
-      right_state_.target_velocity, right_state_.profiled_velocity, dt_sec);
+  right_state_.profiled_velocity = applyVelocityRamping(
+      right_state_.target_velocity, right_state_.profiled_velocity, dt_sec, params);
 
-  left_state_.profiled_velocity = applyRamping(
-      left_state_.target_velocity, left_state_.profiled_velocity, dt_sec);
+  left_state_.profiled_velocity = applyVelocityRamping(
+      left_state_.target_velocity, left_state_.profiled_velocity, dt_sec, params);
 }
 
-double MotionController::applyRamping(double target, double current,
-                                      double dt_sec) const {
-  double error = target - current;
-  double max_step_accel = MotionLimits::MAX_ACCELERATION * dt_sec;
-  double max_step_decel = MotionLimits::MAX_DECELERATION * dt_sec;
+float MotionController::applyVelocityRamping(float target, float current, float dt_sec, const RobotParameters& params) const {
+  float error = target - current;
+  float max_step_accel = params.max_acceleration * dt_sec;
+  float max_step_decel = params.max_deceleration * dt_sec;
 
-  // Determine appropriate limit based on direction
-  double max_step;
-  if ((error > 0 && target > current) || (error < 0 && target < current)) {
-    // Accelerating toward target
+  float max_step;
+  if ((error > 0.0f && target > current) || (error < 0.0f && target < current)) {
     max_step = max_step_accel;
   } else {
-    // Decelerating (changing direction or slowing down)
     max_step = max_step_decel;
   }
 
@@ -64,49 +59,70 @@ double MotionController::applyRamping(double target, double current,
   }
 }
 
-void MotionController::applyDeadband() {
-  // Right wheel deadband
-  if (abs(right_state_.profiled_velocity) < MotionLimits::VELOCITY_TOLERANCE) {
-    right_state_.pid_output = 0.0;
-  } else if (abs(right_state_.pid_output) < MotionLimits::MIN_OUTPUT_DEADBAND) {
-    right_state_.pid_output = (right_state_.pid_output >= 0)
-                                  ? MotionLimits::MIN_OUTPUT_DEADBAND
-                                  : -MotionLimits::MIN_OUTPUT_DEADBAND;
+void MotionController::updatePWM(float dt_sec) {
+  if (dt_sec <= 0.0f) return;
+
+  const RobotParameters& params = EEPROMManager::getParams();
+  
+  // Apply deadband
+  float target_pwm_r = right_state_.target_pwm;
+  if (abs(right_state_.profiled_velocity) < 0.01f) {
+    target_pwm_r = 0.0f;
+  } else if (abs(target_pwm_r) > 0.0f && abs(target_pwm_r) < params.min_pwm_deadband) {
+    target_pwm_r = (target_pwm_r >= 0.0f) ? params.min_pwm_deadband : -params.min_pwm_deadband;
   }
 
-  // Left wheel deadband
-  if (abs(left_state_.profiled_velocity) < MotionLimits::VELOCITY_TOLERANCE) {
-    left_state_.pid_output = 0.0;
-  } else if (abs(left_state_.pid_output) < MotionLimits::MIN_OUTPUT_DEADBAND) {
-    left_state_.pid_output = (left_state_.pid_output >= 0)
-                                 ? MotionLimits::MIN_OUTPUT_DEADBAND
-                                 : -MotionLimits::MIN_OUTPUT_DEADBAND;
+  float target_pwm_l = left_state_.target_pwm;
+  if (abs(left_state_.profiled_velocity) < 0.01f) {
+    target_pwm_l = 0.0f;
+  } else if (abs(target_pwm_l) > 0.0f && abs(target_pwm_l) < params.min_pwm_deadband) {
+    target_pwm_l = (target_pwm_l >= 0.0f) ? params.min_pwm_deadband : -params.min_pwm_deadband;
+  }
+
+  // Apply PWM Slew Rate Limiting
+  right_state_.current_pwm = applyPWMRamping(target_pwm_r, right_state_.current_pwm, dt_sec, params);
+  left_state_.current_pwm = applyPWMRamping(target_pwm_l, left_state_.current_pwm, dt_sec, params);
+}
+
+float MotionController::applyPWMRamping(float target_pwm, float current_pwm, float dt_sec, const RobotParameters& params) const {
+  float max_step = params.max_pwm_slew_rate * dt_sec;
+  float error = target_pwm - current_pwm;
+  
+  if (error > max_step) {
+    return current_pwm + max_step;
+  } else if (error < -max_step) {
+    return current_pwm - max_step;
+  } else {
+    return target_pwm;
   }
 }
 
 void MotionController::emergencyStop() {
-  right_state_.target_velocity = 0.0;
-  left_state_.target_velocity = 0.0;
-  right_state_.profiled_velocity = 0.0;
-  left_state_.profiled_velocity = 0.0;
-  right_state_.pid_output = 0.0;
-  left_state_.pid_output = 0.0;
+  right_state_.target_velocity = 0.0f;
+  left_state_.target_velocity = 0.0f;
+  right_state_.profiled_velocity = 0.0f;
+  left_state_.profiled_velocity = 0.0f;
+  right_state_.target_pwm = 0.0f;
+  left_state_.target_pwm = 0.0f;
+  right_state_.current_pwm = 0.0f;
+  left_state_.current_pwm = 0.0f;
 }
 
 bool MotionController::isStopped() const {
-  return abs(right_state_.profiled_velocity) <
-             MotionLimits::VELOCITY_TOLERANCE &&
-         abs(left_state_.profiled_velocity) < MotionLimits::VELOCITY_TOLERANCE;
+  return abs(right_state_.profiled_velocity) < 0.01f &&
+         abs(left_state_.profiled_velocity) < 0.01f;
 }
 
 void MotionController::reset() {
-  right_state_.target_velocity = 0.0;
-  right_state_.profiled_velocity = 0.0;
-  right_state_.measured_velocity = 0.0;
-  right_state_.pid_output = 0.0;
+  right_state_.target_velocity = 0.0f;
+  right_state_.profiled_velocity = 0.0f;
+  right_state_.measured_velocity = 0.0f;
+  right_state_.target_pwm = 0.0f;
+  right_state_.current_pwm = 0.0f;
 
-  left_state_.target_velocity = 0.0;
-  left_state_.profiled_velocity = 0.0;
-  left_state_.measured_velocity = 0.0;
-  left_state_.pid_output = 0.0;
+  left_state_.target_velocity = 0.0f;
+  left_state_.profiled_velocity = 0.0f;
+  left_state_.measured_velocity = 0.0f;
+  left_state_.target_pwm = 0.0f;
+  left_state_.current_pwm = 0.0f;
 }
