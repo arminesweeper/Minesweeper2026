@@ -31,6 +31,27 @@ Sensors::Sensors()
 }
 
 /* ============================================================================
+ * LOCAL HELPERS — buzzer / siren output abstraction
+ * ============================================================================ */
+
+static void alertOff() {
+#if BUZZER_IS_SIREN_RELAY
+    digitalWrite(Pins::BUZZER, LOW);
+#else
+    noTone(Pins::BUZZER);
+#endif
+}
+
+static void alertOn(uint16_t freq_hz) {
+#if BUZZER_IS_SIREN_RELAY
+    (void)freq_hz;
+    digitalWrite(Pins::BUZZER, HIGH);
+#else
+    tone(Pins::BUZZER, freq_hz);
+#endif
+}
+
+/* ============================================================================
  * INITIALIZATION
  * ============================================================================ */
 
@@ -40,9 +61,9 @@ void Sensors::begin() {
 
     /* Proximity sensors: analog inputs (no pinMode needed for analogRead) */
 
-    /* Buzzer: output, initially off */
+    /* Buzzer / siren: output, initially off */
     pinMode(Pins::BUZZER, OUTPUT);
-    noTone(Pins::BUZZER);
+    alertOff();
 
     /* Warning LED: output, initially off */
     pinMode(Pins::WARNING_LED, OUTPUT);
@@ -123,7 +144,7 @@ void Sensors::updateMetalDetector() {
 }
 
 /* ============================================================================
- * BUZZER PATTERN ENGINE
+ * BUZZER / SIREN PATTERN ENGINE
  * ============================================================================ */
 
 void Sensors::setBuzzerPattern(BuzzerPattern pattern) {
@@ -134,9 +155,8 @@ void Sensors::setBuzzerPattern(BuzzerPattern pattern) {
     buzzer_toggle_ms_ = millis();
     buzzer_on_ = false;
 
-    /* Immediately silence if set to SILENT */
     if (pattern == BuzzerPattern::SILENT) {
-        noTone(Pins::BUZZER);
+        alertOff();
     }
 }
 
@@ -151,19 +171,18 @@ void Sensors::updateBuzzer() {
     switch (buzzer_pattern_) {
     case BuzzerPattern::SILENT:
         if (buzzer_on_) {
-            noTone(Pins::BUZZER);
+            alertOff();
             buzzer_on_ = false;
         }
         break;
 
     case BuzzerPattern::BEEP:
         if (!buzzer_on_) {
-            tone(Pins::BUZZER, SensorConfig::BUZZER_FREQ_HZ);
+            alertOn(SensorConfig::BUZZER_FREQ_HZ);
             buzzer_on_ = true;
             buzzer_toggle_ms_ = now;
         } else if (elapsed >= 50) {
-            /* Beep duration: 50 ms */
-            noTone(Pins::BUZZER);
+            alertOff();
             buzzer_on_ = false;
             buzzer_pattern_ = BuzzerPattern::SILENT;
         }
@@ -174,9 +193,9 @@ void Sensors::updateBuzzer() {
         if (elapsed >= ALERT_PERIOD) {
             buzzer_on_ = !buzzer_on_;
             if (buzzer_on_) {
-                tone(Pins::BUZZER, SensorConfig::BUZZER_FREQ_HZ);
+                alertOn(SensorConfig::BUZZER_FREQ_HZ);
             } else {
-                noTone(Pins::BUZZER);
+                alertOff();
             }
             buzzer_toggle_ms_ = now;
         }
@@ -188,9 +207,9 @@ void Sensors::updateBuzzer() {
         if (elapsed >= ALARM_PERIOD) {
             buzzer_on_ = !buzzer_on_;
             if (buzzer_on_) {
-                tone(Pins::BUZZER, SensorConfig::BUZZER_FREQ_HZ * 2);
+                alertOn(static_cast<uint16_t>(SensorConfig::BUZZER_FREQ_HZ * 2));
             } else {
-                noTone(Pins::BUZZER);
+                alertOff();
             }
             buzzer_toggle_ms_ = now;
         }
@@ -199,7 +218,7 @@ void Sensors::updateBuzzer() {
 
     case BuzzerPattern::MINE_DETECT:
         if (!buzzer_on_) {
-            tone(Pins::BUZZER, SensorConfig::BUZZER_FREQ_HZ);
+            alertOn(SensorConfig::BUZZER_FREQ_HZ);
             buzzer_on_ = true;
         }
         break;
@@ -233,11 +252,7 @@ void Sensors::updateLED() {
 
     switch (led_pattern_) {
     case LEDPattern::OFF:
-        /* Static off — no update needed */
-        break;
-
     case LEDPattern::ON:
-        /* Static on — no update needed */
         break;
 
     case LEDPattern::SLOW_BLINK: {
@@ -261,13 +276,6 @@ void Sensors::updateLED() {
     }
 
     case LEDPattern::HEARTBEAT: {
-        /*
-         * Heartbeat pattern phases:
-         *   Phase 0: ON  for 100 ms
-         *   Phase 1: OFF for 100 ms
-         *   Phase 2: ON  for 100 ms
-         *   Phase 3: OFF for 600 ms
-         */
         unsigned long phase_duration;
         switch (heartbeat_phase_) {
         case 0: phase_duration = 100; break;

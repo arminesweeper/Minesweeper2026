@@ -68,12 +68,10 @@ private:
     
     static MotorDriver motorRight_;
     static MotorDriver motorLeft_;
-    static MotorDriver motorGripper_; // Gripper motor placeholder
     static Encoder encoderRight_;
     static Encoder encoderLeft_;
     static PIDController pidRight_;
     static PIDController pidLeft_;
-    static PIDController pidGripper_; // Gripper PID placeholder
 };
 
 #endif // SYSTEMMANAGER_H

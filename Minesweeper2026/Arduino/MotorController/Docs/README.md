@@ -99,7 +99,10 @@ MotorController/
 ├── README.md               This file
 ├── Architecture.md         Software architecture documentation
 ├── API.md                  Full API reference (Doxygen-style)
-├── Pinout.md               Arduino Mega pin assignment table
+├── Pinout.md               Arduino Mega pin assignment (PCB-synced)
+├── WiringManual.md         Assembly wiring + connector pinouts
+├── CompatibilityReport.md  Firmware↔PCB sync + Rev B recommendations
+├── CommissioningChecklist.md  Hardware bring-up checklist
 ├── Communication.md        Serial protocol specification
 ├── Safety.md               Safety system documentation
 ├── MotionControl.md        Motion control theory and tuning
@@ -160,30 +163,31 @@ pio run -t upload  # Upload
 
 ## Pinout Summary
 
-See [Pinout.md](Pinout.md) for the complete pin assignment table.
+See [Pinout.md](Pinout.md) and [WiringManual.md](WiringManual.md) for the as-fabricated PCB map.
+See [CompatibilityReport.md](CompatibilityReport.md) for the no-PCB-edit sync notes.
 
 | Function | Pin(s) | Type |
 |----------|--------|------|
-| Right Motor PWM | D9 | PWM Output |
-| Right Motor DIR | D12 | Digital Output |
-| Left Motor PWM | D11 | PWM Output |
-| Left Motor DIR | D7 | Digital Output |
-| Right Encoder A | D3 (INT5) | External Interrupt |
-| Right Encoder B | D5 | Digital Input |
-| Left Encoder A | D2 (INT4) | External Interrupt |
-| Left Encoder B | D4 | Digital Input |
-| MPU6050 SDA | D20 | I2C |
-| MPU6050 SCL | D21 | I2C |
-| Lift Motor PWM | D10 | PWM Output |
-| Lift Motor DIR | D8 | Digital Output |
-| Electromagnets 1-5 | D22-D26 | Digital Output |
-| Limit Switch Top | D28 | Digital Input (Pull-up) |
-| Limit Switch Bottom | D29 | Digital Input (Pull-up) |
-| Metal Detector | D27 | Digital Input (Pull-up) |
-| Proximity 1-5 | A1-A5 | Analog Input |
-| Battery Voltage | A0 | Analog Input |
-| Buzzer | D6 | PWM Output |
-| Warning LED | D13 | Digital Output |
+| Right Motor PWM | D44 | PWM Output (Timer 5) |
+| Right Motor DIR | D42 | Digital Output |
+| Left Motor PWM | D46 | PWM Output (Timer 5) |
+| Left Motor DIR | D40 | Digital Output |
+| Right Encoder A | D19 (INT2) | External Interrupt |
+| Right Encoder B | D18 | Digital Input |
+| Left Encoder A | D21 (INT2) | External Interrupt (PCB copper) |
+| Left Encoder B | D20 | Digital Input (PCB copper) |
+| MPU6050 SDA | D30 | Soft I2C (flying lead) |
+| MPU6050 SCL | D31 | Soft I2C (flying lead) |
+| Lift Motor PWM | D10 | PWM Output (jumper) |
+| Lift Motor DIR | D8 | Digital Output (jumper) |
+| Magnet relay (all) | D38 | Digital Output |
+| Limit Switch Top | D28 | Digital Input, active HIGH (jumper) |
+| Limit Switch Bottom | D29 | Digital Input, active HIGH (jumper) |
+| Metal Detector | D27 | Digital Input (jumper) |
+| Proximity 1-5 | A1-A5 | Analog Input (jumper to J6) |
+| Battery Voltage | A0 | Analog Input (add-on divider) |
+| Siren relay | D37 | Digital Output (jumper) |
+| Warning LED | D35 | Digital Output |
 
 ---
 

@@ -33,6 +33,15 @@ int32_t Encoder::getPulses() const {
   return pulses;
 }
 
+int32_t Encoder::getPulsesAndReset() {
+  int32_t pulses;
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      pulses = pulse_count_;
+      pulse_count_ = 0;
+  }
+  return pulses;
+}
+
 void Encoder::reset() {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { 
       pulse_count_ = 0; 
@@ -79,7 +88,3 @@ void Encoder::isrCallbackLeft() {
     instance_left_->handleInterrupt();
   }
 }
-
-// Global ISR functions (required for attachInterrupt)
-void rightEncoderISR() { Encoder::isrCallbackRight(); }
-void leftEncoderISR() { Encoder::isrCallbackLeft(); }

@@ -49,9 +49,21 @@ public:
   int32_t getPulses() const;
 
   /**
+   * @brief Atomically read pulse delta since last call and clear the counter.
+   * @return Signed pulse count accumulated since previous getPulsesAndReset()
+   */
+  int32_t getPulsesAndReset();
+
+  /**
    * @brief Reset pulse counter to zero
    */
   void reset();
+
+  /**
+   * @brief ISR body — public so SystemManager/global ISRs can call it.
+   * Must remain ISR-safe: no floating point, no Serial, no heap.
+   */
+  void handleInterrupt();
 
   /**
    * @brief Calculate velocity from pulse delta
@@ -103,8 +115,6 @@ private:
   // Direct port manipulation variables for fast ISR execution
   volatile uint8_t* phase_b_reg_;
   uint8_t phase_b_mask_;
-
-  void handleInterrupt();
 };
 
 #endif // ENCODER_H

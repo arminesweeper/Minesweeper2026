@@ -178,6 +178,9 @@ private:
      * @return Debounced switch state (true = active/pressed)
      */
     bool readSwitch(uint8_t pin, unsigned long& last_change, bool& stable_state) const;
+
+    /** @brief Raw pressed detection honoring LIMIT_SWITCH_ACTIVE_HIGH. */
+    bool isSwitchRawActive(uint8_t pin) const;
 };
 
 #endif // LIFTCONTROLLER_H

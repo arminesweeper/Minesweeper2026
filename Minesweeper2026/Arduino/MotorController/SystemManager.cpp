@@ -18,18 +18,12 @@ Sensors SystemManager::sensors_;
 
 MotorDriver SystemManager::motorRight_({Pins::MOTOR_R_PWM, Pins::MOTOR_R_DIR}, false);
 MotorDriver SystemManager::motorLeft_({Pins::MOTOR_L_PWM, Pins::MOTOR_L_DIR}, true);
-MotorDriver SystemManager::motorGripper_({Pins::MOTOR_LIFT_PWM, Pins::MOTOR_LIFT_DIR}, false); // Example reuse
 
-Encoder SystemManager::encoderRight_({Pins::ENCODER_R_A, Pins::ENCODER_R_B, 5}, false);
-Encoder SystemManager::encoderLeft_({Pins::ENCODER_L_A, Pins::ENCODER_L_B, 4}, true);
+Encoder SystemManager::encoderRight_({Pins::ENCODER_R_A, Pins::ENCODER_R_B, 2}, false);
+Encoder SystemManager::encoderLeft_({Pins::ENCODER_L_A, Pins::ENCODER_L_B, 2}, true);
 
 PIDController SystemManager::pidRight_(PIDTuning::KP_RIGHT, PIDTuning::KI_RIGHT, PIDTuning::KD_RIGHT, 0.0f, PIDTuning::OUTPUT_MIN, PIDTuning::OUTPUT_MAX, Timing::CONTROL_INTERVAL_MS);
 PIDController SystemManager::pidLeft_(PIDTuning::KP_LEFT, PIDTuning::KI_LEFT, PIDTuning::KD_LEFT, 0.0f, PIDTuning::OUTPUT_MIN, PIDTuning::OUTPUT_MAX, Timing::CONTROL_INTERVAL_MS);
-PIDController SystemManager::pidGripper_(PIDTuning::KP_RIGHT, PIDTuning::KI_RIGHT, PIDTuning::KD_RIGHT, 0.0f, PIDTuning::OUTPUT_MIN, PIDTuning::OUTPUT_MAX, Timing::CONTROL_INTERVAL_MS); // Gripper
-
-// ISR wrappers
-void rightEncoderISR() { SystemManager::encoderRight_.handleInterrupt(); }
-void leftEncoderISR() { SystemManager::encoderLeft_.handleInterrupt(); }
 
 void SystemManager::begin() {
     EEPROMManager::begin();
@@ -39,14 +33,12 @@ void SystemManager::begin() {
 
     motorRight_.begin();
     motorLeft_.begin();
-    motorGripper_.begin();
 
-    encoderRight_.begin(rightEncoderISR);
-    encoderLeft_.begin(leftEncoderISR);
+    encoderRight_.begin(Encoder::isrCallbackRight);
+    encoderLeft_.begin(Encoder::isrCallbackLeft);
 
     pidRight_.begin();
     pidLeft_.begin();
-    pidGripper_.begin();
 
     serial_.begin();
     motion_.begin();

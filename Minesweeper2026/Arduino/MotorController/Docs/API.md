@@ -58,34 +58,30 @@ Central configuration file.  All tunable parameters and hardware pin assignments
 
 ```cpp
 namespace Pins {
-// Motor Driver — Cytron MDD10A Rev 2.0 (Sign-Magnitude Mode)
-constexpr uint8_t MOTOR_R_PWM = 9;       ///< Right motor PWM (Timer 2, 8-bit)
-constexpr uint8_t MOTOR_R_DIR = 12;      ///< Right motor direction
-constexpr uint8_t MOTOR_L_PWM = 11;      ///< Left motor PWM (Timer 1, 16-bit)
-constexpr uint8_t MOTOR_L_DIR = 7;       ///< Left motor direction
+// Motor Driver — Cytron MDD10A (PCB copper)
+constexpr uint8_t MOTOR_R_PWM = 44;      ///< Right motor PWM (Timer 5)
+constexpr uint8_t MOTOR_R_DIR = 42;      ///< Right motor direction
+constexpr uint8_t MOTOR_L_PWM = 46;      ///< Left motor PWM (Timer 5)
+constexpr uint8_t MOTOR_L_DIR = 40;      ///< Left motor direction
 
-// Wheel Encoders
-constexpr uint8_t ENCODER_R_A = 3;       ///< Right encoder Phase A (INT5)
-constexpr uint8_t ENCODER_R_B = 5;       ///< Right encoder Phase B
-constexpr uint8_t ENCODER_L_A = 2;       ///< Left encoder Phase A (INT4)
-constexpr uint8_t ENCODER_L_B = 4;       ///< Left encoder Phase B
+// Wheel Encoders (as-fabricated shield copper)
+constexpr uint8_t ENCODER_R_A = 19;      ///< Right encoder Phase A (INT4)
+constexpr uint8_t ENCODER_R_B = 18;      ///< Right encoder Phase B
+constexpr uint8_t ENCODER_L_A = 21;      ///< Left encoder Phase A (INT2)
+constexpr uint8_t ENCODER_L_B = 20;      ///< Left encoder Phase B
 
-// IMU (MPU6050 via I2C)
-constexpr uint8_t IMU_SDA = 20;          ///< I2C data (Wire library default)
-constexpr uint8_t IMU_SCL = 21;          ///< I2C clock (Wire library default)
+// IMU (MPU6050 via soft I2C — flying leads; not hardware Wire)
+constexpr uint8_t IMU_SDA = 30;          ///< Soft I2C data
+constexpr uint8_t IMU_SCL = 31;          ///< Soft I2C clock
 
-// Lift Mechanism
+// Lift Mechanism (jumper harness)
 constexpr uint8_t LIFT_PWM = 10;         ///< Lift motor PWM output
 constexpr uint8_t LIFT_DIR = 8;          ///< Lift motor direction
-constexpr uint8_t LIMIT_SW_TOP = 28;     ///< Top limit switch (active LOW)
-constexpr uint8_t LIMIT_SW_BOTTOM = 29;  ///< Bottom limit switch (active LOW)
+constexpr uint8_t LIMIT_SW_TOP = 28;     ///< Top limit switch (active HIGH on PCB)
+constexpr uint8_t LIMIT_SW_BOTTOM = 29;  ///< Bottom limit switch (active HIGH on PCB)
 
-// Electromagnets
-constexpr uint8_t MAGNET_1 = 22;         ///< Electromagnet channel 1
-constexpr uint8_t MAGNET_2 = 23;         ///< Electromagnet channel 2
-constexpr uint8_t MAGNET_3 = 24;         ///< Electromagnet channel 3
-constexpr uint8_t MAGNET_4 = 25;         ///< Electromagnet channel 4
-constexpr uint8_t MAGNET_5 = 26;         ///< Electromagnet channel 5
+// Electromagnets — shared relay on PCB Rev A
+constexpr uint8_t MAGNET_RELAY = 38;     ///< Single magnet relay (MAGNET_SHARED_RELAY)
 
 // Sensors
 constexpr uint8_t METAL_DETECTOR = 27;   ///< Metal detector digital input (active LOW)
@@ -96,11 +92,11 @@ constexpr uint8_t PROXIMITY_4 = A4;      ///< Proximity sensor 4 (analog)
 constexpr uint8_t PROXIMITY_5 = A5;      ///< Proximity sensor 5 (analog)
 
 // Indicators
-constexpr uint8_t BUZZER = 6;            ///< Buzzer output (PWM capable)
-constexpr uint8_t WARNING_LED = 13;      ///< Warning LED (also built-in LED)
+constexpr uint8_t BUZZER = 37;           ///< Siren relay (BUZZER_IS_SIREN_RELAY)
+constexpr uint8_t WARNING_LED = 35;      ///< Warning LED
 
 // Battery
-constexpr uint8_t BATTERY_SENSE = A0;    ///< Voltage divider analog input
+constexpr uint8_t BATTERY_SENSE = A0;    ///< Voltage divider analog input (add-on)
 }
 ```
 
@@ -1010,7 +1006,7 @@ public:
 | ISR Function | Trigger | Pin | Frequency | Max Latency |
 |-------------|---------|-----|-----------|-------------|
 | `rightEncoderISR()` | Phase A rising | D3 (INT5) | Up to ~10 kHz | < 2 µs |
-| `leftEncoderISR()` | Phase A rising | D2 (INT4) | Up to ~10 kHz | < 2 µs |
+| `leftEncoderISR()` | Phase A rising | D21 (INT2) | Up to ~10 kHz | < 2 µs |
 
 ### ISR Implementation
 

@@ -34,15 +34,25 @@ void LiftController::begin() {
     analogWrite(Pins::LIFT_PWM, 0);
     digitalWrite(Pins::LIFT_DIR, HIGH);
 
-    /* Configure limit switch pins with internal pull-ups */
+    /* Limit switches: polarity depends on PCB divider vs NO-to-GND wiring */
+#if LIMIT_SWITCH_ACTIVE_HIGH
+    pinMode(Pins::LIMIT_SW_TOP, INPUT);
+    pinMode(Pins::LIMIT_SW_BOTTOM, INPUT);
+#else
     pinMode(Pins::LIMIT_SW_TOP, INPUT_PULLUP);
     pinMode(Pins::LIMIT_SW_BOTTOM, INPUT_PULLUP);
+#endif
 
-    /* Configure electromagnet pins */
+    /* Electromagnet / shared relay pin(s) */
+#if MAGNET_SHARED_RELAY
+    pinMode(Pins::MAGNET_RELAY, OUTPUT);
+    digitalWrite(Pins::MAGNET_RELAY, LOW);
+#else
     for (uint8_t i = 0; i < LiftConfig::NUM_MAGNETS; ++i) {
         pinMode(Pins::MAGNET_PINS[i], OUTPUT);
         digitalWrite(Pins::MAGNET_PINS[i], LOW);
     }
+#endif
 
     magnet_state_ = 0;
     state_ = LiftState::IDLE;
@@ -51,8 +61,8 @@ void LiftController::begin() {
     unsigned long now = millis();
     debounce_top_ms_ = now;
     debounce_bot_ms_ = now;
-    top_switch_stable_ = (digitalRead(Pins::LIMIT_SW_TOP) == LOW);
-    bot_switch_stable_ = (digitalRead(Pins::LIMIT_SW_BOTTOM) == LOW);
+    top_switch_stable_ = isSwitchRawActive(Pins::LIMIT_SW_TOP);
+    bot_switch_stable_ = isSwitchRawActive(Pins::LIMIT_SW_BOTTOM);
 }
 
 /* ============================================================================
@@ -173,20 +183,30 @@ void LiftController::setMagnet(uint8_t index, bool on) {
         return;
     }
 
-    digitalWrite(Pins::MAGNET_PINS[index], on ? HIGH : LOW);
-
     if (on) {
         magnet_state_ |= (1U << index);
     } else {
         magnet_state_ &= ~(1U << index);
     }
+
+#if MAGNET_SHARED_RELAY
+    /* Any bit set → energize shared relay */
+    digitalWrite(Pins::MAGNET_RELAY, (magnet_state_ != 0) ? HIGH : LOW);
+#else
+    digitalWrite(Pins::MAGNET_PINS[index], on ? HIGH : LOW);
+#endif
 }
 
 void LiftController::setAllMagnets(bool on) {
+#if MAGNET_SHARED_RELAY
+    magnet_state_ = on ? 0x1F : 0x00;
+    digitalWrite(Pins::MAGNET_RELAY, on ? HIGH : LOW);
+#else
     for (uint8_t i = 0; i < LiftConfig::NUM_MAGNETS; ++i) {
         digitalWrite(Pins::MAGNET_PINS[i], on ? HIGH : LOW);
     }
     magnet_state_ = on ? 0x1F : 0x00;
+#endif
 }
 
 /* ============================================================================
@@ -228,7 +248,7 @@ void LiftController::stopMotor() {
 
 bool LiftController::readSwitch(uint8_t pin, unsigned long& last_change,
                                  bool& stable_state) const {
-    bool current_reading = (digitalRead(pin) == LOW);  /* Active LOW */
+    bool current_reading = isSwitchRawActive(pin);
 
     if (current_reading != stable_state) {
         unsigned long now = millis();
@@ -241,4 +261,12 @@ bool LiftController::readSwitch(uint8_t pin, unsigned long& last_change,
     }
 
     return stable_state;
+}
+
+bool LiftController::isSwitchRawActive(uint8_t pin) const {
+#if LIMIT_SWITCH_ACTIVE_HIGH
+    return digitalRead(pin) == HIGH;
+#else
+    return digitalRead(pin) == LOW;
+#endif
 }

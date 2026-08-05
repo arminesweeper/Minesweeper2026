@@ -474,7 +474,7 @@ Two ISRs are registered, one for each encoder's Phase A pin:
 | ISR | Trigger | Pin | Action |
 |-----|---------|-----|--------|
 | `rightEncoderISR()` | RISING edge | D3 (INT5) | Read Phase B, update count |
-| `leftEncoderISR()` | RISING edge | D2 (INT4) | Read Phase B, update count |
+| `leftEncoderISR()` | RISING edge | D21 (INT2) | Read Phase B, update count |
 
 **ISR design rules:**
 - No `digitalRead()` (uses direct port register access via `digitalRead` — acceptable on Mega at current speeds, would use PINx for optimization if needed)
