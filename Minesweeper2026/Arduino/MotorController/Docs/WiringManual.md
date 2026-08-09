@@ -64,21 +64,25 @@ flowchart LR
 | D19 | ENC_R_A (A2) | Right encoder Phase A | PCB copper |
 | D20 | ENC_L_B (B1) | Left encoder Phase B | PCB copper |
 | D21 | ENC_L_A (A1) | Left encoder Phase A | PCB copper |
-| D30 | soft SDA | MPU6050 SDA | **Flying lead** (not J29) |
-| D31 | soft SCL | MPU6050 SCL | **Flying lead** (not J38) |
-| D8 | DIR3 | Lift DIR | Jumper → J37 / J44 |
-| D10 | PWM3 | Lift PWM | Jumper → J37 / J44 |
-| D27 | MTLDTCT / MD | Metal detector | Jumper → J6.1 or J40.1 |
-| D28 | LM1 | Limit switch 1 (top) | Jumper → J43/J44 |
-| D29 | LM2 | Limit switch 2 (bottom) | Jumper → J43/J44 |
-| D35 | WARN_LED | Warning LED | Discrete LED + 220 Ω to GND |
-| D36 | SERVO | Optional servo | PCB copper → J13 |
-| D37 | SIREN | Siren relay drive | Jumper → J15.1 |
+| D31 | soft SDA | MPU6050 SDA | **Flying lead** (not J29) |
+| D33 | soft SCL | MPU6050 SCL | **Flying lead** (not J38) |
+| D35 | DIR3 | Lift DIR | Jumper → J37 / J44 |
+| D37 | PWM3 | Lift PWM | Jumper → J37 / J44 |
+| D39 | MTLDTCT / MD | Metal detector | Jumper → J6.1 or J40.1 |
+| D41 | LM1 | Limit switch 1 (top) | Jumper → J43/J44 |
+| D43 | LM2 | Limit switch 2 (bottom) | Jumper → J43/J44 |
+| D45 | WARN_LED | Warning LED | Discrete LED + 220 Ω to GND |
+| D4 | SERVO | Optional servo | PCB copper → J13 |
+| D47 | SIREN | Siren relay drive | Jumper → J15.1 |
 | D38 | MAGNET | Magnet relay K1 | PCB copper → J14 |
-| D40 | DIR2 | Left motor DIR | PCB copper → J36 |
-| D42 | DIR1 | Right motor DIR | PCB copper → J36 |
-| D44 | PWM1 | Right motor PWM | PCB copper → J36 |
-| D46 | PWM2 | Left motor PWM | PCB copper → J36 |
+| D40 | DIR2 | Left motor DIR Cytron1 | PCB copper → J36 |
+| D42 | DIR1 | Right motor DIR Cytron1 | PCB copper → J36 |
+| D44 | PWM1 | Right motor PWM Cytron1 | PCB copper → J36 |
+| D46 | PWM2 | Left motor PWM Cytron1 | PCB copper → J36 |
+| D27 | DIR2 | Left motor DIR Cytron2 | Jumpers → Pin Header |
+| D23 | DIR1 | Right motor DIR Cytron2 | Jumpers → Pin Header |
+| D25 | PWM1 | Right motor PWM Cytron2 | Jumpers → Pin Header |
+| D29 | PWM2 | Left motor PWM Cytron2 | Jumpers → Pin Header |
 | A0 | BAT_SENSE | Battery monitor | Off-board divider |
 | A1–A5 | AP1–AP5 | Proximity | Jumper → J6 |
 | D0/D1 | USB Serial | Raspberry Pi | Mega USB |
