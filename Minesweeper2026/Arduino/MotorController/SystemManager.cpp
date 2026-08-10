@@ -18,6 +18,8 @@ Sensors SystemManager::sensors_;
 
 MotorDriver SystemManager::motorRight_({Pins::MOTOR_R_PWM, Pins::MOTOR_R_DIR}, false);
 MotorDriver SystemManager::motorLeft_({Pins::MOTOR_L_PWM, Pins::MOTOR_L_DIR}, true);
+MotorDriver SystemManager::motorRight2_({Pins::MOTOR_R_PWM_2, Pins::MOTOR_R_DIR_2}, false);
+MotorDriver SystemManager::motorLeft2_({Pins::MOTOR_L_PWM_2, Pins::MOTOR_L_DIR_2}, true);
 
 Encoder SystemManager::encoderRight_({Pins::ENCODER_R_A, Pins::ENCODER_R_B, 2}, false);
 Encoder SystemManager::encoderLeft_({Pins::ENCODER_L_A, Pins::ENCODER_L_B, 2}, true);
@@ -26,13 +28,15 @@ PIDController SystemManager::pidRight_(PIDTuning::KP_RIGHT, PIDTuning::KI_RIGHT,
 PIDController SystemManager::pidLeft_(PIDTuning::KP_LEFT, PIDTuning::KI_LEFT, PIDTuning::KD_LEFT, 0.0f, PIDTuning::OUTPUT_MIN, PIDTuning::OUTPUT_MAX, Timing::CONTROL_INTERVAL_MS);
 
 void SystemManager::begin() {
-    EEPROMManager::begin();
+    EEPROMManager::init();
     
     Encoder::instance_right_ = &encoderRight_;
     Encoder::instance_left_ = &encoderLeft_;
 
     motorRight_.begin();
     motorLeft_.begin();
+    motorRight2_.begin();
+    motorLeft2_.begin();
 
     encoderRight_.begin(Encoder::isrCallbackRight);
     encoderLeft_.begin(Encoder::isrCallbackLeft);
@@ -117,8 +121,9 @@ void SystemManager::update() {
 void SystemManager::taskControlLoop() {
     float dt = Timing::CONTROL_INTERVAL_MS / 1000.0f;
     
-    float right_meas_vel = encoderRight_.calculateVelocity(encoderRight_.getPulsesAndReset(), dt);
-    float left_meas_vel = encoderLeft_.calculateVelocity(encoderLeft_.getPulsesAndReset(), dt);
+    float rad_per_pulse = EEPROMManager::getParams().rad_per_pulse;
+    float right_meas_vel = encoderRight_.calculateVelocity(encoderRight_.getPulsesAndReset(), dt, rad_per_pulse);
+    float left_meas_vel = encoderLeft_.calculateVelocity(encoderLeft_.getPulsesAndReset(), dt, rad_per_pulse);
     
     motion_.getRightStateMutable().measured_velocity = right_meas_vel;
     motion_.getLeftStateMutable().measured_velocity = left_meas_vel;
@@ -133,9 +138,13 @@ void SystemManager::taskControlLoop() {
     if (safety_.isRunning() || safety_.getState() == SystemState::READY) {
         motorRight_.setOutput(motion_.getRightState().current_pwm);
         motorLeft_.setOutput(motion_.getLeftState().current_pwm);
+        motorRight2_.setOutput(motion_.getRightState().current_pwm);
+        motorLeft2_.setOutput(motion_.getLeftState().current_pwm);
     } else {
         motorRight_.emergencyStop();
         motorLeft_.emergencyStop();
+        motorRight2_.emergencyStop();
+        motorLeft2_.emergencyStop();
     }
     
     odom_.update(right_meas_vel, left_meas_vel, dt);
@@ -199,8 +208,10 @@ void SystemManager::taskLowRateTelemetry() {
 }
 
 void SystemManager::taskDiagnostics() {
-    // Expose stats logic here
-    serial_.sendDiagnostics(diag_.getLoopFrequency(), diag_.getCPUUsagePercent(), safety_.hasFault() ? 1 : 0);
+    uint32_t avg_us = diag_.getStats().avg_loop_time_us;
+    uint16_t freq = (avg_us > 0) ? (1000000 / avg_us) : 0;
+    uint8_t cpu = 0; // CPU usage tracking not implemented
+    serial_.sendDiagnostics(freq, cpu, safety_.hasFault() ? 1 : 0);
 }
 
 void SystemManager::handleStateTransitions() {
@@ -212,6 +223,8 @@ void SystemManager::handleStateTransitions() {
         case SystemState::ESTOP:
             motorRight_.emergencyStop();
             motorLeft_.emergencyStop();
+            motorRight2_.emergencyStop();
+            motorLeft2_.emergencyStop();
             motion_.emergencyStop();
             sensors_.setLEDPattern(LEDPattern::SLOW_BLINK);
             break;
@@ -219,12 +232,16 @@ void SystemManager::handleStateTransitions() {
         case SystemState::SHUTDOWN:
             motorRight_.emergencyStop();
             motorLeft_.emergencyStop();
+            motorRight2_.emergencyStop();
+            motorLeft2_.emergencyStop();
             motion_.emergencyStop();
             sensors_.setLEDPattern(LEDPattern::FAST_BLINK);
             break;
         default:
             motorRight_.emergencyStop();
             motorLeft_.emergencyStop();
+            motorRight2_.emergencyStop();
+            motorLeft2_.emergencyStop();
             break;
     }
 }

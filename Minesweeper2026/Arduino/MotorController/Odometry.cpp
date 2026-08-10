@@ -21,14 +21,14 @@ void Odometry::update(double right_vel, double left_vel, double dt_sec) {
 
   // Convert angular velocities to linear velocities (m/s)
   // v = omega * r
-  double v_right = right_vel * RobotParams::WHEEL_RADIUS_M;
-  double v_left = left_vel * RobotParams::WHEEL_RADIUS_M;
+  double v_right = right_vel * DefaultParams::WHEEL_RADIUS_M;
+  double v_left = left_vel * DefaultParams::WHEEL_RADIUS_M;
 
   // Calculate robot velocities (unicycle model)
   // v = (v_right + v_left) / 2
   // omega = (v_right - v_left) / L
   double v_robot = (v_right + v_left) / 2.0;
-  double omega_robot = (v_right - v_left) / RobotParams::WHEEL_BASE_M;
+  double omega_robot = (v_right - v_left) / DefaultParams::WHEEL_BASE_M;
 
   // Integrate position using exact integration for constant velocity
   if (abs(omega_robot) < 1e-6) {

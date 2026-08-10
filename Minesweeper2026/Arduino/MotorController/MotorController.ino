@@ -23,12 +23,100 @@
  * ============================================================================
  */
 
+#include "Config.h"
+
+#if !TEST_MODE
 #include "SystemManager.h"
 
+void setup() { SystemManager::getInstance().begin(); }
+
+void loop() { SystemManager::getInstance().update(); }
+
+#else
+// ============================================================================
+// TEST MODE - Direct Serial Control (Bypass SystemManager)
+// ============================================================================
+#include "MotorDriver.h"
+
+MotorDriver rightMotor({Pins::MOTOR_R_PWM, Pins::MOTOR_R_DIR}, false);
+MotorDriver leftMotor({Pins::MOTOR_L_PWM, Pins::MOTOR_L_DIR}, true);
+MotorDriver rightMotor2({Pins::MOTOR_R_PWM_2, Pins::MOTOR_R_DIR_2}, false);
+MotorDriver leftMotor2({Pins::MOTOR_L_PWM_2, Pins::MOTOR_L_DIR_2}, true);
+
 void setup() {
-  SystemManager::getInstance().begin();
+  Serial.begin(115200);
+  rightMotor.begin();
+  leftMotor.begin();
+  rightMotor2.begin();
+  leftMotor2.begin();
+  Serial.println(F("========================================"));
+  Serial.println(F(" MOTOR TEST MODE ENABLED (Config.h)"));
+  Serial.println(F("========================================"));
+  Serial.println(F("Send commands via Serial Monitor:"));
+  Serial.println(F(" 'w' - Forward"));
+  Serial.println(F(" 's' - Backward"));
+  Serial.println(F(" 'a' - Left"));
+  Serial.println(F(" 'd' - Right"));
+  Serial.println(F(" 'x' - Stop"));
+  Serial.println(F("========================================"));
 }
 
 void loop() {
-  SystemManager::getInstance().update();
+  if (Serial.available() > 0) {
+    char c = Serial.read();
+
+    // Ignore newlines and carriage returns
+    if (c == '\n' || c == '\r')
+      return;
+
+    float speed = 100.0f; // Default test PWM speed
+
+    switch (c) {
+    case 'w':
+    case 'W':
+      rightMotor.setOutput(speed);
+      leftMotor.setOutput(speed);
+      rightMotor2.setOutput(speed);
+      leftMotor2.setOutput(speed);
+      Serial.println(F("-> Forward"));
+      break;
+    case 's':
+    case 'S':
+      rightMotor.setOutput(-speed);
+      leftMotor.setOutput(-speed);
+      rightMotor2.setOutput(-speed);
+      leftMotor2.setOutput(-speed);
+      Serial.println(F("-> Backward"));
+      break;
+    case 'a':
+    case 'A':
+      rightMotor.setOutput(speed);
+      leftMotor.setOutput(-speed);
+      rightMotor2.setOutput(speed);
+      leftMotor2.setOutput(-speed);
+      Serial.println(F("-> Left"));
+      break;
+    case 'd':
+    case 'D':
+      rightMotor.setOutput(-speed);
+      leftMotor.setOutput(speed);
+      rightMotor2.setOutput(-speed);
+      leftMotor2.setOutput(speed);
+      Serial.println(F("-> Right"));
+      break;
+    case 'x':
+    case 'X':
+    case ' ':
+      rightMotor.setOutput(0);
+      leftMotor.setOutput(0);
+      rightMotor2.setOutput(0);
+      leftMotor2.setOutput(0);
+      Serial.println(F("-> Stop"));
+      break;
+    default:
+      Serial.println(F("Unknown command. Use w, a, s, d, x."));
+      break;
+    }
+  }
 }
+#endif

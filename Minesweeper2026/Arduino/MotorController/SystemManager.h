@@ -68,6 +68,8 @@ private:
     
     static MotorDriver motorRight_;
     static MotorDriver motorLeft_;
+    static MotorDriver motorRight2_;
+    static MotorDriver motorLeft2_;
     static Encoder encoderRight_;
     static Encoder encoderLeft_;
     static PIDController pidRight_;

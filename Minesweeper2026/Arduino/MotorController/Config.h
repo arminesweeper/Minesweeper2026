@@ -24,6 +24,8 @@
  * COMPILE-TIME FEATURE FLAGS
  * ============================================================================ */
 
+#define TEST_MODE               1  // Set to 1 to enable simple Serial Monitor motor testing
+
 #define ENABLE_WATCHDOG         1
 #define ENABLE_ODOMETRY         1
 #define ENABLE_DIAGNOSTICS      1
@@ -102,34 +104,40 @@ namespace Pins {
     constexpr uint8_t ENCODER_L_B = 20;  /* B1 */
 
     /* IMU — soft I2C on free pins (not hardware Wire D20/D21) */
-    constexpr uint8_t IMU_SDA = 30;
-    constexpr uint8_t IMU_SCL = 31;
+    constexpr uint8_t IMU_SDA = 31;
+    constexpr uint8_t IMU_SCL = 33;
 
     /* Lift motor + limits — jumpered to J37 / J44 / J43 */
-    constexpr uint8_t LIFT_PWM = 10;         /* PWM3, Timer 2 OC2A */
-    constexpr uint8_t LIFT_DIR = 8;          /* DIR3 */
-    constexpr uint8_t LIMIT_SW_TOP = 28;     /* LM1 */
-    constexpr uint8_t LIMIT_SW_BOTTOM = 29;  /* LM2 */
+    constexpr uint8_t LIFT_PWM = 37;         /* PWM3 */
+    constexpr uint8_t LIFT_DIR = 35;          /* DIR3 */
+    constexpr uint8_t LIMIT_SW_TOP = 41;     /* LM1 */
+    constexpr uint8_t LIMIT_SW_BOTTOM = 43;  /* LM2 */
 
     /* Electromagnets — single PCB relay on D38; software mask still 5 bits */
 #if MAGNET_SHARED_RELAY
     constexpr uint8_t MAGNET_RELAY = 38;
     constexpr uint8_t MAGNET_PINS[] = {38, 38, 38, 38, 38};
 #else
-    constexpr uint8_t MAGNET_PINS[] = {22, 23, 24, 25, 26};
+    constexpr uint8_t MAGNET_PINS[] = {22, 24, 26, 28, 30};
 #endif
 
     /* Sensors — jumpered */
-    constexpr uint8_t METAL_DETECTOR = 27;
+    constexpr uint8_t METAL_DETECTOR = 39;
     constexpr uint8_t PROXIMITY_PINS[] = {A1, A2, A3, A4, A5};
 
     /* Indicators */
-    constexpr uint8_t BUZZER = 37;       /* Siren relay J15 (or piezo if flag 0) */
-    constexpr uint8_t WARNING_LED = 35;  /* Free digital; D13 is tied to MPU header */
+    constexpr uint8_t BUZZER = 47;       /* Siren relay J15 */
+    constexpr uint8_t WARNING_LED = 45;
     constexpr uint8_t BATTERY_SENSE = A0;
 
     /* Optional / future */
-    constexpr uint8_t SERVO = 36;        /* J13 SERVO signal (PCB copper) */
+    constexpr uint8_t SERVO = 4;        /* J13 SERVO signal (PCB copper) */
+    
+    /* Secondary Drive Motors — Cytron2 */
+    constexpr uint8_t MOTOR_R_PWM_2 = 25;
+    constexpr uint8_t MOTOR_R_DIR_2 = 23;
+    constexpr uint8_t MOTOR_L_PWM_2 = 29;
+    constexpr uint8_t MOTOR_L_DIR_2 = 27;
 }
 
 /* ============================================================================

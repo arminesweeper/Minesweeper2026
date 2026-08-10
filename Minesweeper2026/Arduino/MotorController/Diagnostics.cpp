@@ -79,8 +79,8 @@ void Diagnostics::formatFaultFlags(char* buf, FaultFlags faults) const {
     buf[0] = faults.command_timeout ? 'T' : 't';
     buf[1] = faults.encoder_right   ? 'R' : 'r';
     buf[2] = faults.encoder_left    ? 'L' : 'l';
-    buf[3] = (faults.battery_low || faults.battery_high) ? 'B' : 'b';
-    buf[4] = faults.velocity_limit  ? 'V' : 'v';
+    buf[3] = (faults.battery_low || faults.battery_critical) ? 'B' : 'b';
+    buf[4] = (faults.motor_stall_r || faults.motor_stall_l) ? 'S' : 's';
     buf[5] = faults.imu_fault       ? 'I' : 'i';
     buf[6] = '\0';
 }
@@ -88,7 +88,7 @@ void Diagnostics::formatFaultFlags(char* buf, FaultFlags faults) const {
 void Diagnostics::sendStatusReport(SystemState state, FaultFlags faults) {
 #if ENABLE_DIAGNOSTICS
     unsigned long now = millis();
-    if (now - last_report_ms_ >= DiagConfig::STATUS_INTERVAL_MS) {
+    if (now - last_report_ms_ >= 1000) {
         last_report_ms_ = now;
 
         char flt_str[8];
