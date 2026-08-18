@@ -79,10 +79,10 @@ flowchart LR
 | D42 | DIR1 | Right motor DIR Cytron1 | PCB copper → J36 |
 | D44 | PWM1 | Right motor PWM Cytron1 | PCB copper → J36 |
 | D46 | PWM2 | Left motor PWM Cytron1 | PCB copper → J36 |
-| D27 | DIR2 | Left motor DIR Cytron2 | Jumpers → Pin Header |
-| D23 | DIR1 | Right motor DIR Cytron2 | Jumpers → Pin Header |
-| D25 | PWM1 | Right motor PWM Cytron2 | Jumpers → Pin Header |
-| D29 | PWM2 | Left motor PWM Cytron2 | Jumpers → Pin Header |
+| D8 | DIR1 | Right motor DIR Cytron2 | Jumpers → Pin Header |
+| D9 | PWM1 | Right motor PWM Cytron2 | Jumpers → Pin Header |
+| D10 | DIR2 | Left motor DIR Cytron2 | Jumpers → Pin Header |
+| D11 | PWM2 | Left motor PWM Cytron2 | Jumpers → Pin Header |
 | A0 | BAT_SENSE | Battery monitor | Off-board divider |
 | A1–A5 | AP1–AP5 | Proximity | Jumper → J6 |
 | D0/D1 | USB Serial | Raspberry Pi | Mega USB |
