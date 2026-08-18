@@ -45,6 +45,7 @@ MotorDriver leftMotor2({Pins::MOTOR_L_PWM_2, Pins::MOTOR_L_DIR_2}, true);
 
 void setup() {
   Serial.begin(115200);
+  Serial2.begin(115200);
   rightMotor.begin();
   leftMotor.begin();
   rightMotor2.begin();
@@ -62,8 +63,12 @@ void setup() {
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    char c = Serial.read();
+  Stream* activeStream = nullptr;
+  if (Serial.available() > 0) activeStream = &Serial;
+  else if (Serial2.available() > 0) activeStream = &Serial2;
+
+  if (activeStream != nullptr) {
+    char c = activeStream->read();
 
     // Ignore newlines and carriage returns
     if (c == '\n' || c == '\r')
@@ -78,7 +83,7 @@ void loop() {
       leftMotor.setOutput(speed);
       rightMotor2.setOutput(speed);
       leftMotor2.setOutput(speed);
-      Serial.println(F("-> Forward"));
+      activeStream->println(F("-> Forward"));
       break;
     case 's':
     case 'S':
@@ -86,7 +91,7 @@ void loop() {
       leftMotor.setOutput(-speed);
       rightMotor2.setOutput(-speed);
       leftMotor2.setOutput(-speed);
-      Serial.println(F("-> Backward"));
+      activeStream->println(F("-> Backward"));
       break;
     case 'a':
     case 'A':
@@ -94,7 +99,7 @@ void loop() {
       leftMotor.setOutput(-speed);
       rightMotor2.setOutput(speed);
       leftMotor2.setOutput(-speed);
-      Serial.println(F("-> Left"));
+      activeStream->println(F("-> Left"));
       break;
     case 'd':
     case 'D':
@@ -102,7 +107,7 @@ void loop() {
       leftMotor.setOutput(speed);
       rightMotor2.setOutput(-speed);
       leftMotor2.setOutput(speed);
-      Serial.println(F("-> Right"));
+      activeStream->println(F("-> Right"));
       break;
     case 'x':
     case 'X':
@@ -111,10 +116,10 @@ void loop() {
       leftMotor.setOutput(0);
       rightMotor2.setOutput(0);
       leftMotor2.setOutput(0);
-      Serial.println(F("-> Stop"));
+      activeStream->println(F("-> Stop"));
       break;
     default:
-      Serial.println(F("Unknown command. Use w, a, s, d, x."));
+      activeStream->println(F("Unknown command. Use w, a, s, d, x."));
       break;
     }
   }

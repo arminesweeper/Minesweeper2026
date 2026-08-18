@@ -1,8 +1,8 @@
 #include <PID_v1.h>
 
-// ===== Configuration =====
-constexpr uint8_t PWM_R=9, DIR_R=12, PWM_L=11, DIR_L=7;
-constexpr uint8_t ENC_RA=3, ENC_RB=5, ENC_LA=2, ENC_LB=4;
+// ===== Configuration (Arduino Mega 2560 PCB) =====
+constexpr uint8_t PWM_R=44, DIR_R=42, PWM_L=46, DIR_L=40;
+constexpr uint8_t ENC_RA=21, ENC_RB=20, ENC_LA=19, ENC_LB=18;
 constexpr uint16_t ENCODER_PPR=385;
 constexpr uint16_t CONTROL_MS=100;
 constexpr uint16_t CMD_TIMEOUT_MS=500;
@@ -16,7 +16,8 @@ PID pidR(&inR,&outR,&spR,11.5,7.5,0.1,DIRECT);
 PID pidL(&inL,&outL,&spL,12.8,8.3,0.1,DIRECT);
 
 unsigned long lastCtrl=0,lastCmd=0;
-char buf[32]; uint8_t idx=0;
+char buf1[32]; uint8_t idx1=0; // Buffer for Serial (RPi)
+char buf2[32]; uint8_t idx2=0; // Buffer for Serial2 (ESP8266)
 
 void isrR(){ rightSign=digitalRead(ENC_RB)?1:-1; rightCount++; }
 void isrL(){ leftSign=digitalRead(ENC_LB)?-1:1; leftCount++; }
@@ -30,7 +31,8 @@ void setup(){
  attachInterrupt(digitalPinToInterrupt(ENC_RA),isrR,RISING);
  attachInterrupt(digitalPinToInterrupt(ENC_LA),isrL,RISING);
  digitalWrite(DIR_R,HIGH); digitalWrite(DIR_L,HIGH);
- Serial.begin(115200);
+ Serial.begin(115200);  // RPi (USB)
+ Serial2.begin(115200); // ESP8266 WiFi (Pins 16/17)
  pidR.SetMode(AUTOMATIC); pidL.SetMode(AUTOMATIC);
  pidR.SetOutputLimits(0,255); pidL.SetOutputLimits(0,255);
  pidR.SetSampleTime(CONTROL_MS); pidL.SetSampleTime(CONTROL_MS);
@@ -47,10 +49,18 @@ void parseLine(char*s){
 }
 
 void loop(){
+ // Handle RPi Commands (Serial)
  while(Serial.available()){
    char c=Serial.read();
-   if(c=='\n'){ buf[idx]=0; parseLine(buf); idx=0; }
-   else if(idx<31) buf[idx++]=c;
+   if(c=='\n'){ buf1[idx1]=0; parseLine(buf1); idx1=0; }
+   else if(idx1<31) buf1[idx1++]=c;
+ }
+ 
+ // Handle ESP8266 WiFi Commands (Serial2)
+ while(Serial2.available()){
+   char c=Serial2.read();
+   if(c=='\n'){ buf2[idx2]=0; parseLine(buf2); idx2=0; }
+   else if(idx2<31) buf2[idx2++]=c;
  }
  if(millis()-lastCmd>CMD_TIMEOUT_MS) stopMotors();
  if(millis()-lastCtrl>=CONTROL_MS){
@@ -69,6 +79,9 @@ void loop(){
    uint8_t pwmR=outR?max((int)PWM_MIN,(int)outR):0;
    uint8_t pwmL=outL?max((int)PWM_MIN,(int)outL):0;
    analogWrite(PWM_R,pwmR); analogWrite(PWM_L,pwmL);
+   
+   // Send telemetry to both RPi and ESP8266
    Serial.print("R,");Serial.print(inR,3);Serial.print(",L,");Serial.println(inL,3);
+   Serial2.print("R,");Serial2.print(inR,3);Serial2.print(",L,");Serial2.println(inL,3);
  }
 }

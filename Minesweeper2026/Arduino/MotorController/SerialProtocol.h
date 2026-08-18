@@ -48,7 +48,7 @@ public:
     void sendError(uint8_t error_code, const char* message) const;
 
     unsigned long getLastCommandTime() const { return last_command_time_; }
-    bool dataAvailable() const { return Serial.available() > 0; }
+    bool dataAvailable() const { return Serial.available() > 0 || Serial2.available() > 0; }
 
 private:
     State parser_state_;

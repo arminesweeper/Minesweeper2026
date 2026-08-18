@@ -30,15 +30,19 @@ SerialProtocol::SerialProtocol()
 
 void SerialProtocol::begin() {
     Serial.begin(SerialConfig::BAUD_RATE);
-    while (!Serial) { ; }
+    Serial2.begin(SerialConfig::BAUD_RATE);
     last_command_time_ = millis();
 }
 
 bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& gripper_vel) {
     bool packet_complete = false;
 
-    while (Serial.available() > 0 && !packet_complete) {
-        char c = Serial.read();
+    Stream* activeStream = nullptr;
+    if (Serial.available() > 0) activeStream = &Serial;
+    else if (Serial2.available() > 0) activeStream = &Serial2;
+
+    while (activeStream != nullptr && activeStream->available() > 0 && !packet_complete) {
+        char c = activeStream->read();
 
         switch (parser_state_) {
         case State::WAITING_PREFIX:
@@ -176,6 +180,7 @@ void SerialProtocol::sendTelemetry(float right_vel, float left_vel, float grippe
 
     snprintf(buffer, sizeof(buffer), "r%c%s,l%c%s,g%c%s,", r_sign, r_val, l_sign, l_val, g_sign, g_val);
     Serial.println(buffer);
+    Serial2.println(buffer);
 }
 
 void SerialProtocol::sendOdometry(float x, float y, float theta) const {
@@ -188,6 +193,7 @@ void SerialProtocol::sendOdometry(float x, float y, float theta) const {
 
     snprintf(buffer, sizeof(buffer), "O:%s,%s,%s", x_val, y_val, t_val);
     Serial.println(buffer);
+    Serial2.println(buffer);
 }
 
 void SerialProtocol::sendIMU(float yaw, float pitch, float roll, float ax, float ay, float az) const {
@@ -200,6 +206,7 @@ void SerialProtocol::sendIMU(float yaw, float pitch, float roll, float ax, float
 
     snprintf(buffer, sizeof(buffer), "I:%s,%s,%s", y_val, p_val, r_val);
     Serial.println(buffer);
+    Serial2.println(buffer);
 }
 
 void SerialProtocol::sendProximity(const uint16_t* values, uint8_t count) const {
@@ -208,11 +215,14 @@ void SerialProtocol::sendProximity(const uint16_t* values, uint8_t count) const 
     snprintf(buffer, sizeof(buffer), "P:%u,%u,%u,%u,%u",
              values[0], values[1], values[2], values[3], values[4]);
     Serial.println(buffer);
+    Serial2.println(buffer);
 }
 
 void SerialProtocol::sendMetalDetect(bool detected) const {
     Serial.print(F("M:"));
     Serial.println(detected ? '1' : '0');
+    Serial2.print(F("M:"));
+    Serial2.println(detected ? '1' : '0');
 }
 
 void SerialProtocol::sendLiftState(const char* state_str, uint8_t magnet_mask) const {
@@ -220,17 +230,25 @@ void SerialProtocol::sendLiftState(const char* state_str, uint8_t magnet_mask) c
     Serial.print(state_str);
     Serial.print(F(","));
     Serial.println(magnet_mask, HEX);
+    
+    Serial2.print(F("L:"));
+    Serial2.print(state_str);
+    Serial2.print(F(","));
+    Serial2.println(magnet_mask, HEX);
 }
 
 void SerialProtocol::sendDiagnostics(uint16_t loop_hz, uint8_t cpu_percent, uint8_t fault_code) const {
     char buffer[SerialConfig::TX_BUFFER_SIZE];
     snprintf(buffer, sizeof(buffer), "D:%u,%u,%u", loop_hz, cpu_percent, fault_code);
     Serial.println(buffer);
+    Serial2.println(buffer);
 }
 
 void SerialProtocol::sendStatus(const char* message) const {
     Serial.print(F("S:"));
     Serial.println(message);
+    Serial2.print(F("S:"));
+    Serial2.println(message);
 }
 
 void SerialProtocol::sendError(uint8_t error_code, const char* message) const {
@@ -238,4 +256,9 @@ void SerialProtocol::sendError(uint8_t error_code, const char* message) const {
     Serial.print(error_code);
     Serial.print(F(":"));
     Serial.println(message);
+    
+    Serial2.print(F("E:"));
+    Serial2.print(error_code);
+    Serial2.print(F(":"));
+    Serial2.println(message);
 }

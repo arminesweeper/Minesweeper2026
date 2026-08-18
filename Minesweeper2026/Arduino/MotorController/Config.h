@@ -26,15 +26,15 @@
  * ============================================================================
  */
 
-#define TEST_MODE 1 // Set to 1 to enable simple Serial Monitor motor testing
+#define TEST_MODE 0 // Set to 1 to enable simple Serial Monitor motor testing
 
-#define ENABLE_WATCHDOG 1
-#define ENABLE_ODOMETRY 1
-#define ENABLE_DIAGNOSTICS 1
-#define ENABLE_SAFETY_MONITOR 1
-#define ENABLE_IMU 1
-#define ENABLE_LIFT 1
-#define ENABLE_SENSORS 1
+#define ENABLE_WATCHDOG 0
+#define ENABLE_ODOMETRY 0
+#define ENABLE_DIAGNOSTICS 0
+#define ENABLE_SAFETY_MONITOR 0
+#define ENABLE_IMU 0
+#define ENABLE_LIFT 0
+#define ENABLE_SENSORS 0
 
 /**
  * PCB copper puts ENC1 on Mega D20/D21 (same MCU pins as hardware I2C).

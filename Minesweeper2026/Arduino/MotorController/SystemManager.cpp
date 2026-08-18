@@ -108,11 +108,15 @@ void SystemManager::update() {
     }
     
     // Update Safety Machine
+#if ENABLE_SAFETY_MONITOR
     SystemState next_state = safety_.update(serial_.getLastCommandTime(),
                                             motion_.getRightState().measured_velocity,
                                             motion_.getLeftState().measured_velocity,
                                             motorRight_.getOutput(),
                                             motorLeft_.getOutput());
+#else
+    safety_.forceState(SystemState::RUNNING);
+#endif
     
     handleStateTransitions();
     diag_.loopEnd();
