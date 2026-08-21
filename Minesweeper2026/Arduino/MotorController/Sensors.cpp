@@ -131,7 +131,7 @@ uint16_t Sensors::readProximityAveraged(uint8_t pin) const {
  * ============================================================================ */
 
 void Sensors::updateMetalDetector() {
-    bool current_reading = (digitalRead(Pins::METAL_DETECTOR) == LOW);
+    bool current_reading = (digitalRead(Pins::METAL_DETECTOR) == SensorConfig::METAL_ACTIVE_STATE);
 
     if (current_reading != metal_raw_last_) {
         metal_change_ms_ = millis();

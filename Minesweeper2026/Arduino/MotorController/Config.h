@@ -148,7 +148,7 @@ constexpr uint8_t MOTOR_L_DIR_2 = 10;
  */
 
 namespace Timing {
-constexpr unsigned long CONTROL_INTERVAL_MS = 100; /* 10 Hz PID */
+constexpr unsigned long CONTROL_INTERVAL_MS = 20;  /* 50 Hz PID */
 constexpr unsigned long IMU_INTERVAL_MS = 20;      /* 50 Hz */
 constexpr unsigned long SENSOR_INTERVAL_MS = 50;   /* 20 Hz */
 constexpr unsigned long LIFT_INTERVAL_MS = 50;     /* 20 Hz */
@@ -197,10 +197,12 @@ namespace SensorConfig {
 constexpr uint16_t PROXIMITY_THRESHOLD = 500;
 constexpr uint8_t NUM_PROXIMITY = 5;
 constexpr unsigned long METAL_DEBOUNCE_MS = 100;
+constexpr uint8_t METAL_ACTIVE_STATE = LOW;
 constexpr uint8_t ADC_SAMPLES = 4;
 constexpr uint16_t BUZZER_FREQ_HZ =
     500; /* Used only if BUZZER_IS_SIREN_RELAY == 0 */
 } // namespace SensorConfig
+
 
 namespace IMUConfig {
 constexpr uint8_t MPU6050_ADDR = 0x68;

@@ -53,8 +53,8 @@ float PIDController::computeCore(float setpoint, float input, float dt) {
   float d_term = 0.0f;
   if (!first_computation_ && dt > 0.0f) {
     float raw_d_term = kd_ * (error - last_error_) / dt;
-    // Low pass filter alpha ~ 0.5 for smoothing out encoder jitter
-    float alpha = 0.5f; 
+    // Low pass filter alpha ~ 0.1 for smoothing out encoder jitter
+    float alpha = 0.1f; 
     d_term = alpha * raw_d_term + (1.0f - alpha) * last_d_term_;
   }
   first_computation_ = false;

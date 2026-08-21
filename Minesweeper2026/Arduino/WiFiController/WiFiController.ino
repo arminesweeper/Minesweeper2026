@@ -325,17 +325,19 @@ void setup() {
   // ESP8266 TX is what talks to Arduino Mega RX2. 
   // We use 115200 to match MotorController.ino
   Serial.begin(115200); 
-  delay(1000); // Give serial time to start
+  
+  // Wait for Mega to boot to avoid garbling its serial receive buffer
+  delay(2000); 
   Serial.println("\n\n--- ESP8266 Booting ---");
   
   // Explicitly set WiFi mode to Access Point
   WiFi.mode(WIFI_AP);
   
-  // Set ESP8266 as an Access Point
-  bool apStatus = WiFi.softAP(ssid, password);
+  // Set ESP8266 as an Access Point on Channel 6
+  bool apStatus = WiFi.softAP(ssid, password, 6);
   
   if(apStatus) {
-    Serial.println("Access Point Created Successfully!");
+    Serial.println("Access Point Created Successfully (Channel 6)!");
     Serial.print("SSID: ");
     Serial.println(ssid);
     Serial.print("IP Address: ");
