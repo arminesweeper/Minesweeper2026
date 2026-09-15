@@ -33,8 +33,8 @@
 #define ENABLE_DIAGNOSTICS 0
 #define ENABLE_SAFETY_MONITOR 0
 #define ENABLE_IMU 0
-#define ENABLE_LIFT 0
-#define ENABLE_SENSORS 0
+#define ENABLE_LIFT 1
+#define ENABLE_SENSORS 1
 
 /**
  * PCB copper puts ENC1 on Mega D20/D21 (same MCU pins as hardware I2C).

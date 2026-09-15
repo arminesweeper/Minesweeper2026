@@ -26,6 +26,7 @@ Encoder SystemManager::encoderLeft_({Pins::ENCODER_L_A, Pins::ENCODER_L_B, 2}, t
 
 PIDController SystemManager::pidRight_(PIDTuning::KP_RIGHT, PIDTuning::KI_RIGHT, PIDTuning::KD_RIGHT, 0.0f, PIDTuning::OUTPUT_MIN, PIDTuning::OUTPUT_MAX, Timing::CONTROL_INTERVAL_MS);
 PIDController SystemManager::pidLeft_(PIDTuning::KP_LEFT, PIDTuning::KI_LEFT, PIDTuning::KD_LEFT, 0.0f, PIDTuning::OUTPUT_MIN, PIDTuning::OUTPUT_MAX, Timing::CONTROL_INTERVAL_MS);
+Servo SystemManager::cameraServo_;
 
 void SystemManager::begin() {
     EEPROMManager::init();
@@ -61,6 +62,8 @@ void SystemManager::begin() {
 #endif
 
     safety_.begin();
+    cameraServo_.attach(Pins::SERVO);
+    cameraServo_.write(90); // Center position by default
 
     // Initialize tasks
     tasks_[0] = {"Control", Timing::CONTROL_INTERVAL_MS, 0, 0, taskControlLoop};
@@ -260,6 +263,21 @@ void SystemManager::processExtendedCommands() {
             imu_.resetYaw();
             diag_.resetStats();
             serial_.sendStatus("Reset complete");
+        }
+#if ENABLE_LIFT
+        else if (strcmp(cmd, "CLIFT:UP") == 0) lift_.raise();
+        else if (strcmp(cmd, "CLIFT:DN") == 0) lift_.lower();
+        else if (strcmp(cmd, "CLIFT:STOP") == 0) lift_.stop();
+#endif
+#if ENABLE_SENSORS
+        else if (strcmp(cmd, "CBUZZ:ALERT") == 0) sensors_.setBuzzerPattern(BuzzerPattern::ALERT);
+        else if (strcmp(cmd, "CBUZZ:SILENT") == 0) sensors_.setBuzzerPattern(BuzzerPattern::SILENT);
+#endif
+        else if (strncmp(cmd, "CSERVO:", 7) == 0) {
+            int angle = atoi(cmd + 7);
+            if (angle >= 0 && angle <= 180) {
+                cameraServo_.write(angle);
+            }
         }
     }
 }

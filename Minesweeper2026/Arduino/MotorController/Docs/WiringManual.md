@@ -31,7 +31,7 @@ flowchart LR
 ## 2. Power Distribution
 
 | Rail | Source | Consumers | Notes |
-|------|--------|-----------|-------|
+| ------ | -------- | ----------- | ------- |
 | **VBAT** | Battery pack | Cytron motor power, 12V_MD, 12V_MG | Fuse at battery positive |
 | **12V** (J24) | Battery or regulator | Relays K1/K2 coils, magnet/lift power | Large caps on board |
 | **12V_MD** (J46) | 12V for metal/prox sensors | J1–J5 APRXMT brown pins | Sensor excitation |
@@ -49,7 +49,7 @@ flowchart LR
 ### Recommended fusing
 
 | Circuit | Fuse |
-|---------|------|
+| --------- | ------ |
 | Battery → Cytron | 20–30 A (match motors) |
 | Battery → 12V board rail | 5–10 A |
 | 5V_LOGIC supply | 2–3 A |
@@ -59,7 +59,7 @@ flowchart LR
 ## 3. Arduino Mega Pin Mapping (Technician Table)
 
 | Arduino Pin | Signal | Device | How connected |
-|-------------|--------|--------|---------------|
+| ------------- | -------- | -------- | --------------- |
 | D18 | ENC_R_B (B2) | Right encoder Phase B | PCB copper |
 | D19 | ENC_R_A (A2) | Right encoder Phase A | PCB copper |
 | D20 | ENC_L_B (B1) | Left encoder Phase B | PCB copper |
@@ -96,7 +96,7 @@ flowchart LR
 ### Flying-lead pinout
 
 | MPU6050 module | Mega pin | Notes |
-|----------------|----------|-------|
+| ---------------- | ---------- | ------- |
 | VCC | 5V (Mega or J22 logic) | 5V module preferred |
 | GND | GND | Common ground |
 | SDA | **D30** | Soft I2C (`IMU_USE_SOFT_I2C`) |
@@ -115,7 +115,7 @@ Leave J29/J38 unpopulated, or use only for mechanical mounting — never tie mod
 ### ENC1 — Left (J16)
 
 | J16 | Net | Mega (as fabricated) |
-|-----|-----|----------------------|
+| ----- | ----- | ---------------------- |
 | 1 | GND | GND |
 | 2 | B1 | **D20** |
 | 3 | A1 | **D21** |
@@ -124,7 +124,7 @@ Leave J29/J38 unpopulated, or use only for mechanical mounting — never tie mod
 ### ENC2 — Right (J17)
 
 | J17 | Net | Mega |
-|-----|-----|------|
+| ----- | ----- | ------ |
 | 1 | GND | GND |
 | 2 | B2 | D18 |
 | 3 | A2 | D19 |
@@ -139,7 +139,7 @@ No cuts. No green-wire on encoder nets. Use twisted pairs when cable > 30 cm.
 ### Logic header J36 (shield)
 
 | J36 Pin | Signal | Mega |
-|---------|--------|------|
+| --------- | -------- | ------ |
 | 1 | DIR1 | D42 |
 | 2 | PWM1 | D44 |
 | 3 | DIR2 | D40 |
@@ -149,7 +149,7 @@ No cuts. No green-wire on encoder nets. Use twisted pairs when cable > 30 cm.
 ### Cytron power / motors (off-board)
 
 | Cytron terminal | Connection |
-|-----------------|------------|
+| ----------------- | ------------ |
 | B+ / B− | Battery (fused) |
 | M1A / M1B | Right drive motor |
 | M2A / M2B | Left drive motor |
@@ -168,7 +168,7 @@ If a wheel runs backward, prefer EEPROM `invert_*_motor` over swapping wires aft
 ### Lift control jumpers
 
 | Signal | Mega | Board |
-|--------|------|-------|
+| -------- | ------ | ------- |
 | PWM3 | D10 | J37 / J44 |
 | DIR3 | D8 | J37 / J44 |
 | LM1 | D28 | J43 / J44 |
@@ -215,7 +215,7 @@ Map physically: top = LM1 (D28), bottom = LM2 (D29). Swap in firmware only if be
 ### Sensor connectors J1–J5 (APRXMT, 4-pin)
 
 | Pin | Color net | Function |
-|-----|-----------|----------|
+| ----- | ----------- | ---------- |
 | 1 | WHITE | Sensor-specific |
 | 2 | OUT | Signal → divider → APn |
 | 3 | BLU | GND_MD |
@@ -224,7 +224,7 @@ Map physically: top = LM1 (D28), bottom = LM2 (D29). Swap in firmware only if be
 ### Conditioned outputs J6 (`OI54321GV` / `V G 1 2 3 4 5 M I O` family)
 
 | J6 | Net | Mega jumper |
-|----|-----|-------------|
+| ---- | ----- | ------------- |
 | 1 | MD | D27 |
 | 2 | AP5 | A5 |
 | 3 | AP4 | A4 |
@@ -250,7 +250,7 @@ Prefer **J6.1 MD** to Mega D27 (already level-appropriate if module is open-coll
 ## 10. Siren / Indicators
 
 | Function | Mega | Board | Wiring |
-|----------|------|-------|--------|
+| ---------- | ------ | ------- | -------- |
 | Siren | D37 | J15 → R21 → Q2 → K2 | Digital HIGH = on |
 | Siren load | — | J21 / J18 | 12V switched |
 | Warning LED | D35 | Discrete | Anode via 220 Ω, cathode GND |
@@ -261,7 +261,7 @@ Prefer **J6.1 MD** to Mega D27 (already level-appropriate if module is open-coll
 ## 11. Raspberry Pi 4
 
 | Connection | Detail |
-|------------|--------|
+| ------------ | -------- |
 | USB | Pi USB ↔ Mega USB (Serial 115200) |
 | Power | Pi via official PSU or regulated 5V; **not** from Mega 5V |
 | GND | Bond Pi GND to robot GND if using additional GPIO (none required for baseline) |
@@ -288,7 +288,7 @@ Ratio ≈ 3.3 matches `SafetyConfig::VOLTAGE_DIVIDER_RATIO`. Keep sense wires sh
 ## 13. Connector Index (Shield / Board)
 
 | Ref | Label | Role |
-|-----|-------|------|
+| ----- | ------- | ------ |
 | J22 | 5V LOGIC | Logic power in |
 | J23 | 5V SERVO | Servo power in |
 | J24 | 12V | Main 12V in |
