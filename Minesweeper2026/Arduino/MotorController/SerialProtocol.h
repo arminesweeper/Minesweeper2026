@@ -40,6 +40,7 @@ public:
     void sendOdometry(float x, float y, float theta) const;
     void sendIMU(float yaw, float pitch, float roll, float ax, float ay, float az) const;
     void sendProximity(const uint16_t* values, uint8_t count) const;
+    void sendBattery(float voltage_mv) const;
     void sendMetalDetect(bool detected) const;
     void sendLiftState(const char* state_str, uint8_t magnet_mask) const;
     

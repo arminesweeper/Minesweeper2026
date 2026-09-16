@@ -9,6 +9,7 @@ ESP8266WebServer server(80);
 
 // HTML for the remote control web page
 String proximityData = "[0,0,0,0,0]";
+String batteryData = "0.0";
 
 const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -47,6 +48,24 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       flex-direction: column;
       align-items: center;
       touch-action: manipulation; /* Prevent double-tap zoom */
+    }
+
+    /* Laptop screens: fit exactly to window, 3 columns */
+    @media (min-width: 1024px) {
+      body {
+        height: 100vh;
+        overflow: hidden;
+      }
+      .dashboard {
+        grid-template-columns: 1fr 1fr 1fr !important;
+        max-width: 1200px !important;
+        height: calc(100vh - 160px);
+      }
+      .panel {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
     }
 
     .header {
@@ -393,6 +412,10 @@ animation: pulse 2s infinite;
   <div class="header">
     <h1>Minesweeper</h1>
     <div class="subtitle">Tactical Remote Command</div>
+    <div style="margin-top: 10px; font-size: 14px; color: var(--text-main); font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 10px;">
+      <div>Battery: <span id="batt-val" style="color: var(--accent-color);">--</span> V</div>
+      <div id="batt-status" style="font-size: 11px; padding: 4px 10px; border-radius: 12px; background: rgba(255,255,255,0.1); text-transform: uppercase; letter-spacing: 1px;">Unknown</div>
+    </div>
   </div>
 
   <div class="dashboard">
@@ -431,6 +454,8 @@ animation: pulse 2s infinite;
       <div class="action-grid">
         <button class="btn" onclick="sendCmd('siren/on', 'Siren ON')" style="border-color: rgba(255, 51, 102, 0.5)">Siren ON</button>
         <button class="btn" onclick="sendCmd('siren/off', 'Siren OFF')">Siren OFF</button>
+        <button class="btn" onclick="sendCmd('magnet/on', 'Magnet ON')" style="border-color: rgba(0, 255, 204, 0.5)">Magnet ON</button>
+        <button class="btn" onclick="sendCmd('magnet/off', 'Magnet OFF')">Magnet OFF</button>
       </div>
 
       <div class="slider-header">
@@ -492,12 +517,45 @@ animation: pulse 2s infinite;
       fetch('/status')
         .then(r => r.json())
         .then(data => {
-          if (data.prox && data.prox.length === 5) {
-            for (let i=0; i<5; i++) {
+          if (data.prox) {
+            for(let i=0; i<5; i++){
               let val = data.prox[i];
-              let pct = (val / 1023) * 100;
               document.getElementById('pv'+i).innerText = val;
+              let pct = (val / 1023) * 100;
               document.getElementById('pb'+i).style.width = pct + '%';
+            }
+          }
+          if (data.batt) {
+            let v = parseFloat(data.batt);
+            document.getElementById('batt-val').innerText = v.toFixed(2);
+            let stat = document.getElementById('batt-status');
+            let valElem = document.getElementById('batt-val');
+            
+            if (v < 5.0) {
+              stat.innerText = "Disconnected";
+              stat.style.background = "rgba(255, 255, 255, 0.2)";
+              stat.style.color = "#aaaaaa";
+              valElem.style.color = "#aaaaaa";
+            } else if (v < 9.6) {
+              stat.innerText = "Critical / Dead";
+              stat.style.background = "rgba(255, 0, 0, 0.3)";
+              stat.style.color = "#ff0000";
+              valElem.style.color = "#ff0000";
+            } else if (v < 11.0) {
+              stat.innerText = "Needs Charging";
+              stat.style.background = "rgba(255, 51, 102, 0.2)";
+              stat.style.color = "var(--stop-color)";
+              valElem.style.color = "var(--stop-color)";
+            } else if (v > 15.0) {
+              stat.innerText = "Overvoltage";
+              stat.style.background = "rgba(255, 153, 0, 0.2)";
+              stat.style.color = "#ff9900";
+              valElem.style.color = "#ff9900";
+            } else {
+              stat.innerText = "Good";
+              stat.style.background = "rgba(0, 255, 204, 0.15)";
+              stat.style.color = "var(--accent-color)";
+              valElem.style.color = "var(--accent-color)";
             }
           }
         })
@@ -549,6 +607,14 @@ void handleSirenOff() {
   sendExtendedCmd("CBUZZ:SILENT");
   server.send(200, "text/plain", "OK");
 }
+void handleMagnetOn() {
+  sendExtendedCmd("CMAGNET:ON");
+  server.send(200, "text/plain", "OK");
+}
+void handleMagnetOff() {
+  sendExtendedCmd("CMAGNET:OFF");
+  server.send(200, "text/plain", "OK");
+}
 void handleLiftUp() {
   sendExtendedCmd("CLIFT:UP");
   server.send(200, "text/plain", "OK");
@@ -572,7 +638,7 @@ void handleServo() {
 }
 
 void handleStatus() {
-  String json = "{\"prox\": " + proximityData + "}";
+  String json = "{\"prox\": " + proximityData + ", \"batt\": " + batteryData + "}";
   server.send(200, "application/json", json);
 }
 
@@ -611,6 +677,8 @@ void setup() {
 
   server.on("/siren/on", handleSirenOn);
   server.on("/siren/off", handleSirenOff);
+  server.on("/magnet/on", handleMagnetOn);
+  server.on("/magnet/off", handleMagnetOff);
   server.on("/lift/up", handleLiftUp);
   server.on("/lift/down", handleLiftDown);
   server.on("/lift/stop", handleLiftStop);
@@ -631,6 +699,8 @@ void processSerialData() {
         String values = serialBuffer.substring(2);
         values.replace(",", ", ");
         proximityData = "[" + values + "]";
+      } else if (serialBuffer.startsWith("B:")) {
+        batteryData = serialBuffer.substring(2);
       }
       serialBuffer = "";
     } else {

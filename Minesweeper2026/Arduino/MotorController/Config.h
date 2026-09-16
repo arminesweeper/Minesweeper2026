@@ -63,7 +63,7 @@
  * (10k / 3.9k). Closed switch ≈ 3.4 V (logic HIGH). Open ≈ 0 V.
  * When 1: pressed = HIGH. When 0: pressed = LOW (INPUT_PULLUP NO-to-GND).
  */
-#define LIMIT_SWITCH_ACTIVE_HIGH 1
+#define LIMIT_SWITCH_ACTIVE_HIGH 0
 
 /* ============================================================================
  * HARDWARE PIN DEFINITIONS — as-fabricated PCB + harness

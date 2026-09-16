@@ -218,6 +218,16 @@ void SerialProtocol::sendProximity(const uint16_t* values, uint8_t count) const 
     Serial2.println(buffer);
 }
 
+void SerialProtocol::sendBattery(float voltage_mv) const {
+    char buffer[SerialConfig::TX_BUFFER_SIZE];
+    // Convert mV to V and format as string with 2 decimal places
+    char v_str[10];
+    dtostrf(voltage_mv / 1000.0f, 4, 2, v_str);
+    snprintf(buffer, sizeof(buffer), "B:%s", v_str);
+    Serial.println(buffer);
+    Serial2.println(buffer);
+}
+
 void SerialProtocol::sendMetalDetect(bool detected) const {
     Serial.print(F("M:"));
     Serial.println(detected ? '1' : '0');

@@ -212,6 +212,7 @@ void SystemManager::taskLowRateTelemetry() {
     sensors_.getAllProximity(prox);
     serial_.sendProximity(prox, 5);
 #endif
+    serial_.sendBattery(safety_.readBatteryVoltage());
 }
 
 void SystemManager::taskDiagnostics() {
@@ -274,6 +275,8 @@ void SystemManager::processExtendedCommands() {
         else if (strcmp(cmd, "LIFT:UP") == 0) lift_.raise();
         else if (strcmp(cmd, "LIFT:DN") == 0) lift_.lower();
         else if (strcmp(cmd, "LIFT:STOP") == 0) lift_.stop();
+        else if (strcmp(cmd, "MAGNET:ON") == 0) lift_.setAllMagnets(true);
+        else if (strcmp(cmd, "MAGNET:OFF") == 0) lift_.setAllMagnets(false);
 #endif
 #if ENABLE_SENSORS
         else if (strcmp(cmd, "BUZZ:ALERT") == 0) sensors_.setBuzzerPattern(BuzzerPattern::ALERT);
