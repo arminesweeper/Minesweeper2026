@@ -10,7 +10,8 @@
 
 ```mermaid
 flowchart LR
-  BAT[Battery 3S/4S] --> MDD[Cytron MDD10A]
+  BAT[Battery 3S/4
+  S] --> MDD[Cytron MDD10A]
   BAT --> REG5[5V Logic Supply]
   BAT --> REG12[12V Rails MD/MG]
   REG5 --> MEGA[Arduino Mega 2560]
@@ -19,6 +20,7 @@ flowchart LR
   MDD --> MOTL[Left Motor]
   MDD --> MOTR[Right Motor]
   MEGA -->|USB Serial| PI[Raspberry Pi 4 ROS2]
+  MEGA -->|Serial2 115200| WIFI[ESP8266 WiFi Module]
   MEGA --> MDD
   MEGA --> LIFT[Lift Driver]
   MEGA --> RELAY[Magnet Relay K1]
@@ -268,6 +270,19 @@ Prefer **J6.1 MD** to Mega D27 (already level-appropriate if module is open-coll
 | ROS 2 | Publish/subscribe velocity + telemetry per `Docs/Communication.md` |
 
 USB_A on shield (J7) is **power-only** (D+/D− NC) — do not use for Pi data.
+
+---
+
+## 12. WiFi Module (ESP8266)
+
+The ESP8266 NodeMCU handles the Web Dashboard and communicates with the Arduino Mega via `Serial2` at 115200 baud.
+
+| Connection | ESP8266 Pin | Mega Pin | Notes |
+| ------------ | ----------- | -------- | ------- |
+| **Power** | `3V3` | `3.3V` | Must be powered from Mega 3.3V (if current is sufficient) or external 3.3V regulator. |
+| **Ground** | `GND` | `GND` | Common ground is required. |
+| **TX** | `TX` (or `TX0`) | `D17` (RX2) | Data from ESP8266 to Mega. |
+| **RX** | `RX` (or `RX0`) | `D16` (TX2) | Data from Mega to ESP8266. A 5V-to-3.3V logic level shifter or voltage divider (e.g. 1kΩ / 2kΩ) is recommended on this line to protect the ESP8266, although direct connection often works in practice. |
 
 ---
 

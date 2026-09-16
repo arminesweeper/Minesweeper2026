@@ -256,25 +256,31 @@ void SystemManager::handleStateTransitions() {
 void SystemManager::processExtendedCommands() {
     char cmd[SerialConfig::CMD_BUFFER_SIZE];
     if (serial_.getExtendedCommand(cmd, sizeof(cmd))) {
-        if (strcmp(cmd, "CESTOP") == 0) safety_.triggerEStop();
-        else if (strcmp(cmd, "CCLEAR") == 0) safety_.clearFaults();
-        else if (strcmp(cmd, "CRESET") == 0) {
+        
+        // Debug print to USB Serial (Serial0) so the user can see it
+        Serial.print("ESP Command Received: ");
+        Serial.println(cmd);
+
+        // Note: SerialProtocol strips the leading 'C', so "CESTOP" arrives as "ESTOP"
+        if (strcmp(cmd, "ESTOP") == 0) safety_.triggerEStop();
+        else if (strcmp(cmd, "CLEAR") == 0) safety_.clearFaults();
+        else if (strcmp(cmd, "RESET") == 0) {
             odom_.reset();
             imu_.resetYaw();
             diag_.resetStats();
             serial_.sendStatus("Reset complete");
         }
 #if ENABLE_LIFT
-        else if (strcmp(cmd, "CLIFT:UP") == 0) lift_.raise();
-        else if (strcmp(cmd, "CLIFT:DN") == 0) lift_.lower();
-        else if (strcmp(cmd, "CLIFT:STOP") == 0) lift_.stop();
+        else if (strcmp(cmd, "LIFT:UP") == 0) lift_.raise();
+        else if (strcmp(cmd, "LIFT:DN") == 0) lift_.lower();
+        else if (strcmp(cmd, "LIFT:STOP") == 0) lift_.stop();
 #endif
 #if ENABLE_SENSORS
-        else if (strcmp(cmd, "CBUZZ:ALERT") == 0) sensors_.setBuzzerPattern(BuzzerPattern::ALERT);
-        else if (strcmp(cmd, "CBUZZ:SILENT") == 0) sensors_.setBuzzerPattern(BuzzerPattern::SILENT);
+        else if (strcmp(cmd, "BUZZ:ALERT") == 0) sensors_.setBuzzerPattern(BuzzerPattern::ALERT);
+        else if (strcmp(cmd, "BUZZ:SILENT") == 0) sensors_.setBuzzerPattern(BuzzerPattern::SILENT);
 #endif
-        else if (strncmp(cmd, "CSERVO:", 7) == 0) {
-            int angle = atoi(cmd + 7);
+        else if (strncmp(cmd, "SERVO:", 6) == 0) {
+            int angle = atoi(cmd + 6);
             if (angle >= 0 && angle <= 180) {
                 cameraServo_.write(angle);
             }

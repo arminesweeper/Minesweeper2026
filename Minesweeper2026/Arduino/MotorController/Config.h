@@ -196,7 +196,7 @@ constexpr uint8_t NUM_MAGNETS = 5;
 namespace SensorConfig {
 constexpr uint16_t PROXIMITY_THRESHOLD = 500;
 constexpr uint8_t NUM_PROXIMITY = 5;
-constexpr unsigned long METAL_DEBOUNCE_MS = 100;
+constexpr unsigned long METAL_DEBOUNCE_MS = 500;
 constexpr uint8_t METAL_ACTIVE_STATE = LOW;
 constexpr uint8_t ADC_SAMPLES = 4;
 constexpr uint16_t BUZZER_FREQ_HZ =
