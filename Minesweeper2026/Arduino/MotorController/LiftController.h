@@ -27,11 +27,10 @@
  * @brief Lift mechanism operating states.
  */
 enum class LiftState : uint8_t {
-    IDLE,       ///< Lift at rest, ready for commands
-    RAISING,    ///< Lift motor driving upward
-    RAISED,     ///< Lift at top position (top limit switch active)
-    LOWERING,   ///< Lift motor driving downward
-    LOWERED,    ///< Lift at bottom position (bottom limit switch active)
+    IDLE,       ///< Lift at bottom, magnet ON/armed, waiting for detection or command
+    RAISING,    ///< Lift motor driving upward with caught mine
+    DROPPING,   ///< Reached top, motor stopped, magnet OFF (300ms dwell to drop mine)
+    LOWERING,   ///< Lift motor driving downward back to bottom
     FAULT       ///< Stall timeout or limit switch error
 };
 
@@ -39,13 +38,19 @@ enum class LiftState : uint8_t {
  * @brief Lift mechanism controller with state machine and electromagnets.
  *
  * Drives a DC motor via PWM/DIR for vertical lift movement.
- * Monitors top and bottom limit switches (normally open, active LOW,
- * connected to pins with internal pull-ups).
- * Controls 5 electromagnet channels for mine pickup.
+ * Monitors top and bottom limit switches.
+ * Monitors optical break-beam sensor on gripper (Pin 25) to auto-trigger mine pickup.
+ * Controls electromagnet for mine retention and release.
  *
- * Includes stall timeout: if the motor runs longer than STALL_TIMEOUT_MS
- * without reaching a limit switch, the controller enters FAULT state and
- * stops the motor.
+ * Automated Cycle:
+ *   IDLE (at bottom, magnet ON)
+ *     → [Break-beam detects mine OR manual trigger]
+ *     → RAISING (motor drives UP)
+ *     → [Hits Top Limit Switch]
+ *     → DROPPING (motor stops, magnet turns OFF, waits 300 ms)
+ *     → LOWERING (motor drives DOWN)
+ *     → [Hits Bottom Limit Switch]
+ *     → IDLE (motor stops, magnet turns ON)
  */
 class LiftController {
 public:
@@ -55,11 +60,7 @@ public:
     LiftController();
 
     /**
-     * @brief Initialize all lift hardware (motor, switches, magnets).
-     *
-     * Sets all magnet pins to OUTPUT (LOW).
-     * Sets motor pins to OUTPUT (PWM=0, DIR=HIGH).
-     * Enables internal pull-ups on limit switch pins.
+     * @brief Initialize all lift hardware (motor, switches, magnets, optical sensor).
      */
     void begin();
 
@@ -67,30 +68,27 @@ public:
      * @brief Update the lift state machine.
      *
      * Must be called periodically (recommended: every 50 ms).
-     * Reads limit switches, checks stall timeout, updates motor output.
+     * Reads limit switches and optical sensor, updates automated cycle.
      */
     void update();
 
     /**
-     * @brief Command the lift to raise.
-     *
-     * Ignored if already RAISING or RAISED.
-     * Transition: IDLE/LOWERED → RAISING.
+     * @brief Trigger an automated pickup and drop cycle (from joystick or command).
+     */
+    void triggerCycle();
+
+    /**
+     * @brief Command the lift to raise (calls triggerCycle).
      */
     void raise();
 
     /**
      * @brief Command the lift to lower.
-     *
-     * Ignored if already LOWERING or LOWERED.
-     * Transition: RAISED → LOWERING.
      */
     void lower();
 
     /**
      * @brief Stop the lift motor immediately.
-     *
-     * Transition: any → IDLE (unless in FAULT).
      */
     void stop();
 
@@ -121,32 +119,43 @@ public:
 
     /**
      * @brief Check if the top limit switch is currently active.
-     * @return true if the switch pin reads LOW (active)
      */
     bool isAtTop() const;
 
     /**
      * @brief Check if the bottom limit switch is currently active.
-     * @return true if the switch pin reads LOW (active)
      */
     bool isAtBottom() const;
 
     /**
+     * @brief Check if the gripper optical sensor currently detects an object.
+     */
+    bool isObjectDetected() const { return sensor_stable_; }
+
+    /**
+     * @brief Check if a lift cycle is currently in progress.
+     */
+    bool isCycling() const {
+        return state_ == LiftState::RAISING || state_ == LiftState::DROPPING || state_ == LiftState::LOWERING;
+    }
+
+    /**
+     * @brief Check if the electromagnet is currently active.
+     */
+    bool isMagnetActive() const { return (magnet_state_ != 0); }
+
+    /**
      * @brief Check if the lift is in FAULT state.
-     * @return true if a fault is active
      */
     bool hasFault() const { return state_ == LiftState::FAULT; }
 
     /**
      * @brief Clear the fault condition and return to IDLE.
-     *
-     * The motor is stopped before transitioning to IDLE.
      */
     void clearFault();
 
     /**
      * @brief Get the current magnet state as a bitmask.
-     * @return Bits 0-4 correspond to magnets 1-5 (1 = energized)
      */
     uint8_t getMagnetState() const { return magnet_state_; }
 
@@ -154,10 +163,15 @@ private:
     LiftState state_;               ///< Current state machine state
     uint8_t magnet_state_;          ///< Bitmask of energized magnets
     unsigned long motion_start_ms_; ///< millis() when motor motion began
+    unsigned long dwell_start_ms_;  ///< millis() when top drop dwell started
     unsigned long debounce_top_ms_; ///< Last time top switch changed
     unsigned long debounce_bot_ms_; ///< Last time bottom switch changed
+    unsigned long debounce_sensor_ms_; ///< Last time optical sensor changed
     bool top_switch_stable_;        ///< Debounced top switch state
     bool bot_switch_stable_;        ///< Debounced bottom switch state
+    bool sensor_stable_;            ///< Debounced optical sensor state
+    bool sensor_prev_state_;        ///< Edge detection for optical sensor
+    bool manual_trigger_;           ///< Flag for joystick/serial trigger
 
     /**
      * @brief Drive the lift motor at configured speed.

@@ -73,9 +73,11 @@ SerialProtocol::SerialProtocol()
       pending_right_vel_(0.0f),
       pending_left_vel_(0.0f),
       pending_gripper_vel_(0.0f),
+      pending_servo_angle_(-1.0f),
       right_received_(false),
       left_received_(false),
-      gripper_received_(false) {
+      gripper_received_(false),
+      servo_received_(false) {
     memset(rx_buffer_, 0, sizeof(rx_buffer_));
     memset(value_buffer_, 0, sizeof(value_buffer_));
     memset(cmd_buffer_, 0, sizeof(cmd_buffer_));
@@ -91,7 +93,7 @@ void SerialProtocol::begin() {
     active_stream_ = nullptr;
 }
 
-bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& gripper_vel) {
+bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& gripper_vel, float& servo_angle) {
     bool packet_complete = false;
     unsigned long now = millis();
 
@@ -120,6 +122,8 @@ bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& grip
                     right_vel = pending_right_vel_;
                     left_vel = pending_left_vel_;
                     if (gripper_received_) gripper_vel = pending_gripper_vel_;
+                    if (servo_received_) servo_angle = pending_servo_angle_;
+                    else servo_angle = -1.0f;
                     processCompletePacket();
                     packet_complete = true;
                     active_stream_ = nullptr;
@@ -127,12 +131,14 @@ bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& grip
                     resetParser();
                     active_stream_ = nullptr;
                 }
-            } else if (c == 'r' || c == 'l' || c == 'g') {
+            } else if (c == 'r' || c == 'l' || c == 'g' || c == 's') {
                 // If a new 'r' arrives while a full packet is already parsed (streamed without newline)
                 if (c == 'r' && right_received_ && left_received_) {
                     right_vel = pending_right_vel_;
                     left_vel = pending_left_vel_;
                     if (gripper_received_) gripper_vel = pending_gripper_vel_;
+                    if (servo_received_) servo_angle = pending_servo_angle_;
+                    else servo_angle = -1.0f;
                     processCompletePacket();
                     packet_complete = true;
                 }
@@ -171,6 +177,9 @@ bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& grip
                 } else if (current_motor_ == 'g') {
                     pending_gripper_vel_ = velocity;
                     gripper_received_ = true;
+                } else if (current_motor_ == 's') {
+                    pending_servo_angle_ = velocity;
+                    servo_received_ = true;
                 }
 
                 // If newline or end of packet reached
@@ -179,6 +188,8 @@ bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& grip
                         right_vel = pending_right_vel_;
                         left_vel = pending_left_vel_;
                         if (gripper_received_) gripper_vel = pending_gripper_vel_;
+                        if (servo_received_) servo_angle = pending_servo_angle_;
+                        else servo_angle = -1.0f;
                         processCompletePacket();
                         packet_complete = true;
                         active_stream_ = nullptr;
@@ -188,12 +199,14 @@ bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& grip
                     }
                 } else {
                     // Delimiter is comma ','
-                    // Complete packet if both wheels received and no gripper follows
+                    // Complete packet if both wheels received and no gripper or servo follows
                     if (right_received_ && left_received_ &&
-                        (!active_stream_->available() || active_stream_->peek() != 'g')) {
+                        (!active_stream_->available() || (active_stream_->peek() != 'g' && active_stream_->peek() != 's'))) {
                         right_vel = pending_right_vel_;
                         left_vel = pending_left_vel_;
                         if (gripper_received_) gripper_vel = pending_gripper_vel_;
+                        if (servo_received_) servo_angle = pending_servo_angle_;
+                        else servo_angle = -1.0f;
                         processCompletePacket();
                         packet_complete = true;
                         active_stream_ = nullptr;
@@ -258,6 +271,8 @@ void SerialProtocol::processCompletePacket() {
     right_received_ = false;
     left_received_ = false;
     gripper_received_ = false;
+    servo_received_ = false;
+    pending_servo_angle_ = -1.0f;
 }
 
 void SerialProtocol::resetParser() {
@@ -266,6 +281,8 @@ void SerialProtocol::resetParser() {
     right_received_ = false;
     left_received_ = false;
     gripper_received_ = false;
+    servo_received_ = false;
+    pending_servo_angle_ = -1.0f;
 }
 
 void SerialProtocol::resetValueBuffer() {

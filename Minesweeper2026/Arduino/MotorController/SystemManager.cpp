@@ -80,11 +80,23 @@ void SystemManager::update() {
     safety_.resetWatchdog();
 
     // Process serial input (Non-blocking)
-    float r_vel = 0.0f, l_vel = 0.0f, g_vel = 0.0f;
-    if (serial_.processInput(r_vel, l_vel, g_vel)) {
+    float r_vel = 0.0f, l_vel = 0.0f, g_vel = 0.0f, s_angle = -1.0f;
+    if (serial_.processInput(r_vel, l_vel, g_vel, s_angle)) {
         motion_.setRightTarget(r_vel);
         motion_.setLeftTarget(l_vel);
-        // Gripper velocity handling here
+
+#if ENABLE_LIFT
+        // If joystick or ROS triggers gripper (e.g. gp01.00)
+        if (g_vel > 0.5f) {
+            lift_.triggerCycle();
+        }
+#endif
+
+        // If servo angle commanded (0 to 180 degrees)
+        if (s_angle >= 0.0f && s_angle <= 180.0f) {
+            cameraServo_.write(static_cast<int>(s_angle));
+        }
+
         diag_.incrementCommandCount();
         if (safety_.getState() == SystemState::ESTOP) {
             safety_.clearEStop();
@@ -193,9 +205,14 @@ void SystemManager::taskLift() {
 }
 
 void SystemManager::taskHighRateTelemetry() {
+#if ENABLE_LIFT
+    float gripper_status = lift_.isCycling() ? 1.0f : 0.0f;
+#else
+    float gripper_status = 0.0f;
+#endif
     serial_.sendTelemetry(motion_.getRightState().measured_velocity,
                           motion_.getLeftState().measured_velocity,
-                          0.0f); // Gripper vel
+                          gripper_status);
 }
 
 void SystemManager::taskLowRateTelemetry() {
@@ -267,7 +284,7 @@ void SystemManager::processExtendedCommands() {
             serial_.sendStatus("Reset complete");
         }
 #if ENABLE_LIFT
-        else if (strcmp(cmd, "LIFT:UP") == 0) lift_.raise();
+        else if (strcmp(cmd, "LIFT:UP") == 0 || strcmp(cmd, "LIFT:CYCLE") == 0) lift_.triggerCycle();
         else if (strcmp(cmd, "LIFT:DN") == 0) lift_.lower();
         else if (strcmp(cmd, "LIFT:STOP") == 0) lift_.stop();
         else if (strcmp(cmd, "MAGNET:ON") == 0) lift_.setAllMagnets(true);

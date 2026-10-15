@@ -14,25 +14,31 @@
 | **D19** | A2 | Input | Right encoder A (INT2) | PCB copper |
 | **D20** | B1 | Input | Left encoder B | PCB copper |
 | **D21** | A1 | Input | Left encoder A (INT2) | PCB copper |
-| **D30** | soft SDA | I/O | MPU6050 SDA | **Flying lead** |
-| **D31** | soft SCL | Output | MPU6050 SCL | **Flying lead** |
-| **D8** | DIR3 | Output | Lift direction | Jumper → J37/J44 |
-| **D10** | PWM3 | Output | Lift PWM | Jumper → J37/J44 |
-| **D27** | MD / MTLDTCT | Input | Metal detector | Jumper → J6/J40 |
-| **D28** | LM1 | Input | Limit top (active HIGH) | Jumper → J43/J44 |
-| **D29** | LM2 | Input | Limit bottom (active HIGH) | Jumper → J43/J44 |
-| **D35** | WARNING_LED | Output | Status LED | Discrete LED |
-| **D36** | SERVO | Output | Optional servo | PCB copper |
-| **D37** | SIREN | Output | Siren relay | Jumper → J15 |
+| **D4**  | SERVO | Output | Camera / gripper servo | Discrete lead / J13 |
+| **D8**  | DIR1_2 | Output | Secondary Right motor DIR | Cytron 2 |
+| **D9**  | PWM1_2 | Output | Secondary Right motor PWM | Cytron 2 |
+| **D10** | DIR2_2 | Output | Secondary Left motor DIR | Cytron 2 |
+| **D11** | PWM2_2 | Output | Secondary Left motor PWM | Cytron 2 |
+| **D25** | GRIPPER_SENSE | Input (Pullup) | Gripper break-beam / optical sensor | Jumper / sensor harness |
+| **D31** | soft SDA | I/O | MPU6050 SDA | **Flying lead** |
+| **D33** | soft SCL | Output | MPU6050 SCL | **Flying lead** |
+| **D35** | DIR3 | Output | Lift direction | Jumper → J37/J44 |
+| **D37** | PWM3 | Output | Lift PWM | Jumper → J37/J44 |
 | **D38** | MAGNET SW | Output | Magnet relay K1 | PCB copper |
+| **D39** | MD / MTLDTCT | Input | Metal detector | Jumper → J6/J40 |
 | **D40** | DIR2 | Output | Left motor DIR | PCB copper |
+| **D41** | LM1 | Input | Limit top | Jumper → J43/J44 |
 | **D42** | DIR1 | Output | Right motor DIR | PCB copper |
+| **D43** | LM2 | Input | Limit bottom | Jumper → J43/J44 |
 | **D44** | PWM1 | Output | Right motor PWM | PCB copper |
+| **D45** | WARNING_LED | Output | Status LED | Discrete LED |
 | **D46** | PWM2 | Output | Left motor PWM | PCB copper |
-| **A0** | BAT_SENSE | Input | Battery divider | Add-on harness |
+| **D47** | SIREN | Output | Siren relay | Jumper → J15 |
+| **A0**  | BAT_SENSE | Input | Battery divider | Add-on harness |
 | **A1–A5** | AP1–AP5 | Input | Proximity | Jumper → J6 |
 
 USB Serial (D0/D1) reserved for Pi ↔ Arduino.
+Serial2 (D16/D17) optional for ESP32/WiFi Controller (toggle via ENABLE_SERIAL2 in Config.h).
 
 ---
 

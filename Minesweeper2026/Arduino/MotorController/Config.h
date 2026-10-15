@@ -66,6 +66,13 @@
  */
 #define LIMIT_SWITCH_ACTIVE_HIGH 0
 
+/**
+ * Break-beam / optical object detection sensor on the gripper (Pin 25).
+ * When 1: beam interrupted / object detected = LOW (standard NPN open-collector / INPUT_PULLUP).
+ * When 0: beam interrupted / object detected = HIGH.
+ */
+#define GRIPPER_SENSOR_ACTIVE_LOW 1
+
 /* ============================================================================
  * HARDWARE PIN DEFINITIONS — as-fabricated PCB + harness
  * ============================================================================
@@ -115,6 +122,7 @@ constexpr uint8_t LIFT_PWM = 37;        /* PWM3 */
 constexpr uint8_t LIFT_DIR = 35;        /* DIR3 */
 constexpr uint8_t LIMIT_SW_TOP = 41;    /* LM1 */
 constexpr uint8_t LIMIT_SW_BOTTOM = 43; /* LM2 */
+constexpr uint8_t GRIPPER_SENSOR = 25;  /* Break-beam / optical sensor on gripper */
 
 /* Electromagnets — single PCB relay on D38; software mask still 5 bits */
 #if MAGNET_SHARED_RELAY
@@ -191,6 +199,7 @@ namespace LiftConfig {
 constexpr uint8_t LIFT_PWM_SPEED = 200;
 constexpr unsigned long STALL_TIMEOUT_MS = 5000;
 constexpr unsigned long DEBOUNCE_MS = 50;
+constexpr unsigned long DROP_DWELL_MS = 300; /* Time to dwell at top with magnet OFF (ms) */
 constexpr uint8_t NUM_MAGNETS = 5;
 } // namespace LiftConfig
 

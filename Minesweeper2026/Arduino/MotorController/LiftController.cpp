@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * LIFTCONTROLLER.CPP - Lift Mechanism Implementation
+ * LIFTCONTROLLER.CPP - Automated Lift Mechanism Implementation
  * ============================================================================
  * @file   LiftController.cpp
  * @author Assiut Robotics Team
@@ -18,10 +18,15 @@ LiftController::LiftController()
     : state_(LiftState::IDLE),
       magnet_state_(0),
       motion_start_ms_(0),
+      dwell_start_ms_(0),
       debounce_top_ms_(0),
       debounce_bot_ms_(0),
+      debounce_sensor_ms_(0),
       top_switch_stable_(false),
-      bot_switch_stable_(false) {}
+      bot_switch_stable_(false),
+      sensor_stable_(false),
+      sensor_prev_state_(false),
+      manual_trigger_(false) {}
 
 /* ============================================================================
  * INITIALIZATION
@@ -43,6 +48,13 @@ void LiftController::begin() {
     pinMode(Pins::LIMIT_SW_BOTTOM, INPUT_PULLUP);
 #endif
 
+    /* Break-beam / optical object detection sensor on gripper (Pin 25) */
+#if GRIPPER_SENSOR_ACTIVE_LOW
+    pinMode(Pins::GRIPPER_SENSOR, INPUT_PULLUP);
+#else
+    pinMode(Pins::GRIPPER_SENSOR, INPUT);
+#endif
+
     /* Electromagnet / shared relay pin(s) */
 #if MAGNET_SHARED_RELAY
     pinMode(Pins::MAGNET_RELAY, OUTPUT);
@@ -54,68 +66,97 @@ void LiftController::begin() {
     }
 #endif
 
-    magnet_state_ = 0;
+    /* Option 1: Magnet is always ON while at bottom */
+    setAllMagnets(true);
     state_ = LiftState::IDLE;
+    manual_trigger_ = false;
 
     /* Initialize debounce states */
     unsigned long now = millis();
     debounce_top_ms_ = now;
     debounce_bot_ms_ = now;
+    debounce_sensor_ms_ = now;
     top_switch_stable_ = isSwitchRawActive(Pins::LIMIT_SW_TOP);
     bot_switch_stable_ = isSwitchRawActive(Pins::LIMIT_SW_BOTTOM);
+    sensor_stable_ = isSwitchRawActive(Pins::GRIPPER_SENSOR);
+    sensor_prev_state_ = sensor_stable_;
 }
 
 /* ============================================================================
- * STATE MACHINE UPDATE
+ * AUTOMATED STATE MACHINE UPDATE
  * ============================================================================ */
 
 void LiftController::update() {
     /* Read debounced switch states */
-    bool at_top = readSwitch(Pins::LIMIT_SW_TOP, debounce_top_ms_,
-                             top_switch_stable_);
-    bool at_bottom = readSwitch(Pins::LIMIT_SW_BOTTOM, debounce_bot_ms_,
-                                bot_switch_stable_);
+    bool at_top = readSwitch(Pins::LIMIT_SW_TOP, debounce_top_ms_, top_switch_stable_);
+    bool at_bottom = readSwitch(Pins::LIMIT_SW_BOTTOM, debounce_bot_ms_, bot_switch_stable_);
+
+    /* Read debounced optical sensor on gripper */
+    bool object_detected = readSwitch(Pins::GRIPPER_SENSOR, debounce_sensor_ms_, sensor_stable_);
 
     switch (state_) {
-    case LiftState::IDLE:
-        /* No motor activity.  Waiting for raise/lower command. */
+    case LiftState::IDLE: {
+        /* Magnet is armed/ON at bottom.
+         * Trigger cycle if an object newly enters the break beam (edge trigger),
+         * OR if triggered manually via joystick command. */
+        bool new_object = (object_detected && !sensor_prev_state_);
+        sensor_prev_state_ = object_detected;
+
+        if (new_object || manual_trigger_) {
+            manual_trigger_ = false;
+            if (!at_top) {
+                driveMotor(true); /* Move UP */
+                motion_start_ms_ = millis();
+                state_ = LiftState::RAISING;
+            }
+        }
         break;
+    }
 
     case LiftState::RAISING:
+        sensor_prev_state_ = object_detected;
         if (at_top) {
-            /* Reached top limit switch — stop motor and transition. */
+            /* Reached top limit switch — stop motor, release magnet to drop mine, start 300ms dwell */
             stopMotor();
-            state_ = LiftState::RAISED;
+            setAllMagnets(false);
+            dwell_start_ms_ = millis();
+            state_ = LiftState::DROPPING;
         } else if (millis() - motion_start_ms_ > LiftConfig::STALL_TIMEOUT_MS) {
-            /* Stall timeout — motor running too long without hitting switch. */
             stopMotor();
             state_ = LiftState::FAULT;
         }
         break;
 
-    case LiftState::RAISED:
-        /* Lift is at top position.  Motor is off.  Waiting for lower command. */
+    case LiftState::DROPPING:
+        sensor_prev_state_ = object_detected;
+        /* Wait for 300 ms dwell with magnet OFF so mine falls clear into container */
+        if (millis() - dwell_start_ms_ >= LiftConfig::DROP_DWELL_MS) {
+            if (!at_bottom) {
+                driveMotor(false); /* Move DOWN */
+                motion_start_ms_ = millis();
+                state_ = LiftState::LOWERING;
+            } else {
+                setAllMagnets(true);
+                state_ = LiftState::IDLE;
+            }
+        }
         break;
 
     case LiftState::LOWERING:
+        sensor_prev_state_ = object_detected;
         if (at_bottom) {
-            /* Reached bottom limit switch — stop motor and transition. */
+            /* Reached bottom limit switch — stop motor, re-arm magnet for next mine */
             stopMotor();
-            state_ = LiftState::LOWERED;
+            setAllMagnets(true);
+            state_ = LiftState::IDLE;
         } else if (millis() - motion_start_ms_ > LiftConfig::STALL_TIMEOUT_MS) {
-            /* Stall timeout. */
             stopMotor();
             state_ = LiftState::FAULT;
         }
         break;
 
-    case LiftState::LOWERED:
-        /* Lift is at bottom position.  Transition to IDLE. */
-        state_ = LiftState::IDLE;
-        break;
-
     case LiftState::FAULT:
-        /* Motor is stopped.  Waiting for clearFault() call. */
+        stopMotor();
         break;
     }
 }
@@ -124,42 +165,26 @@ void LiftController::update() {
  * COMMANDS
  * ============================================================================ */
 
+void LiftController::triggerCycle() {
+    if (state_ == LiftState::IDLE) {
+        manual_trigger_ = true;
+    }
+}
+
 void LiftController::raise() {
-    if (state_ == LiftState::RAISING || state_ == LiftState::RAISED) {
-        return;  /* Already at target or in progress */
-    }
-    if (state_ == LiftState::FAULT) {
-        return;  /* Must clear fault first */
-    }
-
-    /* Check if already at top */
-    if (isAtTop()) {
-        state_ = LiftState::RAISED;
-        return;
-    }
-
-    driveMotor(true);
-    motion_start_ms_ = millis();
-    state_ = LiftState::RAISING;
+    triggerCycle();
 }
 
 void LiftController::lower() {
-    if (state_ == LiftState::LOWERING || state_ == LiftState::LOWERED) {
-        return;  /* Already at target or in progress */
-    }
-    if (state_ == LiftState::FAULT) {
-        return;  /* Must clear fault first */
-    }
-
-    /* Check if already at bottom */
-    if (isAtBottom()) {
-        state_ = LiftState::IDLE;
+    if (state_ == LiftState::DROPPING) {
+        dwell_start_ms_ = 0; /* Force immediate descent */
+    } else if (state_ == LiftState::FAULT) {
         return;
+    } else if (!isAtBottom()) {
+        driveMotor(false);
+        motion_start_ms_ = millis();
+        state_ = LiftState::LOWERING;
     }
-
-    driveMotor(false);
-    motion_start_ms_ = millis();
-    state_ = LiftState::LOWERING;
 }
 
 void LiftController::stop() {
@@ -171,7 +196,9 @@ void LiftController::stop() {
 
 void LiftController::clearFault() {
     stopMotor();
+    setAllMagnets(true);
     state_ = LiftState::IDLE;
+    manual_trigger_ = false;
 }
 
 /* ============================================================================
@@ -225,9 +252,8 @@ const char* LiftController::getStateString() const {
     switch (state_) {
     case LiftState::IDLE:     return "IDLE";
     case LiftState::RAISING:  return "RAISING";
-    case LiftState::RAISED:   return "RAISED";
+    case LiftState::DROPPING: return "DROPPING";
     case LiftState::LOWERING: return "LOWERING";
-    case LiftState::LOWERED:  return "LOWERED";
     case LiftState::FAULT:    return "FAULT";
     default:                  return "UNKNOWN";
     }
@@ -264,6 +290,14 @@ bool LiftController::readSwitch(uint8_t pin, unsigned long& last_change,
 }
 
 bool LiftController::isSwitchRawActive(uint8_t pin) const {
+    if (pin == Pins::GRIPPER_SENSOR) {
+#if GRIPPER_SENSOR_ACTIVE_LOW
+        return digitalRead(pin) == LOW;
+#else
+        return digitalRead(pin) == HIGH;
+#endif
+    }
+
 #if LIMIT_SWITCH_ACTIVE_HIGH
     return digitalRead(pin) == HIGH;
 #else

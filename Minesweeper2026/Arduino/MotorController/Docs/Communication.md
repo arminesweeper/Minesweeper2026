@@ -32,40 +32,44 @@
 
 ## Inbound Packets (ROS → Arduino)
 
-### Velocity Command
+### Velocity & Actuator Command
 
-The primary command format.  Fully backward-compatible with existing ROS 2 code.
+The primary command format. Fully backward-compatible with existing ROS 2 diff-drive code, with optional fields for gripper trigger (`g`) and camera servo angle (`s`).
 
 ```
-rp02.50,ln01.30,
+rp02.50,ln01.30,gp01.00,sp90.00,
 ```
 
 #### Field Breakdown
 
 | Position | Field | Values | Description |
 |----------|-------|--------|-------------|
-| 1 | Wheel | `r` / `l` | Right or left wheel |
-| 2 | Direction | `p` / `n` | Positive (forward) or negative (reverse) |
-| 3-7 | Value | `XX.XX` | Velocity magnitude in rad/s |
+| 1 | Target | `r` / `l` / `g` / `s` | Right wheel, left wheel, gripper trigger, or camera servo |
+| 2 | Direction/Sign | `p` / `n` | Positive (`p`) or negative (`n`) |
+| 3-7 | Value | `XX.XX` | Magnitude (rad/s for motors, 0.0/1.0 for gripper, 0-180 for servo) |
 | 8 | Separator | `,` | Comma delimiter |
 
 #### Rules
 
-- Both wheels must be specified in one packet (`r...l...` order).
+- `r` and `l` are mandatory for drive control.
+- `g` and `s` are optional extensions.
+- When `gp01.00` is received (`value > 0.5`), it triggers the automated gripper mine lift & drop cycle.
+- When `spXX.XX` is received, it sets the camera servo angle (0° to 180°).
 - The comma after each value is mandatory.
 - Maximum value string length: 7 characters (e.g., `99.999`).
 - Values are parsed with `atof()`.
 - Invalid characters reset the parser to WAITING state.
-- A newline (`\n`) may optionally follow the final comma.
+- Packets can end with a newline (`\n`), carriage return (`\r`), or stream seamlessly across packet boundaries.
 
 #### Examples
 
-| Command | Right Wheel | Left Wheel |
-|---------|-------------|------------|
-| `rp02.50,lp01.30,` | +2.50 rad/s forward | +1.30 rad/s forward |
-| `rn01.00,ln01.00,` | -1.00 rad/s reverse | -1.00 rad/s reverse |
-| `rp00.00,lp00.00,` | Stop right | Stop left |
-| `rp05.00,ln02.00,` | +5.00 forward | -2.00 reverse (spin) |
+| Command | Right Wheel | Left Wheel | Gripper | Servo |
+|---------|-------------|------------|---------|-------|
+| `rp02.50,lp01.30,` | +2.50 rad/s | +1.30 rad/s | Unchanged | Unchanged |
+| `rn01.00,ln01.00,` | -1.00 rad/s | -1.00 rad/s | Unchanged | Unchanged |
+| `rp00.00,lp00.00,gp01.00,` | Stop right | Stop left | Trigger lift cycle | Unchanged |
+| `rp02.00,lp02.00,sp90.00,` | +2.00 rad/s | +2.00 rad/s | Unchanged | Set servo to 90° |
+| `rp00.00,lp00.00,gp01.00,sp120.00,` | Stop right | Stop left | Trigger lift cycle | Set servo to 120° |
 
 ### Extended Commands
 

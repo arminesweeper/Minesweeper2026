@@ -27,7 +27,11 @@ public:
      * @brief Process incoming serial data
      * @return true if a complete velocity command packet was received
      */
-    bool processInput(float& right_vel, float& left_vel, float& gripper_vel);
+    bool processInput(float& right_vel, float& left_vel, float& gripper_vel, float& servo_angle);
+    bool processInput(float& right_vel, float& left_vel, float& gripper_vel) {
+        float dummy_servo = -1.0f;
+        return processInput(right_vel, left_vel, gripper_vel, dummy_servo);
+    }
 
     bool getExtendedCommand(char* cmd_buf, size_t buf_size);
 
@@ -69,7 +73,7 @@ private:
     bool cmd_ready_;
 
     // Temporary parsing storage
-    char current_motor_; // 'r', 'l', 'g'
+    char current_motor_; // 'r', 'l', 'g', 's'
     char current_sign_;
     char value_buffer_[8];
     size_t value_index_;
@@ -78,9 +82,11 @@ private:
     float pending_right_vel_;
     float pending_left_vel_;
     float pending_gripper_vel_;
+    float pending_servo_angle_;
     bool right_received_;
     bool left_received_;
     bool gripper_received_;
+    bool servo_received_;
 
     void resetParser();
     void resetValueBuffer();
