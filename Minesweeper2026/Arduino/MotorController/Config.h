@@ -35,6 +35,7 @@
 #define ENABLE_IMU 0
 #define ENABLE_LIFT 1
 #define ENABLE_SENSORS 1
+#define ENABLE_SERIAL2 0 // Set to 1 to enable Serial2 (WiFi/ESP Controller), 0 to disable
 
 /**
  * PCB copper puts ENC1 on Mega D20/D21 (same MCU pins as hardware I2C).
@@ -198,7 +199,7 @@ constexpr uint16_t PROXIMITY_THRESHOLD = 500;
 constexpr uint8_t NUM_PROXIMITY = 5;
 constexpr unsigned long METAL_DEBOUNCE_MS = 500;
 constexpr uint8_t METAL_ACTIVE_STATE = LOW;
-constexpr uint8_t ADC_SAMPLES = 4;
+constexpr uint8_t ADC_SAMPLES = 1; /* Set to 1 to eliminate 1.8ms blocking ADC delay */
 constexpr uint16_t BUZZER_FREQ_HZ =
     500; /* Used only if BUZZER_IS_SIREN_RELAY == 0 */
 } // namespace SensorConfig

@@ -81,9 +81,14 @@ void Sensors::begin() {
  * ============================================================================ */
 
 void Sensors::update() {
-    /* Read all proximity sensors */
+    /* Read all proximity sensors with fast EMA smoothing */
     for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
-        proximity_values_[i] = readProximityAveraged(Pins::PROXIMITY_PINS[i]);
+        uint16_t val = readProximityAveraged(Pins::PROXIMITY_PINS[i]);
+        if (proximity_values_[i] == 0) {
+            proximity_values_[i] = val;
+        } else {
+            proximity_values_[i] = (proximity_values_[i] * 3 + val) / 4;
+        }
     }
 
     /* Update metal detector (debounced) */
@@ -119,11 +124,14 @@ bool Sensors::isProximityTriggered(uint8_t index) const {
 }
 
 uint16_t Sensors::readProximityAveraged(uint8_t pin) const {
-    uint32_t sum = 0;
-    for (uint8_t s = 0; s < SensorConfig::ADC_SAMPLES; ++s) {
-        sum += static_cast<uint32_t>(analogRead(pin));
+    if (SensorConfig::ADC_SAMPLES > 1) {
+        uint32_t sum = 0;
+        for (uint8_t s = 0; s < SensorConfig::ADC_SAMPLES; ++s) {
+            sum += static_cast<uint32_t>(analogRead(pin));
+        }
+        return static_cast<uint16_t>(sum / SensorConfig::ADC_SAMPLES);
     }
-    return static_cast<uint16_t>(sum / SensorConfig::ADC_SAMPLES);
+    return static_cast<uint16_t>(analogRead(pin));
 }
 
 /* ============================================================================

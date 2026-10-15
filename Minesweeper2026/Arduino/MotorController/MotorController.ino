@@ -45,7 +45,9 @@ MotorDriver leftMotor2({Pins::MOTOR_L_PWM_2, Pins::MOTOR_L_DIR_2}, true);
 
 void setup() {
   Serial.begin(115200);
+#if ENABLE_SERIAL2
   Serial2.begin(115200);
+#endif
   rightMotor.begin();
   leftMotor.begin();
   rightMotor2.begin();
@@ -65,7 +67,9 @@ void setup() {
 void loop() {
   Stream* activeStream = nullptr;
   if (Serial.available() > 0) activeStream = &Serial;
+#if ENABLE_SERIAL2
   else if (Serial2.available() > 0) activeStream = &Serial2;
+#endif
 
   if (activeStream != nullptr) {
     char c = activeStream->read();

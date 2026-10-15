@@ -49,13 +49,19 @@ public:
     void sendError(uint8_t error_code, const char* message) const;
 
     unsigned long getLastCommandTime() const { return last_command_time_; }
+#if ENABLE_SERIAL2
     bool dataAvailable() const { return Serial.available() > 0 || Serial2.available() > 0; }
+#else
+    bool dataAvailable() const { return Serial.available() > 0; }
+#endif
 
 private:
     State parser_state_;
     char rx_buffer_[SerialConfig::RX_BUFFER_SIZE];
     size_t rx_index_;
     unsigned long last_command_time_;
+    unsigned long last_rx_byte_time_;
+    Stream* active_stream_;
 
     // Extended command state
     char cmd_buffer_[SerialConfig::CMD_BUFFER_SIZE];

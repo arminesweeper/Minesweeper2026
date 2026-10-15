@@ -70,7 +70,7 @@ void SystemManager::begin() {
     tasks_[1] = {"IMU", Timing::IMU_INTERVAL_MS, 0, 0, taskIMU};
     tasks_[2] = {"Sensors", Timing::SENSOR_INTERVAL_MS, 0, 0, taskSensors};
     tasks_[3] = {"Lift", Timing::LIFT_INTERVAL_MS, 0, 0, taskLift};
-    tasks_[4] = {"Hi_Telem", 50, 0, 0, taskHighRateTelemetry}; // 20 Hz
+    tasks_[4] = {"Hi_Telem", Timing::TELEMETRY_INTERVAL_MS, 0, 0, taskHighRateTelemetry}; // 10 Hz (100 ms)
     tasks_[5] = {"Lo_Telem", 500, 0, 0, taskLowRateTelemetry}; // 2 Hz
     tasks_[6] = {"Diag", 1000, 0, 0, taskDiagnostics}; // 1 Hz
 }
@@ -89,7 +89,6 @@ void SystemManager::update() {
         if (safety_.getState() == SystemState::ESTOP) {
             safety_.clearEStop();
         }
-        sensors_.beep();
     }
     processExtendedCommands();
 
@@ -258,10 +257,6 @@ void SystemManager::processExtendedCommands() {
     char cmd[SerialConfig::CMD_BUFFER_SIZE];
     if (serial_.getExtendedCommand(cmd, sizeof(cmd))) {
         
-        // Debug print to USB Serial (Serial0) so the user can see it
-        Serial.print("ESP Command Received: ");
-        Serial.println(cmd);
-
         // Note: SerialProtocol strips the leading 'C', so "CESTOP" arrives as "ESTOP"
         if (strcmp(cmd, "ESTOP") == 0) safety_.triggerEStop();
         else if (strcmp(cmd, "CLEAR") == 0) safety_.clearFaults();
