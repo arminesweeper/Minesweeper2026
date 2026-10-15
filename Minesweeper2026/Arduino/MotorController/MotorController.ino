@@ -51,7 +51,7 @@ void setup() {
   rightMotor2.begin();
   leftMotor2.begin();
   Serial.println(F("========================================"));
-  Serial.println(F(" MOTOR TEST MODE ENABLED (Config.h)"));
+  Serial.println(F("   MOTOR TEST MODE ENABLED (Config.h)   "));
   Serial.println(F("========================================"));
   Serial.println(F("Send commands via Serial Monitor:"));
   Serial.println(F(" 'w' - Forward"));

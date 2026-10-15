@@ -7,7 +7,7 @@
 ## Test Categories
 
 | Category | Purpose | Environment |
-|----------|---------|-------------|
+| ---------- | --------- | ------------- |
 | Unit Tests | Verify individual module logic | Serial monitor / simulation |
 | Integration Tests | Verify module interactions | Bench with hardware |
 | Hardware Tests | Verify physical connections | Full robot |
@@ -23,7 +23,7 @@
 **Objective:** Verify correct parsing of velocity commands.
 
 | # | Input | Expected Right | Expected Left | Notes |
-|---|-------|----------------|---------------|-------|
+| --- | ------- | ---------------- | --------------- | ------- |
 | 1 | `rp02.50,lp01.30,` | +2.50 | +1.30 | Normal forward |
 | 2 | `rn01.00,ln01.00,` | -1.00 | -1.00 | Normal reverse |
 | 3 | `rp00.00,lp00.00,` | 0.00 | 0.00 | Stop |
@@ -38,6 +38,7 @@
 | 12 | (empty) | No change | No change | No data |
 
 **Procedure:**
+
 1. Flash firmware.
 2. Open serial monitor at 115200.
 3. Send each test input.
@@ -47,7 +48,7 @@
 ### UT-02: Extended Command Parser
 
 | # | Input | Expected Action |
-|---|-------|-----------------|
+| --- | ------- | ----------------- |
 | 1 | `CLIFT:UP\n` | Lift starts raising |
 | 2 | `CLIFT:DN\n` | Lift starts lowering |
 | 3 | `CLIFT:STOP\n` | Lift stops |
@@ -61,7 +62,7 @@
 ### UT-03: PID Controller
 
 | # | Test | Expected Behavior |
-|---|------|-------------------|
+| --- | ------ | ------------------- |
 | 1 | Step response 0→2 rad/s | Reaches setpoint within 500 ms, < 10% overshoot |
 | 2 | Step response 2→0 rad/s | Reaches zero within 300 ms |
 | 3 | Anti-windup (stall wheel) | Integral term bounded; fast recovery on release |
@@ -71,7 +72,7 @@
 ### UT-04: Velocity Ramping
 
 | # | Test | Expected Behavior |
-|---|------|-------------------|
+| --- | ------ | ------------------- |
 | 1 | 0→5 rad/s step | Ramps over ~400 ms (15 rad/s² accel) |
 | 2 | 5→0 rad/s step | Ramps over ~250 ms (20 rad/s² decel) |
 | 3 | 5→-5 rad/s step | Decelerates to 0, then accelerates to -5 |
@@ -80,7 +81,7 @@
 ### UT-05: Odometry
 
 | # | Test | Expected Behavior |
-|---|------|-------------------|
+| --- | ------ | ------------------- |
 | 1 | Both wheels forward equal speed | X increases, Y ≈ 0, θ ≈ 0 |
 | 2 | Right forward, left reverse (equal) | Rotation in place, X ≈ 0, Y ≈ 0, θ increases |
 | 3 | Only right wheel forward | Arc to left, θ increases |
@@ -90,7 +91,7 @@
 ### UT-06: IMU
 
 | # | Test | Expected Behavior |
-|---|------|-------------------|
+| --- | ------ | ------------------- |
 | 1 | Stationary on flat surface | Yaw ≈ 0 (after calibration), Pitch ≈ 0, Roll ≈ 0 |
 | 2 | Rotate 90° by hand | Yaw changes by ~90° |
 | 3 | Tilt forward | Pitch changes, Roll ≈ 0 |
@@ -100,7 +101,7 @@
 ### UT-07: Lift Controller
 
 | # | Test | Expected Behavior |
-|---|------|-------------------|
+| --- | ------ | ------------------- |
 | 1 | Raise command | Motor runs, stops at top limit switch |
 | 2 | Lower command | Motor runs, stops at bottom limit switch |
 | 3 | Raise without top switch | Stall timeout → FAULT after 5 seconds |
@@ -110,7 +111,7 @@
 ### UT-08: Sensors
 
 | # | Test | Expected Behavior |
-|---|------|-------------------|
+| --- | ------ | ------------------- |
 | 1 | Metal near detector | `M:1` in telemetry, buzzer MINE_DETECT |
 | 2 | No metal | `M:0` in telemetry |
 | 3 | Object near proximity 1 | P[0] value increases |
@@ -126,6 +127,7 @@
 **Objective:** End-to-end test from serial command to motor output to telemetry response.
 
 **Procedure:**
+
 1. Send `rp02.00,lp02.00,` at 10 Hz.
 2. Verify both wheels rotate forward at ~2 rad/s.
 3. Verify telemetry shows `rp2.0xx,lp2.0xx,` within 500 ms.
@@ -136,6 +138,7 @@
 ### IT-02: Safety + Motor Integration
 
 **Procedure:**
+
 1. Send velocity commands at 10 Hz.
 2. Stop sending commands.
 3. Verify motors stop after 1500 ms (command timeout).
@@ -146,6 +149,7 @@
 ### IT-03: Lift + Magnet Integration
 
 **Procedure:**
+
 1. Send `CLIFT:UP\n`.
 2. Wait for `L:RAISED` in telemetry.
 3. Send `CMAG:ALL:ON\n`.
@@ -158,6 +162,7 @@
 ### IT-04: IMU + Odometry Cross-Check
 
 **Procedure:**
+
 1. Command robot to rotate in place (`rp01.00,ln01.00,`).
 2. Compare odometry θ with IMU yaw.
 3. Verify values track within ±5° over 360° rotation.
@@ -165,6 +170,7 @@
 ### IT-05: Sensor + Safety Integration
 
 **Procedure:**
+
 1. Trigger metal detector during normal operation.
 2. Verify `M:1` telemetry without interrupting motor control.
 3. Trigger proximity sensors.
@@ -177,7 +183,7 @@
 ### HW-01: Motor Direction Verification
 
 | Test | Expected |
-|------|----------|
+| ------ | ---------- |
 | Right motor, positive command | Wheel turns forward (robot moves forward) |
 | Right motor, negative command | Wheel turns reverse |
 | Left motor, positive command | Wheel turns forward |
@@ -188,7 +194,7 @@ If direction is wrong: toggle `inverted` flag in MotorDriver constructor.
 ### HW-02: Encoder Direction Verification
 
 | Test | Expected |
-|------|----------|
+| ------ | ---------- |
 | Spin right wheel forward by hand | Positive velocity in telemetry |
 | Spin right wheel reverse by hand | Negative velocity in telemetry |
 | Spin left wheel forward by hand | Positive velocity |
@@ -199,7 +205,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### HW-03: Limit Switch Verification
 
 | Test | Expected |
-|------|----------|
+| ------ | ---------- |
 | Press top limit switch | Lift motor stops if raising |
 | Press bottom limit switch | Lift motor stops if lowering |
 | Both switches unpressed | Lift motor free to move |
@@ -207,7 +213,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### HW-04: Electromagnet Verification
 
 | Test | Expected |
-|------|----------|
+| ------ | ---------- |
 | `CMAG:1:ON` | Magnet 1 attracts metal |
 | `CMAG:1:OFF` | Magnet 1 releases |
 | `CMAG:ALL:ON` | All 5 magnets attract |
@@ -216,6 +222,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### HW-05: Battery Voltage Calibration
 
 **Procedure:**
+
 1. Measure actual battery voltage with multimeter.
 2. Read `readBatteryVoltage()` value from diagnostics.
 3. Calculate correction factor.
@@ -230,6 +237,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 **Objective:** Complete a simulated mine detection and removal mission.
 
 **Procedure:**
+
 1. Power on robot.
 2. Verify `MC:READY` message.
 3. Navigate to mine location (via ROS 2 commands).
@@ -249,6 +257,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 **Objective:** Verify reliability over extended operation.
 
 **Procedure:**
+
 1. Run robot with periodic velocity commands for 30 minutes.
 2. Monitor diagnostics for loop timing degradation.
 3. Monitor battery voltage.
@@ -259,6 +268,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### CT-03: Obstacle Course
 
 **Procedure:**
+
 1. Navigate through a course with tight turns.
 2. Verify proximity sensors detect obstacles.
 3. Verify odometry tracking matches actual path (within ±10%).
@@ -266,6 +276,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### CT-04: Rapid Start-Stop
 
 **Procedure:**
+
 1. Rapidly send start/stop commands (10 cycles).
 2. Verify no motor driver overheating.
 3. Verify PID remains stable.
@@ -278,6 +289,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### FI-01: Encoder Disconnect
 
 **Procedure:**
+
 1. Run motors at steady velocity.
 2. Disconnect one encoder cable.
 3. **Expected:** PID output saturates (no feedback), velocity telemetry shows 0 for that wheel.
@@ -286,6 +298,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### FI-02: Serial Loss (USB Disconnect)
 
 **Procedure:**
+
 1. Run motors at steady velocity.
 2. Disconnect USB cable from Raspberry Pi.
 3. **Expected:** Command timeout triggers after 1500 ms, motors stop.
@@ -296,6 +309,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### FI-03: Motor Stall
 
 **Procedure:**
+
 1. Run motors at low velocity (1 rad/s).
 2. Physically stall one wheel (hold it).
 3. **Expected:** PID output saturates, anti-windup limits integral accumulation.
@@ -305,6 +319,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### FI-04: Power Interruption
 
 **Procedure:**
+
 1. Run robot normally.
 2. Briefly disconnect power (< 100 ms brown-out).
 3. **Expected:** Arduino resets, boots normally, sends `MC:READY`.
@@ -313,6 +328,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### FI-05: Emergency Stop
 
 **Procedure:**
+
 1. Run motors at full speed.
 2. Send `CESTOP\n`.
 3. **Expected:** Motors stop immediately (< 10 ms), state = ESTOP_MANUAL.
@@ -322,16 +338,20 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### FI-06: Watchdog Reset
 
 **Procedure:**
+
 1. Inject an infinite loop (modify firmware temporarily):
+
    ```cpp
    while(true) { } // Hangs loop()
    ```
+
 2. **Expected:** WDT resets Arduino after 2 seconds.
 3. **Expected:** On reboot, diagnostics show `watchdog_reset = true`.
 
 ### FI-07: I2C Bus Lockup (IMU)
 
 **Procedure:**
+
 1. Disconnect MPU6050 SDA wire while running.
 2. **Expected:** IMU error flag set, `FAULT_IMU` state.
 3. **Expected:** Motor control continues (degraded mode, no IMU data).
@@ -341,6 +361,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### FI-08: Lift Stall
 
 **Procedure:**
+
 1. Block lift mechanism so limit switch is never reached.
 2. Send `CLIFT:UP\n`.
 3. **Expected:** Motor runs for `STALL_TIMEOUT_MS` (5 seconds), then stops.
@@ -350,6 +371,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### FI-09: Battery Low Voltage
 
 **Procedure:**
+
 1. Use a variable power supply.
 2. Reduce voltage below 10.8V.
 3. **Expected:** `FAULT_BATTERY` state, motors stopped.
@@ -359,6 +381,7 @@ If direction is wrong: toggle `direction_inverted` flag in Encoder constructor.
 ### FI-10: Multiple Simultaneous Faults
 
 **Procedure:**
+
 1. Disconnect encoder AND lower battery voltage simultaneously.
 2. **Expected:** System handles both faults, motors stopped.
 3. **Verify:** Both fault flags set in diagnostics.
