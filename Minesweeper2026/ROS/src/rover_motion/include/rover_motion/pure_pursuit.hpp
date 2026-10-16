@@ -2,6 +2,7 @@
 #define PURE_PURSUIT_HPP
 
 #include <memory>
+#include <cstddef>
 
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/path.hpp"
@@ -32,6 +33,8 @@ private:
     double max_angular_velocity_;
 
     nav_msgs::msg::Path global_plan_;
+
+    std::size_t last_nearest_idx_{0};
 
     void controlLoop();
 

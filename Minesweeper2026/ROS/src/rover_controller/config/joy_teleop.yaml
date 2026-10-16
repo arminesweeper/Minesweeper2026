@@ -12,27 +12,6 @@ joy_teleop:
           offset: 0.0
         twist-angular-z:
           axis: 3
-          scale: 1.0
+          scale: 8.0
           offset: 0.0
 
-    # TODO: confirm button indices against your actual controller.
-    # Run: ros2 run joy joy_node   then in another terminal:
-    # ros2 topic echo /joy
-    # and press each button to see which index in "buttons" changes.
-    gripper_open:
-      type: topic
-      interface_type: std_msgs/msg/Float64MultiArray
-      topic_name: /gripper_controller/commands
-      deadman_buttons: [2]
-      message_value:
-        - target: data
-          value: [1.0]
-
-    gripper_close:
-      type: topic
-      interface_type: std_msgs/msg/Float64MultiArray
-      topic_name: /gripper_controller/commands
-      deadman_buttons: [3]
-      message_value:
-        - target: data
-          value: [-1.0]

@@ -33,6 +33,9 @@ ament_target_dependencies(pd_motion_planner ${dependencies})
 
 add_executable(pure_pursuit src/pure_pursuit.cpp)
 ament_target_dependencies(pure_pursuit ${dependencies})
+add_executable(corner_pd_follower src/corner_pd_follower.cpp)
+ament_target_dependencies(corner_pd_follower ${dependencies})
+
 
 install(
   DIRECTORY include
@@ -42,6 +45,7 @@ install(
 install(TARGETS
   pd_motion_planner
   pure_pursuit
+  corner_pd_follower
   DESTINATION lib/${PROJECT_NAME}
 )
 

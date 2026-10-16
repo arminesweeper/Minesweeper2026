@@ -84,6 +84,7 @@ void SimpleController::velCallback(const geometry_msgs::msg::TwistStamped &msg)
     wheel_speed_msg.data.push_back(right_speed);  // right_wheel_joint
     wheel_speed_msg.data.push_back(right_speed);  // right_encoder_joint
 
+
     wheel_cmd_pub_->publish(wheel_speed_msg);
 }
 
@@ -99,12 +100,12 @@ void SimpleController::jointCallback(const sensor_msgs::msg::JointState &state)
     // /joint_states includes every joint on the robot (all 4 drive wheels
     // plus gripper_joint), so a hardcoded index is not reliable and will
     // silently read the wrong joint if the publishing order ever changes.
-    auto left_it = std::find(state.name.begin(), state.name.end(), "left_wheel_joint");
-    auto right_it = std::find(state.name.begin(), state.name.end(), "right_wheel_joint");
+    auto left_it = std::find(state.name.begin(), state.name.end(), "left_encoder_joint");
+    auto right_it = std::find(state.name.begin(), state.name.end(), "right_encoder_joint");
 
     if (left_it == state.name.end() || right_it == state.name.end())
     {
-        RCLCPP_WARN(get_logger(), "left_wheel_joint or right_wheel_joint not found in /joint_states, skipping this update.");
+        RCLCPP_WARN(get_logger(), "left_encoder_joint or right_encoder_joint not found in /joint_states, skipping this update.");
         return;
     }
 

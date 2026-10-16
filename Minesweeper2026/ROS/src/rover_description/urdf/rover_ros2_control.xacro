@@ -24,7 +24,7 @@
         <xacro:unless value="$(arg is_sim)">
             <hardware>
                 <plugin>rover_firmware/roverInterface</plugin>
-                <param name="port">/dev/ttyACM0</param>
+                <param name="port">/dev/ttyUSB1</param>
             </hardware>
         </xacro:unless>
         
@@ -66,9 +66,9 @@
         </joint>
 
         <joint name="gripper_joint">
-            <command_interface name="position">
-              <param name="min">-1</param>
-              <param name="max">1</param>
+            <command_interface name="velocity">
+                <param name="min">-1</param>
+                <param name="max">1</param>
             </command_interface>
             <state_interface name="position" />
             <state_interface name="velocity" />

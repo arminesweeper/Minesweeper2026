@@ -31,6 +31,16 @@ def generate_launch_description():
         parameters=[os.path.join(get_package_share_directory("rover_controller"), "config", "joy_config.yaml"),
                     {"use_sim_time": LaunchConfiguration("use_sim_time")}]
     )
+
+    gripper_joy_teleop = Node(
+        package="rover_controller",
+        executable="gripper_joy_teleop",
+        parameters=[
+            {"open_button_index": 2},    
+            {"close_button_index": 3},    
+            {"use_sim_time": LaunchConfiguration("use_sim_time")},
+        ],
+)
     
     twist_mux_launch = IncludeLaunchDescription(
         os.path.join(
@@ -61,5 +71,7 @@ def generate_launch_description():
             joy_node,
             twist_mux_launch,
             twist_relay_node,
+            gripper_joy_teleop,
+
         ]
     )

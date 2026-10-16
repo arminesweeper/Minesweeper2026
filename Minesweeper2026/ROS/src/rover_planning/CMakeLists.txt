@@ -30,6 +30,10 @@ ament_target_dependencies(dijkstra_planner ${dependencies})
 add_executable(a_star_planner src/a_star_planner.cpp)
 ament_target_dependencies(a_star_planner ${dependencies})
 
+add_executable(zigzag_planner src/zigzag_planner.cpp)
+ament_target_dependencies(zigzag_planner rclcpp nav_msgs geometry_msgs tf2_ros)
+install(TARGETS zigzag_planner DESTINATION lib/${PROJECT_NAME})
+
 install(
   DIRECTORY include
   DESTINATION include

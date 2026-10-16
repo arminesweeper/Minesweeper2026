@@ -23,7 +23,9 @@ ament_target_dependencies(simple_controller rclcpp geometry_msgs std_msgs sensor
 add_executable(gripper_joy_teleop src/gripper_joy_teleop.cpp)
 ament_target_dependencies(gripper_joy_teleop rclcpp sensor_msgs std_msgs)
 
+add_executable(camera_servo_joy_teleop src/camera_servo_joy_teleop.cpp )
 
+ament_target_dependencies(camera_servo_joy_teleop rclcpp sensor_msgs std_msgs )
 
 add_executable(noisy_controller src/noisy_controller.cpp)
 ament_target_dependencies(noisy_controller rclcpp geometry_msgs sensor_msgs nav_msgs tf2_ros tf2)

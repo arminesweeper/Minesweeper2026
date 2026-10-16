@@ -1,111 +1,155 @@
 import os
+
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
-from launch.conditions import IfCondition, UnlessCondition
-from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    use_slam = LaunchConfiguration("use_slam")
 
-    use_slam_arg = DeclareLaunchArgument(
-        "use_slam",
-        default_value="false"
-    )
+    # ==========================================================
+    # Gazebo
+    # ==========================================================
 
     gazebo = IncludeLaunchDescription(
-        os.path.join(
-            get_package_share_directory("rover_description"),
-            "launch",
-            "gazebo.launch.py"
-        ),
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("rover_description"),
+                "launch",
+                "gazebo.launch.py"
+            )
+        )
     )
-    
+
+
+    # ==========================================================
+    # Controller
+    # ==========================================================
+
     controller = IncludeLaunchDescription(
-        os.path.join(
-            get_package_share_directory("rover_controller"),
-            "launch",
-            "controller.launch.py"
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("rover_controller"),
+                "launch",
+                "controller.launch.py"
+            )
         ),
         launch_arguments={
-            "use_simple_controller": "False",
+            "use_simple_controller": "true",
             "use_python": "False"
         }.items(),
     )
-    keyboard_teleop = Node(
-        package="teleop_twist_keyboard",
-        executable="teleop_twist_keyboard",
-        name="teleop_twist_keyboard",
-        prefix="xterm -e",
-        output="screen"
-    )
+
+
+    # ==========================================================
+    # Joystick
+    # ==========================================================
+
     joystick = IncludeLaunchDescription(
-        os.path.join(
-            get_package_share_directory("rover_controller"),
-            "launch",
-            "joystick_teleop.launch.py"
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("rover_controller"),
+                "launch",
+                "joystick_teleop.launch.py"
+            )
         ),
         launch_arguments={
             "use_sim_time": "True"
         }.items()
     )
 
+
+    # ==========================================================
+    # Map
+    # ==========================================================
+
+    map_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("rover_map"),
+                "launch",
+                "map_server.launch.py"
+            )
+        )
+    )
+
+
+    # ==========================================================
+    # Localization / EKF
+    # ==========================================================
+
     localization = IncludeLaunchDescription(
-        os.path.join(
-            get_package_share_directory("rover_localization"),
-            "launch",
-            "global_localization.launch.py"
-        ),
-        condition=UnlessCondition(use_slam)
-    )
-
-    slam = IncludeLaunchDescription(
-        os.path.join(
-            get_package_share_directory("rover_mapping"),
-            "launch",
-            "slam.launch.py"
-        ),
-        condition=IfCondition(use_slam)
-    )
-
-    rviz_localization = Node(
-        package="rviz2",
-        executable="rviz2",
-        arguments=["-d", os.path.join(
+        PythonLaunchDescriptionSource(
+            os.path.join(
                 get_package_share_directory("rover_localization"),
-                "rviz",
-                "global_localization.rviz"
+                "launch",
+                "local_localization.launch.py"
             )
-        ],
-        output="screen",
-        parameters=[{"use_sim_time": True}],
-        condition=UnlessCondition(use_slam)
+        ),
+        launch_arguments={
+            "use_sim_time": "True",
+            "use_python": "False"
+        }.items()
     )
 
-    rviz_slam = Node(
+    rviz_config = os.path.join(
+        get_package_share_directory("rover_map"),
+        "rviz",
+        "simulation.rviz"
+    )
+
+
+# rviz config file path
+
+
+    rviz = Node(
         package="rviz2",
         executable="rviz2",
-        arguments=["-d", os.path.join(
-                get_package_share_directory("rover_mapping"),
-                "rviz",
-                "slam.rviz"
-            )
-        ],
+        name="rviz2",
         output="screen",
-        parameters=[{"use_sim_time": True}],
-        condition=IfCondition(use_slam)
+        arguments=[
+            "-d",
+            rviz_config
+        ],
+        parameters=[
+            {
+                "use_sim_time": True
+            }
+        ]
     )
-    
+    zigzag = Node(
+        package="rover_planning",   # اسم الباكدج اللي فيه الـ zigzag_planner
+        executable="zigzag_planner",
+        name="zigzag_planner",
+        output="screen",
+        parameters=[{
+            "use_sim_time": True,
+            "base_frame": "base_footprint",
+            "margin": 2.0,
+            "lane_spacing": 1.0,
+            "point_step": 0.1,
+            "lanes_along_x": True,
+        }],
+    )
+    # ==========================================================
+    # Launch Everything
+    # ==========================================================
+
     return LaunchDescription([
-        use_slam_arg,
+
         gazebo,
+
         controller,
+
         joystick,
+
+        map_launch,
+
         localization,
-        keyboard_teleop,
-        slam,
-        rviz_localization,
-        rviz_slam
+
+        rviz,
+        
+        zigzag,
     ])

@@ -1,38 +1,21 @@
 import os
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
-from launch.conditions import IfCondition, UnlessCondition
-from launch.substitutions import LaunchConfiguration
+from launch.actions import IncludeLaunchDescription
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
+from launch.launch_description_sources import PythonLaunchDescriptionSource 
+from launch_ros.actions import Node
+
+
 
 def generate_launch_description():
-    use_slam = LaunchConfiguration("use_slam")
-
-    use_slam_arg = DeclareLaunchArgument(
-        "use_slam",
-        default_value="false"
-    )
-
     hardware_interface = IncludeLaunchDescription(
         os.path.join(
             get_package_share_directory("rover_firmware"),
             "launch",
             "hardware_interface.launch.py"
         ),
-    )
-
-    laser_driver = Node(
-            package="rplidar_ros",
-            executable="rplidar_node",
-            name="rplidar_node",
-            parameters=[os.path.join(
-                get_package_share_directory("rover_bringup"),
-                "config",
-                "rplidar_a1.yaml"
-            )],
-            output="screen"
     )
     
     controller = IncludeLaunchDescription(
@@ -42,7 +25,7 @@ def generate_launch_description():
             "controller.launch.py"
         ),
         launch_arguments={
-            "use_simple_controller": "False",
+            "use_simple_controller": "true",
             "use_python": "False"
         }.items(),
     )
@@ -57,37 +40,66 @@ def generate_launch_description():
             "use_sim_time": "False"
         }.items()
     )
+    zigzag = Node(
+        package="rover_planning",   # اسم الباكدج اللي فيه الـ zigzag_planner
+        executable="zigzag_planner",
+        name="zigzag_planner",
+        output="screen",
+        parameters=[{
+            "use_sim_time": True,
+            "base_frame": "base_footprint",
+            "margin": 2.0,
+            "lane_spacing": 1.0,
+            "point_step": 0.1,
+            "lanes_along_x": True,
+        }],
+    )
+
+
+    # ==========================================================
+    # Map
+    # ==========================================================
+
+    map_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("rover_map"),
+                "launch",
+                "map_server.launch.py"
+            )
+        )
+    )
+
+
+    # ==========================================================
+    # Localization / EKF
+    # ==========================================================
+
+    localization = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("rover_localization"),
+                "launch",
+                "local_localization.launch.py"
+            )
+        ),
+        launch_arguments={
+            "use_sim_time": "True",
+            "use_python": "False"
+        }.items()
+    )
 
     imu_driver_node = Node(
         package="rover_firmware",
         executable="mpu6050_driver.py"
     )
-
-    localization = IncludeLaunchDescription(
-        os.path.join(
-            get_package_share_directory("rover_localization"),
-            "launch",
-            "global_localization.launch.py"
-        ),
-        condition=UnlessCondition(use_slam)
-    )
-
-    slam = IncludeLaunchDescription(
-        os.path.join(
-            get_package_share_directory("rover_mapping"),
-            "launch",
-            "slam.launch.py"
-        ),
-        condition=IfCondition(use_slam)
-    )
     
     return LaunchDescription([
-        use_slam_arg,
         hardware_interface,
-        #laser_driver,
         controller,
         joystick,
-       # imu_driver_node,
+        zigzag,
+        map_launch,
         localization,
-        slam
+       # imu_driver_node,
     ])
