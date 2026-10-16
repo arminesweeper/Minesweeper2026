@@ -151,6 +151,27 @@ class MainWindow(QMainWindow):
                 margin-bottom: -4px;
                 border-radius: 7px;
             }
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #1a1e24;
+                width: 8px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #37474f;
+                min-height: 20px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #00bcd4;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
             """
         )
 
@@ -187,15 +208,21 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(self.panel_movement)
         left_layout.addWidget(self.panel_speed)
 
-        # Tabs for Mechanisms and Motor Diagnostics
-        tab_widget = QTabWidget()
+        self.tab_widget = QTabWidget()
         self.panel_mech = MechanismPanel()
         self.panel_motor_test = MotorTestPanel()
-        tab_widget.addTab(self.panel_mech, "Auxiliary Mechanisms")
-        tab_widget.addTab(self.panel_motor_test, "Independent Motor Test")
-        left_layout.addWidget(tab_widget)
+        self.tab_widget.addTab(self.panel_mech, "Auxiliary Mechanisms")
+        self.tab_widget.addTab(self.panel_motor_test, "Independent Motor Test")
+        left_layout.addWidget(self.tab_widget)
+        # Wrap Left Workspace in a QScrollArea so panels never squash or overflow on smaller laptop screens
+        left_scroll = QScrollArea()
+        left_scroll.setWidgetResizable(True)
+        left_scroll.setFrameShape(QFrame.NoFrame)
+        left_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        left_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        left_scroll.setWidget(left_widget)
 
-        splitter.addWidget(left_widget)
+        splitter.addWidget(left_scroll)
 
         # RIGHT WORKSPACE (Telemetry Dashboard & Terminal)
         right_widget = QWidget()

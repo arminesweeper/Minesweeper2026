@@ -22,8 +22,8 @@
   },
   "ui": {
     "theme": "dark",
-    "window_width": 1280,
-    "window_height": 820,
+    "window_width": 1536,
+    "window_height": 1003,
     "max_console_lines": 1000,
     "auto_scroll_console": true
   },

@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -38,22 +39,33 @@ class MovementPanel(QGroupBox):
 
     def _init_ui(self) -> None:
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 16, 12, 10)
         layout.setSpacing(10)
 
-        grid = QGridLayout()
-        grid.setSpacing(8)
+        # Dedicated D-Pad Container Widget to ensure perfect geometry and no squashing
+        dpad_container = QWidget()
+        grid = QGridLayout(dpad_container)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(10)
+
+        for col in range(3):
+            grid.setColumnStretch(col, 1)
+        for row in range(3):
+            grid.setRowStretch(row, 1)
 
         btn_style = (
             "QPushButton {"
             "   background-color: #263238;"
             "   color: #eceff1;"
-            "   font-size: 14px;"
+            "   font-size: 13px;"
             "   font-weight: bold;"
             "   border: 2px solid #455a64;"
             "   border-radius: 6px;"
-            "   min-height: 48px;"
+            "   padding: 8px 12px;"
+            "   min-height: 42px;"
             "}"
-            "QPushButton:hover { background-color: #37474f; border-color: #78909c; }"
+            "QPushButton:hover { background-color: #37474f; border-color: #00bcd4; }"
             "QPushButton:pressed { background-color: #00838f; border-color: #4dd0e1; color: white; }"
         )
 
@@ -61,11 +73,12 @@ class MovementPanel(QGroupBox):
             "QPushButton {"
             "   background-color: #c62828;"
             "   color: white;"
-            "   font-size: 14px;"
+            "   font-size: 13px;"
             "   font-weight: 900;"
             "   border: 2px solid #b71c1c;"
             "   border-radius: 6px;"
-            "   min-height: 48px;"
+            "   padding: 8px 12px;"
+            "   min-height: 42px;"
             "}"
             "QPushButton:hover { background-color: #d32f2f; }"
             "QPushButton:pressed { background-color: #8e0000; }"
@@ -74,6 +87,7 @@ class MovementPanel(QGroupBox):
         # Forward (Row 0, Col 1)
         self.btn_fwd = HoldButton("▲ FORWARD (W)")
         self.btn_fwd.setStyleSheet(btn_style)
+        self.btn_fwd.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.btn_fwd.pressed.connect(lambda: self._on_btn_press("FORWARD"))
         self.btn_fwd.released.connect(self._on_btn_release)
         grid.addWidget(self.btn_fwd, 0, 1)
@@ -81,6 +95,7 @@ class MovementPanel(QGroupBox):
         # Left (Row 1, Col 0)
         self.btn_left = HoldButton("◄ LEFT (A)")
         self.btn_left.setStyleSheet(btn_style)
+        self.btn_left.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.btn_left.pressed.connect(lambda: self._on_btn_press("LEFT"))
         self.btn_left.released.connect(self._on_btn_release)
         grid.addWidget(self.btn_left, 1, 0)
@@ -88,12 +103,14 @@ class MovementPanel(QGroupBox):
         # Stop (Row 1, Col 1)
         self.btn_stop = HoldButton("■ STOP")
         self.btn_stop.setStyleSheet(stop_style)
+        self.btn_stop.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.btn_stop.clicked.connect(self._on_stop_clicked)
         grid.addWidget(self.btn_stop, 1, 1)
 
         # Right (Row 1, Col 2)
         self.btn_right = HoldButton("RIGHT (D) ►")
         self.btn_right.setStyleSheet(btn_style)
+        self.btn_right.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.btn_right.pressed.connect(lambda: self._on_btn_press("RIGHT"))
         self.btn_right.released.connect(self._on_btn_release)
         grid.addWidget(self.btn_right, 1, 2)
@@ -101,11 +118,12 @@ class MovementPanel(QGroupBox):
         # Backward (Row 2, Col 1)
         self.btn_bwd = HoldButton("▼ BACKWARD (S)")
         self.btn_bwd.setStyleSheet(btn_style)
+        self.btn_bwd.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.btn_bwd.pressed.connect(lambda: self._on_btn_press("BACKWARD"))
         self.btn_bwd.released.connect(self._on_btn_release)
         grid.addWidget(self.btn_bwd, 2, 1)
 
-        layout.addLayout(grid)
+        layout.addWidget(dpad_container)
 
         # Active Command Indicator
         self.lbl_active = QLabel("Active Command: NEUTRAL STOP")
