@@ -117,9 +117,10 @@ void SystemManager::update() {
         if (safety_.getState() == SystemState::ESTOP) {
             safety_.clearEStop();
         }
-        if (safety_.getState() == SystemState::READY) {
-            safety_.forceState(SystemState::RUNNING);
+        if (safety_.getState() == SystemState::FAULT && !safety_.hasFault()) {
+            safety_.clearFaults();
         }
+        safety_.forceState(SystemState::RUNNING);
     }
     processExtendedCommands();
 

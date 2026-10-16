@@ -301,9 +301,9 @@ class MainWindow(QMainWindow):
 
     def _init_shortcuts(self) -> None:
         """Global safety shortcuts."""
-        # Space & Esc -> Immediate Emergency Stop
+        # Space -> Neutral Stop; Esc -> Immediate Emergency Stop
         self.shortcut_space = QShortcut(QKeySequence(Qt.Key_Space), self)
-        self.shortcut_space.activated.connect(self.controller.trigger_emergency_stop)
+        self.shortcut_space.activated.connect(self.controller.stop_movement)
 
         self.shortcut_esc = QShortcut(QKeySequence(Qt.Key_Escape), self)
         self.shortcut_esc.activated.connect(self.controller.trigger_emergency_stop)
@@ -386,7 +386,7 @@ class MainWindow(QMainWindow):
             direction_name = "TURN RIGHT"
 
         if direction_name:
-            if not self.controller.safety.is_armed and not self.controller.safety.is_estop_latched:
+            if not self.controller.safety.is_armed:
                 self.controller.arm_robot()
             self.panel_movement.set_active_display(direction_name)
             self.controller.drive_wheels(r_vel, l_vel, immediate=True)
@@ -400,7 +400,7 @@ class MainWindow(QMainWindow):
         trn = self.panel_speed.get_turn_speed()
 
         if direction != "STOP":
-            if not self.controller.safety.is_armed and not self.controller.safety.is_estop_latched:
+            if not self.controller.safety.is_armed:
                 self.controller.arm_robot()
 
         if direction == "FORWARD":
@@ -426,7 +426,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(
                     self,
                     "Arming Failed",
-                    "Cannot arm robot. Ensure serial is connected and Emergency Stop is not latched.",
+                    "Cannot arm robot. Ensure serial port is connected.",
                 )
         else:
             self.controller.disarm_robot()

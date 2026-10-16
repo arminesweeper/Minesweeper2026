@@ -124,10 +124,10 @@
 
 /**
  * @brief Siren relay activation electrical logic level.
- * 1 = Active-HIGH: logic HIGH turns siren ON, LOW turns siren OFF.
+ * 1 = Active-HIGH: logic HIGH turns siren ON, LOW turns siren OFF (matches robot transistor Q2 / relay K2).
  * 0 = Active-LOW: logic LOW turns siren ON, HIGH turns siren OFF (standard for optoisolated relay boards).
  */
-#define SIREN_ACTIVE_HIGH 0
+#define SIREN_ACTIVE_HIGH 1
 
 /**
  * @brief Limit switch electrical logic level.

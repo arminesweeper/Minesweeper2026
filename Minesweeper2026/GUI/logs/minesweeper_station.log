@@ -540,3 +540,161 @@
 2026-10-16 18:39:34 [   ERROR] (Dummy-1) ControlStation.SerialWorker: Serial read error: ClearCommError failed (PermissionError(13, 'The device does not recognize the command.', None, 22))
 2026-10-16 18:39:34 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.
 2026-10-16 18:39:34 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:54:29 [    INFO] (MainThread) ControlStation.SerialWorker: Opening serial port COM5 @ 115200 bps
+2026-10-16 18:54:29 [    INFO] (MainThread) ControlStation.SerialWorker: Serial port COM5 opened successfully.
+2026-10-16 18:54:42 [   ERROR] (Dummy-1) ControlStation.SerialWorker: Serial read error: ClearCommError failed (PermissionError(13, 'The device does not recognize the command.', None, 22))
+2026-10-16 18:54:42 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.
+2026-10-16 18:54:42 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:54:52 [    INFO] (MainThread) ControlStation.SerialWorker: Opening serial port COM5 @ 115200 bps
+2026-10-16 18:54:52 [    INFO] (MainThread) ControlStation.SerialWorker: Serial port COM5 opened successfully.
+2026-10-16 18:55:20 [   ERROR] (Dummy-1) ControlStation.SerialWorker: Serial read error: ClearCommError failed (PermissionError(13, 'The device does not recognize the command.', None, 22))
+2026-10-16 18:55:21 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.
+2026-10-16 18:55:21 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:56:56 [    INFO] (MainThread) ControlStation.SerialWorker: Opening serial port COM5 @ 115200 bps
+2026-10-16 18:56:56 [    INFO] (MainThread) ControlStation.SerialWorker: Serial port COM5 opened successfully.
+2026-10-16 18:57:18 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:21 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:21 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:22 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:22 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:22 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:22 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:22 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:23 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:23 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:23 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:23 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:25 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:26 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:57:37 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:58:56 [    INFO] (MainThread) ControlStation.MainWindow: Application closing. Performing safe shutdown...
+2026-10-16 18:58:56 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop terminated cleanly.
+2026-10-16 18:58:56 [    INFO] (MainThread) ControlStation.AppController: ApplicationController shutdown complete.
+2026-10-16 18:58:58 [    INFO] (MainThread) ControlStation: Logging initialized. Output file: E:\Robotics_Team\Minesweeper\Minesweeper\Minesweeper2026\GUI\logs\minesweeper_station.log
+2026-10-16 18:58:58 [    INFO] (MainThread) ControlStation: Starting Minesweeper Control Station...
+2026-10-16 18:58:58 [    INFO] (MainThread) ControlStation.AppController: Serial background thread started.
+2026-10-16 18:58:59 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop started.
+2026-10-16 18:58:59 [    INFO] (MainThread) ControlStation: GUI window displayed. Entering Qt event loop.
+2026-10-16 19:00:10 [    INFO] (MainThread) ControlStation.MainWindow: Application closing. Performing safe shutdown...
+2026-10-16 19:00:10 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop terminated cleanly.
+2026-10-16 19:00:10 [    INFO] (MainThread) ControlStation.AppController: ApplicationController shutdown complete.
+2026-10-16 19:05:33 [    INFO] (MainThread) ControlStation: Logging initialized. Output file: E:\Robotics_Team\Minesweeper\Minesweeper\Minesweeper2026\GUI\logs\minesweeper_station.log
+2026-10-16 19:05:33 [    INFO] (MainThread) ControlStation: Starting Minesweeper Control Station...
+2026-10-16 19:05:34 [    INFO] (MainThread) ControlStation.AppController: Serial background thread started.
+2026-10-16 19:05:34 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop started.
+2026-10-16 19:05:34 [    INFO] (MainThread) ControlStation: GUI window displayed. Entering Qt event loop.
+2026-10-16 19:05:41 [    INFO] (MainThread) ControlStation.SerialWorker: Opening serial port COM5 @ 115200 bps
+2026-10-16 19:05:41 [    INFO] (MainThread) ControlStation.SerialWorker: Serial port COM5 opened successfully.
+2026-10-16 19:05:51 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot ARMED.
+2026-10-16 19:05:51 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:05:53 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:05:53 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:05:53 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:05:54 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:05:54 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:05:54 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:05:55 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:05:57 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:05:57 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:05:58 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:05:58 [ WARNING] (MainThread) ControlStation.SafetyManager: SAFETY: Emergency Stop triggered: Operator E-Stop command
+2026-10-16 19:05:58 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched ESTOP packets.
+2026-10-16 19:06:00 [ WARNING] (MainThread) ControlStation.SafetyManager: SAFETY: Cannot arm while E-Stop is latched.
+2026-10-16 19:06:06 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:06:06 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.
+2026-10-16 19:06:06 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.
+2026-10-16 19:06:06 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:06:07 [    INFO] (MainThread) ControlStation.SerialWorker: Opening serial port COM5 @ 115200 bps
+2026-10-16 19:06:07 [    INFO] (MainThread) ControlStation.SerialWorker: Serial port COM5 opened successfully.
+2026-10-16 19:06:14 [ WARNING] (MainThread) ControlStation.SafetyManager: SAFETY: Emergency Stop triggered: Operator E-Stop command
+2026-10-16 19:06:14 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched ESTOP packets.
+2026-10-16 19:06:15 [ WARNING] (MainThread) ControlStation.SafetyManager: SAFETY: Emergency Stop triggered: Operator E-Stop command
+2026-10-16 19:06:15 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched ESTOP packets.
+2026-10-16 19:06:15 [ WARNING] (MainThread) ControlStation.SafetyManager: SAFETY: Emergency Stop triggered: Operator E-Stop command
+2026-10-16 19:06:15 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched ESTOP packets.
+2026-10-16 19:06:16 [ WARNING] (MainThread) ControlStation.SafetyManager: SAFETY: Emergency Stop triggered: Operator E-Stop command
+2026-10-16 19:06:16 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched ESTOP packets.
+2026-10-16 19:06:16 [ WARNING] (MainThread) ControlStation.SafetyManager: SAFETY: Emergency Stop triggered: Operator E-Stop command
+2026-10-16 19:06:16 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched ESTOP packets.
+2026-10-16 19:06:21 [ WARNING] (MainThread) ControlStation.SafetyManager: SAFETY: Cannot arm while E-Stop is latched.
+2026-10-16 19:07:09 [   ERROR] (Dummy-1) ControlStation.SerialWorker: Serial read error: ClearCommError failed (PermissionError(13, 'The device does not recognize the command.', None, 22))
+2026-10-16 19:07:09 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.
+2026-10-16 19:07:09 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:11:18 [    INFO] (MainThread) ControlStation.SerialWorker: Opening serial port COM5 @ 115200 bps
+2026-10-16 19:11:18 [    INFO] (MainThread) ControlStation.SerialWorker: Serial port COM5 opened successfully.
+2026-10-16 19:11:25 [ WARNING] (MainThread) ControlStation.SafetyManager: SAFETY: Cannot arm while E-Stop is latched.
+2026-10-16 19:12:47 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:51 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:52 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:52 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:52 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:52 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:53 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:53 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:54 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:55 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:55 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:55 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:56 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:56 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:56 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:56 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:57 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:57 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:57 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:57 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:57 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:57 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:12:59 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:00 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:01 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:01 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:03 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:03 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:04 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:04 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:09 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:09 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:09 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:09 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:09 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:10 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:10 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:10 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:10 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:10 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:10 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:11 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:11 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:12 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:12 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:12 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:13 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 19:13:16 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:16 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:16 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:16 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:16 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:29 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:29 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:30 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:30 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:31 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:32 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:32 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:33 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:34 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:36 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 19:13:56 [    INFO] (MainThread) ControlStation.MainWindow: Application closing. Performing safe shutdown...
+2026-10-16 19:13:56 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop terminated cleanly.
+2026-10-16 19:13:56 [    INFO] (MainThread) ControlStation.AppController: ApplicationController shutdown complete.
+2026-10-16 19:19:58 [    INFO] (MainThread) ControlStation: Logging initialized. Output file: E:\Robotics_Team\Minesweeper\Minesweeper\Minesweeper2026\GUI\logs\minesweeper_station.log
+2026-10-16 19:19:58 [    INFO] (MainThread) ControlStation: Starting Minesweeper Control Station...
+2026-10-16 19:19:58 [    INFO] (MainThread) ControlStation.AppController: Serial background thread started.
+2026-10-16 19:19:58 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop started.
+2026-10-16 19:19:58 [    INFO] (MainThread) ControlStation: GUI window displayed. Entering Qt event loop.
+2026-10-16 19:20:24 [    INFO] (MainThread) ControlStation.SerialWorker: Opening serial port COM5 @ 115200 bps
+2026-10-16 19:20:24 [    INFO] (MainThread) ControlStation.SerialWorker: Serial port COM5 opened successfully.
+2026-10-16 19:21:35 [   ERROR] (Dummy-1) ControlStation.SerialWorker: Serial read error: ClearCommError failed (PermissionError(13, 'The device does not recognize the command.', None, 22))
+2026-10-16 19:21:35 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.
+2026-10-16 19:21:35 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.

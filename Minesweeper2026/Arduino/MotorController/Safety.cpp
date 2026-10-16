@@ -30,15 +30,14 @@ SystemState SafetyMonitor::update(unsigned long last_command_time,
                                   float right_vel, float left_vel,
                                   float right_pwm, float left_pwm) {
     
-    // 1. Check Command Timeout (only applies if we are RUNNING or READY)
-    if (state_ == SystemState::RUNNING || state_ == SystemState::READY) {
-        if (millis() - last_command_time > SafetyConfig::COMMAND_TIMEOUT_MS) {
-            faults_.command_timeout = true;
-            forceState(SystemState::ESTOP);
-            estop_trigger_time_ = millis();
-        } else {
-            faults_.command_timeout = false;
+    // 1. Check Command Timeout (stops motors if robot was running and stream stops)
+    if (millis() - last_command_time > SafetyConfig::COMMAND_TIMEOUT_MS) {
+        faults_.command_timeout = true;
+        if (state_ == SystemState::RUNNING) {
+            forceState(SystemState::READY);
         }
+    } else {
+        faults_.command_timeout = false;
     }
 
     // 2. Battery Monitoring
@@ -69,9 +68,9 @@ SystemState SafetyMonitor::update(unsigned long last_command_time,
 
 void SafetyMonitor::checkMotorStall(float right_vel, float left_vel, float right_pwm, float left_pwm) {
     // Thresholds
-    const float STALL_PWM_THRESHOLD = 100.0f;
+    const float STALL_PWM_THRESHOLD = 150.0f;
     const float STALL_VEL_THRESHOLD = 0.05f;
-    const unsigned long STALL_TIME_MS = 500;
+    const unsigned long STALL_TIME_MS = 3000;
 
     // Right Wheel
     if (abs(right_pwm) > STALL_PWM_THRESHOLD && abs(right_vel) < STALL_VEL_THRESHOLD) {
@@ -160,8 +159,8 @@ void SafetyMonitor::clearFaults() {
 }
 
 bool SafetyMonitor::hasFault() const {
-    return faults_.command_timeout || faults_.encoder_right ||
-           faults_.encoder_left || faults_.battery_low ||
+    return faults_.encoder_right ||
+           faults_.encoder_left ||
            faults_.battery_critical || faults_.imu_fault || 
            faults_.motor_stall_r || faults_.motor_stall_l ||
            faults_.lift_fault;

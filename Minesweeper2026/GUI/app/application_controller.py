@@ -197,6 +197,8 @@ class ApplicationController(QObject):
         self.command_manager.send_extended_command(self.protocol.encode_clear())
 
     def arm_robot(self) -> bool:
+        if self.safety.is_estop_latched:
+            self.reset_estop()
         return self.safety.arm()
 
     def disarm_robot(self) -> None:

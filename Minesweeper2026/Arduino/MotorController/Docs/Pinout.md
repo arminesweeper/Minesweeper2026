@@ -27,7 +27,7 @@
 | **D29** | PROX4 | Input | Proximity Sensor 4 | Sensor harness |
 | **D31** | PROX5 | Input | Proximity Sensor 5 | Sensor harness |
 | **D33** | MD_PIN | Input | Metal detector (Active HIGH) | Metal detector harness |
-| **D37** | SIREN | Output | 12V Siren Relay (Active LOW) | Siren Relay Module |
+| **D37** | SIREN | Output | 12V Siren Relay (Active HIGH) | Siren Relay Module |
 | **D38** | MAGNET | Output | Electromagnet Relay (Active HIGH) | Magnet Relay Module |
 | **D40** | DIR2 | Output | Left drive motor DIR | Cytron MDD10A |
 | **D42** | DIR1 | Output | Right drive motor DIR | Cytron MDD10A |
@@ -91,11 +91,11 @@ Flying lead (not via J29 data):
 ## Magnet / Limits / Siren / Ultrasonic / Gripper
 
 - Magnets: shared relay on **D38** (`MAGNET_SHARED_RELAY`)
-- Limits: active LOW (`LIMIT_SWITCH_ACTIVE_HIGH 0`) on **D51** (top) and **D53** (bottom)
+- Limits: active HIGH (`LIMIT_SWITCH_ACTIVE_HIGH 1`) on **D51** (top) and **D53** (bottom)
 - Ultrasonic Sensor: **D43** (Trig) and **D45** (Echo) for mine detection & distance
 - Proximity Array: 5x digital inputs on **D23, D25, D27, D29, D31**
 - Metal Detector: digital on **D33** (`METAL_ACTIVE_STATE HIGH`)
-- Siren: 12V automotive relay on **D37** (`BUZZER_IS_SIREN_RELAY 1`, `SIREN_ACTIVE_HIGH 0` Active LOW)
+- Siren: 12V automotive relay on **D37** (`BUZZER_IS_SIREN_RELAY 1`, `SIREN_ACTIVE_HIGH 1` Active HIGH)
 - Camera Pan Servo: PWM on **D4** (Timer 3, preserved per user request)
 
 Full harness details: [WiringManual.md](WiringManual.md).
