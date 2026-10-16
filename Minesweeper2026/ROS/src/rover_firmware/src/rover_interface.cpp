@@ -58,6 +58,7 @@ CallbackReturn roverInterface::on_init(const hardware_interface::HardwareInfo &h
   // elements matching info_.joints.size() before anyone takes an address
   // into them via export_state_interfaces()/export_command_interfaces().
   velocity_commands_.resize(info_.joints.size(), 0.0);
+  position_commands_.resize(info_.joints.size(), 0.0);
   position_states_.resize(info_.joints.size(), 0.0);
   velocity_states_.resize(info_.joints.size(), 0.0);
 
@@ -125,8 +126,16 @@ std::vector<hardware_interface::CommandInterface> roverInterface::export_command
 
   for (size_t i = 0; i < info_.joints.size(); i++)
   {
-    command_interfaces.emplace_back(hardware_interface::CommandInterface(
-        info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &velocity_commands_[i]));
+    if (static_cast<int>(i) == gripper_idx_)
+    {
+      command_interfaces.emplace_back(hardware_interface::CommandInterface(
+          info_.joints[i].name, hardware_interface::HW_IF_POSITION, &position_commands_[i]));
+    }
+    else
+    {
+      command_interfaces.emplace_back(hardware_interface::CommandInterface(
+          info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &velocity_commands_[i]));
+    }
   }
 
   return command_interfaces;
@@ -140,6 +149,7 @@ CallbackReturn roverInterface::on_activate(const rclcpp_lifecycle::State &)
   // fill(), not assignment from an initializer list: never reallocates,
   // so pointers already exported stay valid.
   std::fill(velocity_commands_.begin(), velocity_commands_.end(), 0.0);
+  std::fill(position_commands_.begin(), position_commands_.end(), 0.0);
   std::fill(position_states_.begin(), position_states_.end(), 0.0);
   std::fill(velocity_states_.begin(), velocity_states_.end(), 0.0);
 
@@ -268,8 +278,9 @@ hardware_interface::return_type roverInterface::write(const rclcpp::Time &,
     // gripper_joint command is +1 (open), -1 (close), or 0 (stop/hold).
     // The Arduino owns the motor-stop / limit-switch / magnet logic; this
     // just forwards the requested direction.
-    message_stream << format_velocity_token('g', velocity_commands_.at(gripper_idx_)) << ",";
+    message_stream << format_velocity_token('g', position_commands_.at(gripper_idx_)) << ",";
   }
+  message_stream << "\n";
 
   try
   {

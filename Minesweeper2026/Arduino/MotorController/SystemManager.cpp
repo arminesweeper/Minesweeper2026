@@ -26,22 +26,32 @@ Encoder SystemManager::encoderLeft_({Pins::ENCODER_L_A, Pins::ENCODER_L_B, 2}, t
 
 PIDController SystemManager::pidRight_(PIDTuning::KP_RIGHT, PIDTuning::KI_RIGHT, PIDTuning::KD_RIGHT, 0.0f, PIDTuning::OUTPUT_MIN, PIDTuning::OUTPUT_MAX, Timing::CONTROL_INTERVAL_MS);
 PIDController SystemManager::pidLeft_(PIDTuning::KP_LEFT, PIDTuning::KI_LEFT, PIDTuning::KD_LEFT, 0.0f, PIDTuning::OUTPUT_MIN, PIDTuning::OUTPUT_MAX, Timing::CONTROL_INTERVAL_MS);
-Servo SystemManager::cameraServo_;
+CameraServo SystemManager::cameraServo_;
 
 void SystemManager::begin() {
     EEPROMManager::init();
+    const RobotParameters& params = EEPROMManager::getParams();
     
     Encoder::instance_right_ = &encoderRight_;
     Encoder::instance_left_ = &encoderLeft_;
+
+    motorRight_.setInverted(params.invert_right_motor);
+    motorLeft_.setInverted(params.invert_left_motor);
+    motorRight2_.setInverted(params.invert_right_motor);
+    motorLeft2_.setInverted(params.invert_left_motor);
 
     motorRight_.begin();
     motorLeft_.begin();
     motorRight2_.begin();
     motorLeft2_.begin();
 
+    encoderRight_.setDirectionInverted(params.invert_right_encoder);
+    encoderLeft_.setDirectionInverted(params.invert_left_encoder);
     encoderRight_.begin(Encoder::isrCallbackRight);
     encoderLeft_.begin(Encoder::isrCallbackLeft);
 
+    pidRight_.setTunings(params.kp_right, params.ki_right, params.kd_right, params.ff_right);
+    pidLeft_.setTunings(params.kp_left, params.ki_left, params.kd_left, params.ff_left);
     pidRight_.begin();
     pidLeft_.begin();
 
@@ -51,7 +61,6 @@ void SystemManager::begin() {
     odom_.begin();
     
 #if ENABLE_IMU
-    const RobotParameters& params = EEPROMManager::getParams();
     imu_.begin(params.gyro_bias_x, params.gyro_bias_y, params.gyro_bias_z);
 #endif
 #if ENABLE_SENSORS
@@ -206,29 +215,43 @@ void SystemManager::taskLift() {
 
 void SystemManager::taskHighRateTelemetry() {
 #if ENABLE_LIFT
-    float gripper_status = lift_.isCycling() ? 1.0f : 0.0f;
+    char gripper_state = 'c'; // default closed/lowered
+    if (lift_.isCycling()) {
+        gripper_state = 'm';
+    } else if (lift_.isAtTop()) {
+        gripper_state = 'o';
+    } else if (lift_.isAtBottom()) {
+        gripper_state = 'c';
+    }
 #else
-    float gripper_status = 0.0f;
+    char gripper_state = 'c';
 #endif
     serial_.sendTelemetry(motion_.getRightState().measured_velocity,
                           motion_.getLeftState().measured_velocity,
-                          gripper_status);
+                          gripper_state);
 }
 
 void SystemManager::taskLowRateTelemetry() {
+    static uint8_t phase = 0;
+    phase = (phase + 1) % 2;
+
+    // Stagger packets across phases to stay well within the 64-byte serial TX buffer
+    if (phase == 0) {
 #if ENABLE_ODOMETRY
-    serial_.sendOdometry(odom_.getX(), odom_.getY(), odom_.getTheta());
+        serial_.sendOdometry(odom_.getX(), odom_.getY(), odom_.getTheta());
 #endif
+        serial_.sendBattery(safety_.readBatteryVoltage());
+    } else {
 #if ENABLE_IMU
-    const IMUData& id = imu_.getData();
-    serial_.sendIMU(id.yaw, id.pitch, id.roll, id.accel_x, id.accel_y, id.accel_z);
+        const IMUData& id = imu_.getData();
+        serial_.sendIMU(id.yaw, id.pitch, id.roll, id.accel_x, id.accel_y, id.accel_z);
 #endif
 #if ENABLE_SENSORS
-    uint16_t prox[5];
-    sensors_.getAllProximity(prox);
-    serial_.sendProximity(prox, 5);
+        uint16_t prox[5];
+        sensors_.getAllProximity(prox);
+        serial_.sendProximity(prox, 5);
 #endif
-    serial_.sendBattery(safety_.readBatteryVoltage());
+    }
 }
 
 void SystemManager::taskDiagnostics() {

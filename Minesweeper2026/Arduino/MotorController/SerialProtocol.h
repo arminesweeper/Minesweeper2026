@@ -39,7 +39,7 @@ public:
      * @brief Send high-rate telemetry compatible with ROS parser
      * Format: rp02.50,ln01.30,gp01.00,
      */
-    void sendTelemetry(float right_vel, float left_vel, float gripper_vel) const;
+    void sendTelemetry(float right_vel, float left_vel, char gripper_state) const;
     
     void sendOdometry(float x, float y, float theta) const;
     void sendIMU(float yaw, float pitch, float roll, float ax, float ay, float az) const;

@@ -49,8 +49,8 @@ As fabricated, ENC1 uses Mega **D20/D21**, which are also the hardware `Wire` pi
 **Solution (firmware + harness):**
 
 1. Keep encoders on D18–D21 exactly as the shield routes them.
-2. Enable `IMU_USE_SOFT_I2C` (bit-bang on **D30/D31**).
-3. Wire the MPU6050 with **flying leads** to D30 (SDA), D31 (SCL), 5V, GND.
+2. Enable `IMU_USE_SOFT_I2C` (bit-bang on **D31/D33**).
+3. Wire the MPU6050 with **flying leads** to D31 (SDA), D33 (SCL), 5V, GND.
 4. **Do not** connect MPU SDA/SCL to shield connectors J29/J38 (those pads share D20/D21 with ENC1 via the Mega).
 
 ```
@@ -59,8 +59,8 @@ Shield copper (unchanged):
   D19 ← A2 (right enc)    D18 ← B2 (right enc)
 
 Flying lead (not via J29 data):
-  MPU SDA → Mega D30
-  MPU SCL → Mega D31
+  MPU SDA → Mega D31
+  MPU SCL → Mega D33
 ```
 
 ---
@@ -70,10 +70,10 @@ Flying lead (not via J29 data):
 | Resource | Pins | Usage |
 |----------|------|-------|
 | Timer 0 | — | `millis()` — do not reconfigure |
-| Timer 2 | D10 | Lift PWM |
-| Timer 5 | D44, D46 | Drive PWMs |
+| Timer 3 | D4 | Camera Servo (dedicated 50 Hz PWM via Timer 3, avoids Servo.h Timer 5 hijacking) |
+| Timer 5 | D44, D46 | Drive PWMs (hardware PWM, undisturbed) |
 | INT2 / INT4 | D21 / D19 | Left ENC A / Right ENC A |
-| Soft I2C | D30/D31 | MPU6050 |
+| Soft I2C | D31 / D33 | MPU6050 |
 
 ---
 
@@ -82,17 +82,19 @@ Flying lead (not via J29 data):
 | J36 | Signal | Mega |
 |-----|--------|------|
 | 1 | DIR1 | D42 |
-| 2 | PWM1 | D44 |
+| 2 | PWM1 | D44 (Timer 5 OC5C) |
 | 3 | DIR2 | D40 |
-| 4 | PWM2 | D46 |
+| 4 | PWM2 | D46 (Timer 5 OC5A) |
 | 5 | GND | GND |
 
 ---
 
-## Magnet / Limits / Siren
+## Magnet / Limits / Siren / Gripper
 
 - Magnets: shared relay on **D38** (`MAGNET_SHARED_RELAY`)
-- Limits: active HIGH (`LIMIT_SWITCH_ACTIVE_HIGH`)
-- Siren: digital on **D37** (`BUZZER_IS_SIREN_RELAY`)
+- Limits: active HIGH (`LIMIT_SWITCH_ACTIVE_HIGH`) on **D41** (top) and **D43** (bottom)
+- Gripper break-beam sensor: digital input pullup on **D25**
+- Siren: digital on **D47** (`BUZZER_IS_SIREN_RELAY`)
+- Camera Pan Servo: PWM on **D4** (Timer 3)
 
 Full harness details: [WiringManual.md](WiringManual.md).

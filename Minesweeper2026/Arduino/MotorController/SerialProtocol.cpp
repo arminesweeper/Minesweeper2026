@@ -199,12 +199,12 @@ bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& grip
                     }
                 } else {
                     // Delimiter is comma ','
-                    // Complete packet if both wheels received and no gripper or servo follows
-                    if (right_received_ && left_received_ &&
-                        (!active_stream_->available() || (active_stream_->peek() != 'g' && active_stream_->peek() != 's'))) {
+                    // If gripper or servo was already received, or if both wheels are ready and
+                    // the stream buffer is empty after brief wait, complete packet
+                    if (right_received_ && left_received_ && (gripper_received_ || servo_received_)) {
                         right_vel = pending_right_vel_;
                         left_vel = pending_left_vel_;
-                        if (gripper_received_) gripper_vel = pending_gripper_vel_;
+                        gripper_vel = pending_gripper_vel_;
                         if (servo_received_) servo_angle = pending_servo_angle_;
                         else servo_angle = -1.0f;
                         processCompletePacket();
@@ -290,19 +290,24 @@ void SerialProtocol::resetValueBuffer() {
     value_buffer_[0] = '\0';
 }
 
-void SerialProtocol::sendTelemetry(float right_vel, float left_vel, float gripper_vel) const {
+void SerialProtocol::sendTelemetry(float right_vel, float left_vel, char gripper_state) const {
     char buffer[SerialConfig::TX_BUFFER_SIZE];
 
     char r_sign = (right_vel >= 0) ? 'p' : 'n';
     char l_sign = (left_vel >= 0)  ? 'p' : 'n';
-    char g_sign = (gripper_vel >= 0) ? 'p' : 'n';
 
-    char r_val[10], l_val[10], g_val[10];
-    dtostrf(fabsf(right_vel), 5, 2, r_val);
-    dtostrf(fabsf(left_vel), 5, 2, l_val);
-    dtostrf(fabsf(gripper_vel), 5, 2, g_val);
+    char r_val[10], l_val[10];
+    dtostrf(fabsf(right_vel), 4, 2, r_val);
+    dtostrf(fabsf(left_vel), 4, 2, l_val);
 
-    snprintf(buffer, sizeof(buffer), "r%c%s,l%c%s,g%c%s,", r_sign, r_val, l_sign, l_val, g_sign, g_val);
+    // Strip leading spaces from dtostrf output
+    char* r_p = r_val;
+    while (*r_p == ' ') r_p++;
+    char* l_p = l_val;
+    while (*l_p == ' ') l_p++;
+
+    // Format: rp0.00,lp0.00,go,
+    snprintf(buffer, sizeof(buffer), "r%c%s,l%c%s,g%c,", r_sign, r_p, l_sign, l_p, gripper_state);
     broadcastString(buffer);
 }
 

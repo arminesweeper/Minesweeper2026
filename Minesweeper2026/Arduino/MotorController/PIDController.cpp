@@ -72,13 +72,19 @@ float PIDController::computeCore(float setpoint, float input, float dt) {
   if (output > output_max_) {
     output = output_max_;
     saturated_ = true;
-    // Back-calculate integral to prevent windup at saturation
-    integral_term_ = output - p_term - d_term - ff_term;
+    // Clamp integral term to prevent positive windup when saturated high
+    float max_i = output_max_ - p_term - d_term - ff_term;
+    if (integral_term_ > max_i) {
+      integral_term_ = (max_i > 0.0f) ? max_i : 0.0f;
+    }
   } else if (output < output_min_) {
     output = output_min_;
     saturated_ = true;
-    // Back-calculate integral to prevent windup at saturation
-    integral_term_ = output - p_term - d_term - ff_term;
+    // Clamp integral term to prevent negative windup when saturated low
+    float min_i = output_min_ - p_term - d_term - ff_term;
+    if (integral_term_ < min_i) {
+      integral_term_ = (min_i < 0.0f) ? min_i : 0.0f;
+    }
   }
 
   last_setpoint_ = setpoint;

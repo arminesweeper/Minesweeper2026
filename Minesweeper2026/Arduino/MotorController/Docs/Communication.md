@@ -7,7 +7,7 @@
 ## Overview
 
 | Parameter | Value |
-|-----------|-------|
+| ----------- | ------- |
 | Interface | USB Serial (CDC ACM) |
 | Baud Rate | 115200 |
 | Data Bits | 8 |
@@ -43,7 +43,7 @@ rp02.50,ln01.30,gp01.00,sp90.00,
 #### Field Breakdown
 
 | Position | Field | Values | Description |
-|----------|-------|--------|-------------|
+| ---------- | ------- | -------- | ------------- |
 | 1 | Target | `r` / `l` / `g` / `s` | Right wheel, left wheel, gripper trigger, or camera servo |
 | 2 | Direction/Sign | `p` / `n` | Positive (`p`) or negative (`n`) |
 | 3-7 | Value | `XX.XX` | Magnitude (rad/s for motors, 0.0/1.0 for gripper, 0-180 for servo) |
@@ -64,7 +64,7 @@ rp02.50,ln01.30,gp01.00,sp90.00,
 #### Examples
 
 | Command | Right Wheel | Left Wheel | Gripper | Servo |
-|---------|-------------|------------|---------|-------|
+| --------- | ------------- | ------------ | --------- | ------- |
 | `rp02.50,lp01.30,` | +2.50 rad/s | +1.30 rad/s | Unchanged | Unchanged |
 | `rn01.00,ln01.00,` | -1.00 rad/s | -1.00 rad/s | Unchanged | Unchanged |
 | `rp00.00,lp00.00,gp01.00,` | Stop right | Stop left | Trigger lift cycle | Unchanged |
@@ -82,7 +82,7 @@ C<COMMAND>\n
 #### Lift Commands
 
 | Command | Action |
-|---------|--------|
+| --------- | -------- |
 | `CLIFT:UP\n` | Raise lift mechanism |
 | `CLIFT:DN\n` | Lower lift mechanism |
 | `CLIFT:STOP\n` | Stop lift motor |
@@ -90,7 +90,7 @@ C<COMMAND>\n
 #### Magnet Commands
 
 | Command | Action |
-|---------|--------|
+| --------- | -------- |
 | `CMAG:1:ON\n` | Energize magnet 1 |
 | `CMAG:1:OFF\n` | De-energize magnet 1 |
 | `CMAG:2:ON\n` | Energize magnet 2 |
@@ -100,7 +100,7 @@ C<COMMAND>\n
 #### Buzzer Commands
 
 | Command | Action |
-|---------|--------|
+| --------- | -------- |
 | `CBUZZ:SILENT\n` | Turn off buzzer |
 | `CBUZZ:BEEP\n` | Single beep |
 | `CBUZZ:ALERT\n` | Alert pattern |
@@ -109,7 +109,7 @@ C<COMMAND>\n
 #### System Commands
 
 | Command | Action |
-|---------|--------|
+| --------- | -------- |
 | `CRESET\n` | Reset all subsystems to default |
 | `CDIAG\n` | Request immediate diagnostics report |
 | `CESTOP\n` | Trigger emergency stop |
@@ -121,17 +121,18 @@ C<COMMAND>\n
 
 ### Velocity Telemetry
 
-Primary telemetry.  Same format as inbound commands for symmetry.
+Primary telemetry. High-rate packet reporting measured wheel speeds and discrete gripper status:
 
 ```
-rp2.310,ln1.280,
+rp02.31,lp01.28,go,
 ```
 
 | Field | Description |
-|-------|-------------|
+| ------- | ------------- |
 | `r`/`l` | Wheel identifier |
 | `p`/`n` | Measured direction |
-| `X.XXX` | Measured velocity in rad/s (3 decimal places) |
+| `XX.XX` | Measured velocity in rad/s (2 decimal places) |
+| `g<state>` | Gripper status: `go` (open), `gc` (closed), `gm` (moving / mid) |
 | `,` | Separator |
 
 **Rate:** 10 Hz (every 100 ms)
@@ -143,7 +144,7 @@ O:0.1234,0.5678,1.2345,
 ```
 
 | Field | Unit | Description |
-|-------|------|-------------|
+| ------- | ------ | ------------- |
 | First | meters | X position |
 | Second | meters | Y position |
 | Third | radians | Heading (θ) |
@@ -180,7 +181,7 @@ I:45.2,-2.1,0.3
 ```
 
 | Field | Unit | Description |
-|-------|------|-------------|
+| ------- | ------ | ------------- |
 | First | degrees | Yaw (heading) |
 | Second | degrees | Pitch |
 | Third | degrees | Roll |
@@ -207,7 +208,7 @@ D:STATE=1,LOOPS=54321,CMDS=1234,TIMEOUTS=2,CYCLES=5432,LOOP_US=150/890,FLT=trlbv
 ```
 
 | Field | Description |
-|-------|-------------|
+| ------- | ------------- |
 | `STATE` | System state enum value |
 | `LOOPS` | Total loop() iterations |
 | `CMDS` | Valid commands received |
@@ -219,6 +220,7 @@ D:STATE=1,LOOPS=54321,CMDS=1234,TIMEOUTS=2,CYCLES=5432,LOOP_US=150/890,FLT=trlbv
 | `UP` | Uptime in seconds |
 
 **Fault flag characters:**
+
 - `T`/`t` — Command timeout
 - `R`/`r` — Right encoder fault
 - `L`/`l` — Left encoder fault
@@ -249,7 +251,7 @@ E:3:IMU communication timeout
 **Error codes:**
 
 | Code | Category |
-|------|----------|
+| ------ | ---------- |
 | 1 | Parser error |
 | 2 | Safety system |
 | 3 | IMU fault |
@@ -317,7 +319,7 @@ E:3:IMU communication timeout
 ## Timing
 
 | Direction | Typical Latency | Max Latency |
-|-----------|-----------------|-------------|
+| ----------- | ----------------- | ------------- |
 | Command RX → Motor output | 100 ms | 200 ms |
 | Sensor read → Telemetry TX | 100 ms | 150 ms |
 | Command → Acknowledgment | N/A | N/A (no ACK) |

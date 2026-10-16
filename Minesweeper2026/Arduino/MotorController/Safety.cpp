@@ -35,6 +35,7 @@ SystemState SafetyMonitor::update(unsigned long last_command_time,
         if (millis() - last_command_time > SafetyConfig::COMMAND_TIMEOUT_MS) {
             faults_.command_timeout = true;
             forceState(SystemState::ESTOP);
+            estop_trigger_time_ = millis();
         } else {
             faults_.command_timeout = false;
         }
@@ -107,7 +108,12 @@ float SafetyMonitor::readBatteryVoltage() {
 void SafetyMonitor::checkBatteryVoltage() {
     float voltage = readBatteryVoltage();
 
-    if (voltage < SafetyConfig::BATTERY_VOLTAGE_CRITICAL) {
+    // If voltage < 5.0V (5000 mV), battery divider harness is unplugged/not installed:
+    // do not trigger a false battery_critical shutdown.
+    if (voltage < 5000.0f) {
+        faults_.battery_low = false;
+        faults_.battery_critical = false;
+    } else if (voltage < SafetyConfig::BATTERY_VOLTAGE_CRITICAL) {
         faults_.battery_critical = true;
         faults_.battery_low = true;
     } else if (voltage < SafetyConfig::BATTERY_VOLTAGE_LOW) {
@@ -127,6 +133,7 @@ void SafetyMonitor::triggerEStop() {
 void SafetyMonitor::clearEStop() {
     if (state_ == SystemState::ESTOP) {
         if (millis() - estop_trigger_time_ > 100) {
+            faults_.command_timeout = false;
             if (!hasFault()) forceState(SystemState::READY);
             else forceState(SystemState::FAULT);
         }

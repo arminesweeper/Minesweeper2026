@@ -5,6 +5,7 @@
  */
 
 #include "Odometry.h"
+#include "EEPROMManager.h"
 
 Odometry::Odometry() : distance_traveled_(0.0) {
   pose_.x = 0.0;
@@ -19,16 +20,16 @@ void Odometry::update(double right_vel, double left_vel, double dt_sec) {
   if (dt_sec <= 0.0)
     return;
 
-  // Convert angular velocities to linear velocities (m/s)
-  // v = omega * r
-  double v_right = right_vel * DefaultParams::WHEEL_RADIUS_M;
-  double v_left = left_vel * DefaultParams::WHEEL_RADIUS_M;
+  // Convert angular velocities to linear velocities (m/s) using calibrated parameters
+  const RobotParameters& params = EEPROMManager::getParams();
+  double v_right = right_vel * params.wheel_radius_m;
+  double v_left = left_vel * params.wheel_radius_m;
 
   // Calculate robot velocities (unicycle model)
   // v = (v_right + v_left) / 2
   // omega = (v_right - v_left) / L
   double v_robot = (v_right + v_left) / 2.0;
-  double omega_robot = (v_right - v_left) / DefaultParams::WHEEL_BASE_M;
+  double omega_robot = (v_right - v_left) / params.wheel_base_m;
 
   // Integrate position using exact integration for constant velocity
   if (abs(omega_robot) < 1e-6) {

@@ -291,12 +291,12 @@ void IMU::update(float dt_sec) {
     float accel_pitch = atan2(data_.accel_y, sqrt(data_.accel_x * data_.accel_x + data_.accel_z * data_.accel_z)) * 180.0f / PI;
     float accel_roll = atan2(-data_.accel_x, data_.accel_z) * 180.0f / PI;
 
-    // Complementary Filter
+    // Complementary Filter: gyro_y -> pitch, gyro_x -> roll
     if (dt_sec > 0.0f) {
-        data_.pitch = IMUConfig::COMPLEMENTARY_ALPHA * (data_.pitch + data_.gyro_x * dt_sec) +
+        data_.pitch = IMUConfig::COMPLEMENTARY_ALPHA * (data_.pitch + data_.gyro_y * dt_sec) +
                       (1.0f - IMUConfig::COMPLEMENTARY_ALPHA) * accel_pitch;
 
-        data_.roll = IMUConfig::COMPLEMENTARY_ALPHA * (data_.roll + data_.gyro_y * dt_sec) +
+        data_.roll = IMUConfig::COMPLEMENTARY_ALPHA * (data_.roll + data_.gyro_x * dt_sec) +
                      (1.0f - IMUConfig::COMPLEMENTARY_ALPHA) * accel_roll;
 
         data_.yaw += data_.gyro_z * dt_sec;

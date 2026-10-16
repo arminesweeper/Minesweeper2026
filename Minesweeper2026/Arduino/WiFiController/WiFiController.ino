@@ -19,8 +19,6 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Minesweeper Command Center</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@300;500;700&display=swap');
-    
     :root {
       --bg-color: #0b0f19;
       --panel-bg: rgba(20, 25, 40, 0.65);
@@ -30,8 +28,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       --stop-color: #ff3366;
       --text-main: #ffffff;
       --text-muted: #8b9bb4;
-      --font-primary: 'Inter', sans-serif;
-      --font-display: 'Outfit', sans-serif;
+      --font-primary: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-display: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
 
     * { box-sizing: border-box; }
@@ -424,13 +422,13 @@ animation: pulse 2s infinite;
       <div class="panel-title">Navigation</div>
       <div class="d-pad">
         <div class="empty"></div>
-        <button class="btn" onclick="sendCmd('forward')">▲</button>
+        <button class="btn" onmousedown="startMove('forward')" onmouseup="stopMove()" onmouseleave="stopMove()" ontouchstart="startMove('forward'); event.preventDefault();" ontouchend="stopMove(); event.preventDefault();">▲</button>
         <div class="empty"></div>
-        <button class="btn" onclick="sendCmd('left')">◀</button>
-        <button class="btn btn-stop" onclick="sendCmd('stop')">STOP</button>
-        <button class="btn" onclick="sendCmd('right')">▶</button>
+        <button class="btn" onmousedown="startMove('left')" onmouseup="stopMove()" onmouseleave="stopMove()" ontouchstart="startMove('left'); event.preventDefault();" ontouchend="stopMove(); event.preventDefault();">◀</button>
+        <button class="btn btn-stop" onclick="stopMove()">STOP</button>
+        <button class="btn" onmousedown="startMove('right')" onmouseup="stopMove()" onmouseleave="stopMove()" ontouchstart="startMove('right'); event.preventDefault();" ontouchend="stopMove(); event.preventDefault();">▶</button>
         <div class="empty"></div>
-        <button class="btn" onclick="sendCmd('backward')">▼</button>
+        <button class="btn" onmousedown="startMove('backward')" onmouseup="stopMove()" onmouseleave="stopMove()" ontouchstart="startMove('backward'); event.preventDefault();" ontouchend="stopMove(); event.preventDefault();">▼</button>
         <div class="empty"></div>
       </div>
     </div>
@@ -480,6 +478,31 @@ animation: pulse 2s infinite;
   <div id="toast">Command Sent</div>
 
   <script>
+    let moveInterval = null;
+    let currentDir = null;
+
+    function startMove(dir) {
+      if (moveInterval && currentDir === dir) return;
+      if (moveInterval) {
+        clearInterval(moveInterval);
+        moveInterval = null;
+      }
+      currentDir = dir;
+      sendCmd(dir);
+      moveInterval = setInterval(() => {
+        fetch('/' + dir).catch(e => console.error(e));
+      }, 350);
+    }
+
+    function stopMove() {
+      if (moveInterval) {
+        clearInterval(moveInterval);
+        moveInterval = null;
+      }
+      currentDir = null;
+      sendCmd('stop', 'STOP');
+    }
+
     function showToast(msg, isStop = false) {
       const toast = document.getElementById('toast');
       toast.innerText = msg;
@@ -649,23 +672,12 @@ void setup() {
 
   // Wait for Mega to boot to avoid garbling its serial receive buffer
   delay(2000);
-  Serial.println("\n\n--- ESP8266 Booting ---");
 
   // Explicitly set WiFi mode to Access Point
   WiFi.mode(WIFI_AP);
 
   // Set ESP8266 as an Access Point on Channel 6
-  bool apStatus = WiFi.softAP(ssid, password, 6);
-
-  if (apStatus) {
-    Serial.println("Access Point Created Successfully (Channel 6)!");
-    Serial.print("SSID: ");
-    Serial.println(ssid);
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.softAPIP());
-  } else {
-    Serial.println("Failed to create Access Point!");
-  }
+  WiFi.softAP(ssid, password, 6);
 
   // Setup Web Server Routes
   server.on("/", handleRoot);

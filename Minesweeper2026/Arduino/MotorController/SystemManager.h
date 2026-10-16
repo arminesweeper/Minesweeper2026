@@ -21,7 +21,7 @@
 #include "Odometry.h"
 #include "LiftController.h"
 #include "Sensors.h"
-#include <Servo.h>
+#include "CameraServo.h"
 
 struct Task {
     const char* name;
@@ -75,7 +75,7 @@ private:
     static Encoder encoderLeft_;
     static PIDController pidRight_;
     static PIDController pidLeft_;
-    static Servo cameraServo_;
+    static CameraServo cameraServo_;
 };
 
 #endif // SYSTEMMANAGER_H

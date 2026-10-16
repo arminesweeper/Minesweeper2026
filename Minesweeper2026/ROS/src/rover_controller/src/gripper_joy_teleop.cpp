@@ -107,6 +107,8 @@ private:
         cancelWatchdog();
     }
 
+    static constexpr double GRIPPER_OPEN_ANGLE_RAD = 2.967;
+
     void jointStateCallback(const sensor_msgs::msg::JointState &msg)
     {
         if (!command_active_)
@@ -123,7 +125,7 @@ private:
         size_t idx = std::distance(msg.name.begin(), it);
         double position = msg.position.at(idx);
 
-        bool reached_open = std::abs(position - 1.0) < position_tolerance_;
+        bool reached_open = std::abs(position - GRIPPER_OPEN_ANGLE_RAD) < position_tolerance_;
         bool reached_closed = std::abs(position - 0.0) < position_tolerance_;
 
         if (reached_open || reached_closed)

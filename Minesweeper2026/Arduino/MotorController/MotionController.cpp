@@ -44,7 +44,8 @@ float MotionController::applyVelocityRamping(float target, float current, float 
   float max_step_decel = params.max_deceleration * dt_sec;
 
   float max_step;
-  if ((error > 0.0f && target > current) || (error < 0.0f && target < current)) {
+  // If magnitude of speed is increasing, apply max_acceleration; if decreasing/braking, apply max_deceleration
+  if (fabsf(target) >= fabsf(current)) {
     max_step = max_step_accel;
   } else {
     max_step = max_step_decel;

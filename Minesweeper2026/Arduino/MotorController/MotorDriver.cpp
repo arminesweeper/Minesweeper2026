@@ -14,6 +14,10 @@ void MotorDriver::begin() {
   pinMode(config_.pwm_pin, OUTPUT);
   pinMode(config_.dir_pin, OUTPUT);
 
+  // Synchronize physical hardware pin with initial software direction
+  bool initial_forward = inverted_ ? !is_forward_ : is_forward_;
+  digitalWrite(config_.dir_pin, initial_forward ? HIGH : LOW);
+
   stop();
 }
 

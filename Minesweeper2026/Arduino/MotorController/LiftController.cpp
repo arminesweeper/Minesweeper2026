@@ -270,6 +270,7 @@ void LiftController::driveMotor(bool up) {
 
 void LiftController::stopMotor() {
     analogWrite(Pins::LIFT_PWM, 0);
+    digitalWrite(Pins::LIFT_PWM, LOW);
 }
 
 bool LiftController::readSwitch(uint8_t pin, unsigned long& last_change,

@@ -30,8 +30,8 @@ rover_controller:
     pose_covariance_diagonal : [0.001, 0.001, 1.0e-3, 1.0e-3, 1.0e-3, 0.01]
     twist_covariance_diagonal: [0.001, 0.001, 1.0e-3, 1.0e-3, 1.0e-3, 0.01]
 
-    wheel_separation : 0.5767
-    wheel_radius : 0.1
+    wheel_separation : 0.15
+    wheel_radius : 0.0325
 
     wheel_separation_multiplier: 1.0
     left_wheel_radius_multiplier: 1.0
