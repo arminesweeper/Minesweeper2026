@@ -386,6 +386,8 @@ class MainWindow(QMainWindow):
             direction_name = "TURN RIGHT"
 
         if direction_name:
+            if not self.controller.safety.is_armed and not self.controller.safety.is_estop_latched:
+                self.controller.arm_robot()
             self.panel_movement.set_active_display(direction_name)
             self.controller.drive_wheels(r_vel, l_vel, immediate=True)
         else:
@@ -396,6 +398,10 @@ class MainWindow(QMainWindow):
         """Handle directional button press from GUI pad."""
         lin = self.panel_speed.get_linear_speed()
         trn = self.panel_speed.get_turn_speed()
+
+        if direction != "STOP":
+            if not self.controller.safety.is_armed and not self.controller.safety.is_estop_latched:
+                self.controller.arm_robot()
 
         if direction == "FORWARD":
             self.controller.drive_wheels(lin, lin, immediate=True)

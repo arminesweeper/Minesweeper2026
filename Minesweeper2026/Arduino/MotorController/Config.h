@@ -135,7 +135,7 @@
  * 1 = Active-HIGH: switch closure delivers logic HIGH, open delivers 0V (LOW) (matches Safi wiring).
  * 0 = Active-LOW: switch closure pulls pin to GND (LOW) with INPUT_PULLUP.
  */
-#define LIMIT_SWITCH_ACTIVE_HIGH 0
+#define LIMIT_SWITCH_ACTIVE_HIGH 1
 
 /**
  * @brief Gripper mine detection via ultrasonic sensor.
@@ -292,7 +292,7 @@ constexpr uint8_t NUM_MAGNETS = 5;                 /**< Number of virtual/physic
 namespace SensorConfig {
 constexpr uint16_t PROXIMITY_THRESHOLD = 500;    /**< Threshold (0-1023) for proximity obstacle trigger */
 constexpr uint8_t NUM_PROXIMITY = 5;             /**< Total number of digital proximity sensors connected */
-constexpr uint8_t PROXIMITY_ACTIVE_STATE = LOW;  /**< Sensor logic level indicating obstacle detected (LOW for most IR sensors) */
+constexpr uint8_t PROXIMITY_ACTIVE_STATE = HIGH; /**< Sensor logic level indicating obstacle detected (HIGH for Safi's IR array) */
 constexpr unsigned long METAL_DEBOUNCE_MS = 50;  /**< Minimum trigger confirmation time for metal detector (ms) */
 constexpr uint8_t METAL_ACTIVE_STATE = HIGH;     /**< Sensor logic level indicating metal is detected (HIGH for Safi's wiring) */
 constexpr uint8_t ADC_SAMPLES = 1;               /**< Number of ADC conversions per read (1 = fast non-blocking) */

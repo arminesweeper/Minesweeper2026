@@ -117,6 +117,9 @@ void SystemManager::update() {
         if (safety_.getState() == SystemState::ESTOP) {
             safety_.clearEStop();
         }
+        if (safety_.getState() == SystemState::READY) {
+            safety_.forceState(SystemState::RUNNING);
+        }
     }
     processExtendedCommands();
 
@@ -250,7 +253,7 @@ void SystemManager::taskLift() {
 #if ENABLE_LIFT
     LiftState prev_state = lift_.getState();
 #if ENABLE_SENSORS
-    bool obj_detected = sensors_.isObjectDetected();
+    bool obj_detected = sensors_.isObjectDetected() || sensors_.isMetalDetected();
 #else
     bool obj_detected = false;
 #endif

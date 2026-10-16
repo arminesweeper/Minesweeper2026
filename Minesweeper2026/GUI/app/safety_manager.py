@@ -18,7 +18,7 @@ class SafetyManager:
     def __init__(
         self,
         robot_state: RobotState,
-        stale_timeout_s: float = 1.5,
+        stale_timeout_s: float = 3.0,
         on_safety_changed: Optional[Callable[[SafetyState], None]] = None,
     ):
         self.state = robot_state

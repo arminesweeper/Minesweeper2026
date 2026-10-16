@@ -23,7 +23,7 @@ void SafetyMonitor::begin() {
 #if ENABLE_WATCHDOG
     wdt_enable(WDTO_2S);
 #endif
-    state_ = SystemState::INIT;
+    state_ = SystemState::READY;
 }
 
 SystemState SafetyMonitor::update(unsigned long last_command_time, 

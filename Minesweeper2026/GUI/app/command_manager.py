@@ -71,6 +71,7 @@ class CommandManager:
         self._last_sent_r = 0.0
         self._last_sent_l = 0.0
         self._last_send_time = time.time()
+        self.safety.state.record_command_sent("STOP", 0.0, 0.0)
         logger.info("COMMAND: Dispatched STOP.")
 
     def set_drive_targets(
@@ -131,6 +132,12 @@ class CommandManager:
         self._last_sent_r = self._active_target_r
         self._last_sent_l = self._active_target_l
         self._last_send_time = time.time()
+        self.safety.state.record_command_sent(
+            pkt.decode("ascii", errors="replace").strip(),
+            self._active_target_r,
+            self._active_target_l,
+        )
+        logger.debug("COMMAND: Dispatched DRIVE: %s", pkt.strip())
 
     def send_extended_command(self, cmd_bytes: bytes) -> bool:
         """

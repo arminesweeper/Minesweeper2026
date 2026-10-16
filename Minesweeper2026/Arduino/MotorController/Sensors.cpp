@@ -68,9 +68,9 @@ void Sensors::begin() {
     /* Metal detector: digital input (Active HIGH) */
     pinMode(Pins::METAL_DETECTOR, INPUT);
 
-    /* Digital proximity sensors (D23, D25, D27, D29, D31 with pullups) */
+    /* Digital proximity sensors (D23, D25, D27, D29, D31: direct digital inputs) */
     for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
-        pinMode(Pins::PROXIMITY_PINS[i], INPUT_PULLUP);
+        pinMode(Pins::PROXIMITY_PINS[i], INPUT);
     }
 
     /* HC-SR04 Ultrasonic sensor */
@@ -229,6 +229,9 @@ void Sensors::setBuzzerPattern(BuzzerPattern pattern) {
 
     if (pattern == BuzzerPattern::SILENT) {
         alertOff();
+    } else if (pattern == BuzzerPattern::MINE_DETECT) {
+        alertOn(SensorConfig::BUZZER_FREQ_HZ);
+        buzzer_on_ = true;
     }
 }
 

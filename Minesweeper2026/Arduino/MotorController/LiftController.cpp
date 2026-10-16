@@ -94,7 +94,7 @@ void LiftController::update(bool object_detected) {
         bool new_object = (object_detected && !sensor_prev_state_);
         sensor_prev_state_ = object_detected;
 
-        if (new_object || manual_trigger_) {
+        if (new_object || manual_trigger_ || (object_detected && !at_top && (millis() - motion_start_ms_ > 2000))) {
             manual_trigger_ = false;
             if (!at_top) {
                 driveMotor(true); /* Move UP */

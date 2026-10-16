@@ -267,7 +267,7 @@ bool SerialProtocol::getExtendedCommand(char* cmd_buf, size_t buf_size) {
 
 void SerialProtocol::processCompletePacket() {
     last_command_time_ = millis();
-    parser_state_ = State::COMPLETE;
+    parser_state_ = State::WAITING_PREFIX;
     right_received_ = false;
     left_received_ = false;
     gripper_received_ = false;
