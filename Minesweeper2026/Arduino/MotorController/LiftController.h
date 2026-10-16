@@ -68,9 +68,10 @@ public:
      * @brief Update the lift state machine.
      *
      * Must be called periodically (recommended: every 50 ms).
-     * Reads limit switches and optical sensor, updates automated cycle.
+     * Reads limit switches and object detection status, updates automated cycle.
+     * @param object_detected true if ultrasonic distance or sensor detects a mine
      */
-    void update();
+    void update(bool object_detected = false);
 
     /**
      * @brief Trigger an automated pickup and drop cycle (from joystick or command).

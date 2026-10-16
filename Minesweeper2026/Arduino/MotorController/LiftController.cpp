@@ -39,20 +39,13 @@ void LiftController::begin() {
     analogWrite(Pins::LIFT_PWM, 0);
     digitalWrite(Pins::LIFT_DIR, HIGH);
 
-    /* Limit switches: polarity depends on PCB divider vs NO-to-GND wiring */
+    /* Limit switches: polarity depends on LIMIT_SWITCH_ACTIVE_HIGH */
 #if LIMIT_SWITCH_ACTIVE_HIGH
     pinMode(Pins::LIMIT_SW_TOP, INPUT);
     pinMode(Pins::LIMIT_SW_BOTTOM, INPUT);
 #else
     pinMode(Pins::LIMIT_SW_TOP, INPUT_PULLUP);
     pinMode(Pins::LIMIT_SW_BOTTOM, INPUT_PULLUP);
-#endif
-
-    /* Break-beam / optical object detection sensor on gripper (Pin 25) */
-#if GRIPPER_SENSOR_ACTIVE_LOW
-    pinMode(Pins::GRIPPER_SENSOR, INPUT_PULLUP);
-#else
-    pinMode(Pins::GRIPPER_SENSOR, INPUT);
 #endif
 
     /* Electromagnet / shared relay pin(s) */
@@ -66,7 +59,7 @@ void LiftController::begin() {
     }
 #endif
 
-    /* Option 1: Magnet is always ON while at bottom */
+    /* Magnet is armed at bottom */
     setAllMagnets(true);
     state_ = LiftState::IDLE;
     manual_trigger_ = false;
@@ -78,27 +71,26 @@ void LiftController::begin() {
     debounce_sensor_ms_ = now;
     top_switch_stable_ = isSwitchRawActive(Pins::LIMIT_SW_TOP);
     bot_switch_stable_ = isSwitchRawActive(Pins::LIMIT_SW_BOTTOM);
-    sensor_stable_ = isSwitchRawActive(Pins::GRIPPER_SENSOR);
-    sensor_prev_state_ = sensor_stable_;
+    sensor_stable_ = false;
+    sensor_prev_state_ = false;
 }
 
 /* ============================================================================
  * AUTOMATED STATE MACHINE UPDATE
  * ============================================================================ */
 
-void LiftController::update() {
+void LiftController::update(bool object_detected) {
     /* Read debounced switch states */
     bool at_top = readSwitch(Pins::LIMIT_SW_TOP, debounce_top_ms_, top_switch_stable_);
     bool at_bottom = readSwitch(Pins::LIMIT_SW_BOTTOM, debounce_bot_ms_, bot_switch_stable_);
 
-    /* Read debounced optical sensor on gripper */
-    bool object_detected = readSwitch(Pins::GRIPPER_SENSOR, debounce_sensor_ms_, sensor_stable_);
+    sensor_stable_ = object_detected;
 
     switch (state_) {
     case LiftState::IDLE: {
         /* Magnet is armed/ON at bottom.
-         * Trigger cycle if an object newly enters the break beam (edge trigger),
-         * OR if triggered manually via joystick command. */
+         * Trigger cycle if an object/mine newly enters ultrasonic detection range (edge trigger),
+         * OR if triggered manually via command. */
         bool new_object = (object_detected && !sensor_prev_state_);
         sensor_prev_state_ = object_detected;
 
@@ -291,14 +283,6 @@ bool LiftController::readSwitch(uint8_t pin, unsigned long& last_change,
 }
 
 bool LiftController::isSwitchRawActive(uint8_t pin) const {
-    if (pin == Pins::GRIPPER_SENSOR) {
-#if GRIPPER_SENSOR_ACTIVE_LOW
-        return digitalRead(pin) == LOW;
-#else
-        return digitalRead(pin) == HIGH;
-#endif
-    }
-
 #if LIMIT_SWITCH_ACTIVE_HIGH
     return digitalRead(pin) == HIGH;
 #else

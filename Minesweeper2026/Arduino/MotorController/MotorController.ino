@@ -6,14 +6,17 @@
  *
  * Hardware:
  *   - Arduino Mega 2560 (ATmega2560-16U2)
- *   - Cytron MDD10A Rev 2.0 Motor Driver
- *   - Dual Quadrature Encoders
- *   - MPU6050 IMU
- *   - Lift Mechanism with shared electromagnet relay (PCB Rev A)
- *   - 5 Analog Proximity Sensors, Digital Metal Detector
- *   - Siren relay / warning LED
+ *   - Cytron MDD10A Rev 2.0 Motor Driver (PWM 44/46, DIR 42/40)
+ *   - Dual Quadrature Encoders (Right: D19/D18, Left: D21/D20)
+ *   - Lift Mechanism: PWM D7 (Timer 4 OC4B), DIR D49, Limits D51/D53 (Active HIGH)
+ *   - HC-SR04 Ultrasonic Distance Sensor: Trig D43, Echo D45
+ *   - 5 Digital Proximity Sensors: D23, D25, D27, D29, D31
+ *   - Digital Metal Detector: D33 (Active HIGH)
+ *   - 12V Automotive Siren Relay: D37
+ *   - Shared Electromagnet Relay: D38
+ *   - Camera Pan Servo: D4 (Timer 3 custom 50 Hz PWM)
  *
- * Pin map: see Config.h and Docs/Pinout.md (synchronized to Robotics_Mine PCB).
+ * Pin map: see Config.h and Docs/Pinout.md (synchronized to Safi robot wiring).
  * Wiring:  see Docs/WiringManual.md
  * Architecture:
  *   - Modular multi-file design

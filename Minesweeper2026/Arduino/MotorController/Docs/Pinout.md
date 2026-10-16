@@ -9,33 +9,32 @@
 ## Synchronized Pin Map
 
 | Pin | Net / Signal | Direction | Function | Connection |
-|-----|--------------|-----------|----------|------------|
-| **D18** | B2 | Input | Right encoder B | PCB copper |
-| **D19** | A2 | Input | Right encoder A (INT2) | PCB copper |
-| **D20** | B1 | Input | Left encoder B | PCB copper |
-| **D21** | A1 | Input | Left encoder A (INT2) | PCB copper |
-| **D4**  | SERVO | Output | Camera / gripper servo | Discrete lead / J13 |
-| **D8**  | DIR1_2 | Output | Secondary Right motor DIR | Cytron 2 |
-| **D9**  | PWM1_2 | Output | Secondary Right motor PWM | Cytron 2 |
-| **D10** | DIR2_2 | Output | Secondary Left motor DIR | Cytron 2 |
-| **D11** | PWM2_2 | Output | Secondary Left motor PWM | Cytron 2 |
-| **D25** | GRIPPER_SENSE | Input (Pullup) | Gripper break-beam / optical sensor | Jumper / sensor harness |
-| **D31** | soft SDA | I/O | MPU6050 SDA | **Flying lead** |
-| **D33** | soft SCL | Output | MPU6050 SCL | **Flying lead** |
-| **D35** | DIR3 | Output | Lift direction | Jumper → J37/J44 |
-| **D37** | PWM3 | Output | Lift PWM | Jumper → J37/J44 |
-| **D38** | MAGNET SW | Output | Magnet relay K1 | PCB copper |
-| **D39** | MD / MTLDTCT | Input | Metal detector | Jumper → J6/J40 |
-| **D40** | DIR2 | Output | Left motor DIR | PCB copper |
-| **D41** | LM1 | Input | Limit top | Jumper → J43/J44 |
-| **D42** | DIR1 | Output | Right motor DIR | PCB copper |
-| **D43** | LM2 | Input | Limit bottom | Jumper → J43/J44 |
-| **D44** | PWM1 | Output | Right motor PWM | PCB copper |
-| **D45** | WARNING_LED | Output | Status LED | Discrete LED |
-| **D46** | PWM2 | Output | Left motor PWM | PCB copper |
-| **D47** | SIREN | Output | Siren relay | Jumper → J15 |
-| **A0**  | BAT_SENSE | Input | Battery divider | Add-on harness |
-| **A1–A5** | AP1–AP5 | Input | Proximity | Jumper → J6 |
+| ----- | -------------- | ----------- | ---------- | ------------ |
+| **D18** | B2 | Input | Right encoder B | Primary Harness |
+| **D19** | A2 | Input | Right encoder A (INT2) | Primary Harness |
+| **D20** | B1 | Input | Left encoder B | Primary Harness |
+| **D21** | A1 | Input | Left encoder A (INT0) | Primary Harness |
+| **D4** | SERVO | Output | Camera Pan Servo (50 Hz PWM) | Discrete Lead (Preserved) |
+| **D7** | LIFT_PWM | Output | Lift actuator PWM (Timer 4 OC4B) | Lift Driver |
+| **D49** | LIFT_DIR | Output | Lift actuator DIR | Lift Driver |
+| **D51** | LIMIT_TOP | Input | Upper travel limit switch (Active HIGH) | Limit switch |
+| **D53** | LIMIT_BOT | Input | Lower travel limit switch (Active HIGH) | Limit switch |
+| **D43** | US_TRIG | Output | HC-SR04 Ultrasonic Trigger | Ultrasonic harness |
+| **D45** | US_ECHO | Input | HC-SR04 Ultrasonic Echo | Ultrasonic harness |
+| **D23** | PROX1 | Input | Proximity Sensor 1 | Sensor harness |
+| **D25** | PROX2 | Input | Proximity Sensor 2 | Sensor harness |
+| **D27** | PROX3 | Input | Proximity Sensor 3 | Sensor harness |
+| **D29** | PROX4 | Input | Proximity Sensor 4 | Sensor harness |
+| **D31** | PROX5 | Input | Proximity Sensor 5 | Sensor harness |
+| **D33** | MD_PIN | Input | Metal detector (Active HIGH) | Metal detector harness |
+| **D37** | SIREN | Output | 12V Siren Relay | Siren Relay Module |
+| **D38** | MAGNET | Output | Electromagnet Relay (Active HIGH) | Magnet Relay Module |
+| **D40** | DIR2 | Output | Left drive motor DIR | Cytron MDD10A |
+| **D42** | DIR1 | Output | Right drive motor DIR | Cytron MDD10A |
+| **D44** | PWM1 | Output | Right drive motor PWM (Timer 5 OC5C) | Cytron MDD10A |
+| **D46** | PWM2 | Output | Left drive motor PWM (Timer 5 OC5A) | Cytron MDD10A |
+| **D13** | WARNING_LED | Output | System status LED | Mega onboard LED_BUILTIN |
+| **A0** | BAT_SENSE | Input | Battery voltage divider | Main battery |
 
 USB Serial (D0/D1) reserved for Pi ↔ Arduino.
 Serial2 (D16/D17) optional for ESP32/WiFi Controller (toggle via ENABLE_SERIAL2 in Config.h).
@@ -68,7 +67,7 @@ Flying lead (not via J29 data):
 ## Timer / Interrupt Allocation
 
 | Resource | Pins | Usage |
-|----------|------|-------|
+| ---------- | ------ | ------- |
 | Timer 0 | — | `millis()` — do not reconfigure |
 | Timer 3 | D4 | Camera Servo (dedicated 50 Hz PWM via Timer 3, avoids Servo.h Timer 5 hijacking) |
 | Timer 5 | D44, D46 | Drive PWMs (hardware PWM, undisturbed) |
@@ -80,7 +79,7 @@ Flying lead (not via J29 data):
 ## Cytron MDD10A (J36)
 
 | J36 | Signal | Mega |
-|-----|--------|------|
+| ----- | -------- | ------ |
 | 1 | DIR1 | D42 |
 | 2 | PWM1 | D44 (Timer 5 OC5C) |
 | 3 | DIR2 | D40 |
@@ -89,12 +88,14 @@ Flying lead (not via J29 data):
 
 ---
 
-## Magnet / Limits / Siren / Gripper
+## Magnet / Limits / Siren / Ultrasonic / Gripper
 
 - Magnets: shared relay on **D38** (`MAGNET_SHARED_RELAY`)
-- Limits: active HIGH (`LIMIT_SWITCH_ACTIVE_HIGH`) on **D41** (top) and **D43** (bottom)
-- Gripper break-beam sensor: digital input pullup on **D25**
-- Siren: digital on **D47** (`BUZZER_IS_SIREN_RELAY`)
-- Camera Pan Servo: PWM on **D4** (Timer 3)
+- Limits: active HIGH (`LIMIT_SWITCH_ACTIVE_HIGH`) on **D51** (top) and **D53** (bottom)
+- Ultrasonic Sensor: **D43** (Trig) and **D45** (Echo) for mine detection & distance
+- Proximity Array: 5x digital inputs on **D23, D25, D27, D29, D31**
+- Metal Detector: digital on **D33** (`METAL_ACTIVE_STATE HIGH`)
+- Siren: 12V automotive relay on **D37** (`BUZZER_IS_SIREN_RELAY`)
+- Camera Pan Servo: PWM on **D4** (Timer 3, preserved per user request)
 
 Full harness details: [WiringManual.md](WiringManual.md).

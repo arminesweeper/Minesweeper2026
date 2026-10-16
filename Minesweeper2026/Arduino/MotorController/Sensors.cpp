@@ -15,7 +15,8 @@
  * ============================================================================ */
 
 Sensors::Sensors()
-    : metal_detected_(false),
+    : ultrasonic_distance_cm_(SensorConfig::US_MAX_DISTANCE_CM),
+      metal_detected_(false),
       metal_raw_last_(false),
       metal_change_ms_(0),
       buzzer_pattern_(BuzzerPattern::SILENT),
@@ -56,12 +57,20 @@ static void alertOn(uint16_t freq_hz) {
  * ============================================================================ */
 
 void Sensors::begin() {
-    /* Metal detector: digital input with internal pull-up (active LOW) */
-    pinMode(Pins::METAL_DETECTOR, INPUT_PULLUP);
+    /* Metal detector: digital input (Active HIGH) */
+    pinMode(Pins::METAL_DETECTOR, INPUT);
 
-    /* Proximity sensors: analog inputs (no pinMode needed for analogRead) */
+    /* Digital proximity sensors (D23, D25, D27, D29, D31 with pullups) */
+    for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
+        pinMode(Pins::PROXIMITY_PINS[i], INPUT_PULLUP);
+    }
 
-    /* Buzzer / siren: output, initially off */
+    /* HC-SR04 Ultrasonic sensor */
+    pinMode(Pins::US_TRIG, OUTPUT);
+    digitalWrite(Pins::US_TRIG, LOW);
+    pinMode(Pins::US_ECHO, INPUT);
+
+    /* Buzzer / siren relay: output, initially off */
     pinMode(Pins::BUZZER, OUTPUT);
     alertOff();
 
@@ -81,7 +90,7 @@ void Sensors::begin() {
  * ============================================================================ */
 
 void Sensors::update() {
-    /* Read all proximity sensors with fast EMA smoothing */
+    /* Read all 5 digital proximity sensors with EMA smoothing */
     for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
         uint16_t val = readProximityAveraged(Pins::PROXIMITY_PINS[i]);
         if (proximity_values_[i] == 0) {
@@ -89,6 +98,14 @@ void Sensors::update() {
         } else {
             proximity_values_[i] = (proximity_values_[i] * 3 + val) / 4;
         }
+    }
+
+    /* Read HC-SR04 ultrasonic distance */
+    uint16_t raw_dist = measureUltrasonicCm();
+    if (ultrasonic_distance_cm_ == SensorConfig::US_MAX_DISTANCE_CM || ultrasonic_distance_cm_ == 0) {
+        ultrasonic_distance_cm_ = raw_dist;
+    } else {
+        ultrasonic_distance_cm_ = (ultrasonic_distance_cm_ * 3 + raw_dist) / 4;
     }
 
     /* Update metal detector (debounced) */
@@ -133,14 +150,43 @@ bool Sensors::isAnyProximityTriggered() const {
 }
 
 uint16_t Sensors::readProximityAveraged(uint8_t pin) const {
-    if (SensorConfig::ADC_SAMPLES > 1) {
-        uint32_t sum = 0;
-        for (uint8_t s = 0; s < SensorConfig::ADC_SAMPLES; ++s) {
-            sum += static_cast<uint32_t>(analogRead(pin));
+    bool active = (digitalRead(pin) == SensorConfig::PROXIMITY_ACTIVE_STATE);
+    return active ? 1023 : 0;
+}
+
+/* ============================================================================
+ * ULTRASONIC DISTANCE MEASUREMENT
+ * ============================================================================ */
+
+uint16_t Sensors::measureUltrasonicCm() const {
+    digitalWrite(Pins::US_TRIG, LOW);
+    delayMicroseconds(2);
+    digitalWrite(Pins::US_TRIG, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(Pins::US_TRIG, LOW);
+
+    // Wait for echo pin to go HIGH (start of reflection)
+    uint32_t t0 = micros();
+    while (!digitalRead(Pins::US_ECHO)) {
+        if (micros() - t0 > SensorConfig::US_START_TIMEOUT_US) {
+            return SensorConfig::US_MAX_DISTANCE_CM;
         }
-        return static_cast<uint16_t>(sum / SensorConfig::ADC_SAMPLES);
     }
-    return static_cast<uint16_t>(analogRead(pin));
+
+    // Wait for echo pin to go LOW (end of pulse)
+    uint32_t t1 = micros();
+    while (digitalRead(Pins::US_ECHO)) {
+        if (micros() - t1 > SensorConfig::US_MAX_ECHO_US) {
+            return SensorConfig::US_MAX_DISTANCE_CM;
+        }
+    }
+
+    uint32_t pulse_duration_us = micros() - t1;
+    uint32_t dist = pulse_duration_us / 58UL;
+    if (dist > SensorConfig::US_MAX_DISTANCE_CM) {
+        dist = SensorConfig::US_MAX_DISTANCE_CM;
+    }
+    return static_cast<uint16_t>(dist);
 }
 
 /* ============================================================================

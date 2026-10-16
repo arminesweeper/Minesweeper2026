@@ -124,24 +124,33 @@
 
 /**
  * @brief Limit switch electrical logic level.
- * Mechanical limit switches are stepped down from 12V via resistor dividers.
- * 1 = Active-HIGH: switch closure delivers 3.3V-5V (HIGH), open delivers 0V (LOW).
+ * Mechanical limit switches are stepped down from 12V via resistor dividers or NO contacts.
+ * 1 = Active-HIGH: switch closure delivers logic HIGH, open delivers 0V (LOW) (matches Safi wiring).
  * 0 = Active-LOW: switch closure pulls pin to GND (LOW) with INPUT_PULLUP.
  */
-#define LIMIT_SWITCH_ACTIVE_HIGH 0
+#define LIMIT_SWITCH_ACTIVE_HIGH 1
 
 /**
- * @brief Gripper break-beam / optical object detection sensor logic.
- * Optical sensor mounted inside gripper jaw detects when mine enters the catch area.
- * 1 = Active-LOW: beam interrupted / mine caught pulls pin LOW (standard NPN open-collector).
- * 0 = Active-HIGH: beam interrupted / mine caught produces logic HIGH.
+ * @brief Gripper mine detection via ultrasonic sensor.
+ * 1 = Use HC-SR04 ultrasonic distance sensor (Pins 43 & 45) to detect mine catch.
+ * 0 = Manual trigger / command only.
  */
-#define GRIPPER_SENSOR_ACTIVE_LOW 1
+#define USE_ULTRASONIC_OBJECT_DETECT 1
 
 /* ============================================================================
- * HARDWARE PIN DEFINITIONS — as-fabricated PCB + harness
+ * HARDWARE PIN DEFINITIONS — Synchronized with Physical Robot Wiring
  * ============================================================================
- * Synchronized with Arduino Mega 2560 pin capabilities and shield traces.
+ * Hardware pinout matching physical robot (Safi's configuration):
+ *   - Drive Motors: Right (PWM 44, DIR 42), Left (PWM 46, DIR 40)
+ *   - Encoders: Right (INT2 D19, D18), Left (INT0 D21, D20)
+ *   - Lift Actuator: PWM 7 (Timer 4 OC4B), DIR 49
+ *   - Limit Switches: Top 51, Bottom 53 (Active-HIGH)
+ *   - Ultrasonic Sensor: Trig 43, Echo 45 (HC-SR04)
+ *   - Proximity Array: Digital inputs D23, D25, D27, D29, D31
+ *   - Metal Detector: D33 (Active-HIGH)
+ *   - Siren Relay: D37 (12V automotive siren relay)
+ *   - Shared Magnet Relay: D38
+ *   - Camera Servo: D4 (Timer 3 custom 50 Hz PWM, preserved per user request)
  * ============================================================================
  */
 
@@ -155,19 +164,22 @@ constexpr uint8_t MOTOR_L_DIR = 40; /**< Left motor direction pin (DIR2) */
 /* --- Primary Wheel Quadrature Encoders (PCB copper) --- */
 constexpr uint8_t ENCODER_R_A = 19; /**< Right wheel encoder phase A (External Interrupt INT2) */
 constexpr uint8_t ENCODER_R_B = 18; /**< Right wheel encoder phase B (Direction sensing) */
-constexpr uint8_t ENCODER_L_A = 21; /**< Left wheel encoder phase A (External Interrupt INT2) */
+constexpr uint8_t ENCODER_L_A = 21; /**< Left wheel encoder phase A (External Interrupt INT0) */
 constexpr uint8_t ENCODER_L_B = 20; /**< Left wheel encoder phase B (Direction sensing) */
 
 /* --- MPU6050 IMU (Software bit-bang I2C on dedicated flying leads) --- */
-constexpr uint8_t IMU_SDA = 31; /**< Soft-I2C Serial Data line (flying lead to sensor) */
-constexpr uint8_t IMU_SCL = 33; /**< Soft-I2C Serial Clock line (flying lead to sensor) */
+constexpr uint8_t IMU_SDA = 34; /**< Soft-I2C Serial Data line (moved to D34 to avoid conflict with Prox 5) */
+constexpr uint8_t IMU_SCL = 36; /**< Soft-I2C Serial Clock line (moved to D36 to avoid conflict with Metal Detector) */
 
-/* --- Lift Mechanism, Limit Switches & Gripper Sensor (J37/J44/J43) --- */
-constexpr uint8_t LIFT_PWM = 37;        /**< Lift actuator motor speed PWM / Enable (PWM3) */
-constexpr uint8_t LIFT_DIR = 35;        /**< Lift actuator motor direction pin (DIR3) */
-constexpr uint8_t LIMIT_SW_TOP = 41;    /**< Upper travel limit switch (LM1, stops upward lift) */
-constexpr uint8_t LIMIT_SW_BOTTOM = 43; /**< Lower travel limit switch (LM2, stops downward lift) */
-constexpr uint8_t GRIPPER_SENSOR = 25;  /**< Break-beam optical mine catch sensor (digital input pullup) */
+/* --- Lift Mechanism & Travel Limit Switches --- */
+constexpr uint8_t LIFT_PWM = 7;         /**< Lift actuator motor speed PWM (Timer 4 OC4B, hardware PWM) */
+constexpr uint8_t LIFT_DIR = 49;        /**< Lift actuator motor direction pin */
+constexpr uint8_t LIMIT_SW_TOP = 51;    /**< Upper travel limit switch (Active HIGH) */
+constexpr uint8_t LIMIT_SW_BOTTOM = 53; /**< Lower travel limit switch (Active HIGH) */
+
+/* --- HC-SR04 Ultrasonic Distance Sensor (Gripper mine detection) --- */
+constexpr uint8_t US_TRIG = 43;         /**< Ultrasonic trigger pulse output */
+constexpr uint8_t US_ECHO = 45;         /**< Ultrasonic echo pulse input */
 
 /* --- Electromagnet Relay Outputs --- */
 #if MAGNET_SHARED_RELAY
@@ -178,16 +190,16 @@ constexpr uint8_t MAGNET_PINS[] = {22, 24, 26, 28, 30};/**< Discrete individual 
 #endif
 
 /* --- Sensor Array Inputs --- */
-constexpr uint8_t METAL_DETECTOR = 39;                       /**< Pulse induction metal detector digital/analog input */
-constexpr uint8_t PROXIMITY_PINS[] = {A1, A2, A3, A4, A5};   /**< 5x Sharp/analog proximity sensor inputs */
+constexpr uint8_t METAL_DETECTOR = 33;                       /**< Pulse induction metal detector digital input (Active HIGH) */
+constexpr uint8_t PROXIMITY_PINS[] = {23, 25, 27, 29, 31};   /**< 5x Digital proximity sensor inputs (D23, D25, D27, D29, D31) */
 
 /* --- Status & Indicator Outputs --- */
-constexpr uint8_t BUZZER = 47;        /**< 12V high-output siren relay control pin (J15) */
-constexpr uint8_t WARNING_LED = 45;   /**< Diagnostic / warning LED output */
+constexpr uint8_t BUZZER = 37;        /**< 12V high-output siren relay control pin */
+constexpr uint8_t WARNING_LED = 13;   /**< Diagnostic / warning LED output (onboard LED_BUILTIN; avoids D45 clash) */
 constexpr uint8_t BATTERY_SENSE = A0; /**< Scaled main battery voltage divider analog input */
 
 /* --- Camera Pan Servo (Timer 3 Custom 50 Hz PWM) --- */
-constexpr uint8_t SERVO = 4; /**< Camera pan servo signal pin (Timer 3, avoids Timer 5 motor clash) */
+constexpr uint8_t SERVO = 4; /**< Camera pan servo signal pin (Timer 3, preserved on Pin 4) */
 
 /* --- Secondary 4WD Drive Motors (Cytron 2 via J37, optional 4WD expansion) --- */
 constexpr uint8_t MOTOR_R_PWM_2 = 9;  /**< Secondary right motor PWM (Timer 2, OC2B) */
@@ -271,12 +283,19 @@ constexpr uint8_t NUM_MAGNETS = 5;                 /**< Number of virtual/physic
  */
 
 namespace SensorConfig {
-constexpr uint16_t PROXIMITY_THRESHOLD = 500;    /**< ADC threshold (0-1023) for proximity obstacle trigger */
-constexpr uint8_t NUM_PROXIMITY = 5;             /**< Total number of analog proximity sensors connected */
+constexpr uint16_t PROXIMITY_THRESHOLD = 500;    /**< Threshold (0-1023) for proximity obstacle trigger */
+constexpr uint8_t NUM_PROXIMITY = 5;             /**< Total number of digital proximity sensors connected */
+constexpr uint8_t PROXIMITY_ACTIVE_STATE = LOW;  /**< Sensor logic level indicating obstacle detected (LOW for most IR sensors) */
 constexpr unsigned long METAL_DEBOUNCE_MS = 50;  /**< Minimum trigger confirmation time for metal detector (ms) */
-constexpr uint8_t METAL_ACTIVE_STATE = LOW;      /**< Sensor logic level indicating metal is detected */
+constexpr uint8_t METAL_ACTIVE_STATE = HIGH;     /**< Sensor logic level indicating metal is detected (HIGH for Safi's wiring) */
 constexpr uint8_t ADC_SAMPLES = 1;               /**< Number of ADC conversions per read (1 = fast non-blocking) */
 constexpr uint16_t BUZZER_FREQ_HZ = 500;         /**< Audio tone frequency in Hz (used only if piezo is fitted) */
+
+/* --- HC-SR04 Ultrasonic Distance Sensor Configuration --- */
+constexpr uint16_t US_MAX_DISTANCE_CM = 250;     /**< Maximum measurement range cap in cm (250 cm) */
+constexpr uint16_t US_OBJECT_DETECT_CM = 15;     /**< Distance threshold under gripper to consider mine caught (<= 15 cm) */
+constexpr uint16_t US_START_TIMEOUT_US = 1000;   /**< Timeout waiting for echo pulse to start (1000 us = 1 ms) */
+constexpr uint16_t US_MAX_ECHO_US = 6000;        /**< Timeout waiting for echo pulse to end (6000 us ≈ 100 cm range) */
 } // namespace SensorConfig
 
 /* ============================================================================

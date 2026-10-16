@@ -47,6 +47,7 @@ public:
     void sendBattery(float voltage_mv) const;
     void sendMetalDetect(bool detected) const;
     void sendLiftState(const char* state_str, uint8_t magnet_mask) const;
+    void sendUltrasonic(uint16_t distance_cm) const;
     
     void sendDiagnostics(uint16_t loop_hz, uint8_t cpu_percent, uint8_t fault_code) const;
     void sendStatus(const char* message) const;

@@ -111,6 +111,18 @@ public:
     bool isMetalDetected() const { return metal_detected_; }
 
     /**
+     * @brief Get the last measured ultrasonic distance in cm.
+     * @return Distance in cm [0 - US_MAX_DISTANCE_CM]
+     */
+    uint16_t getUltrasonicDistanceCm() const { return ultrasonic_distance_cm_; }
+
+    /**
+     * @brief Check if an object/mine is detected by the ultrasonic sensor.
+     * @return true if distance <= US_OBJECT_DETECT_CM
+     */
+    bool isObjectDetected() const { return ultrasonic_distance_cm_ <= SensorConfig::US_OBJECT_DETECT_CM; }
+
+    /**
      * @brief Set the buzzer sound pattern.
      * @param pattern Desired BuzzerPattern
      */
@@ -146,6 +158,9 @@ private:
     /* Proximity sensor data */
     uint16_t proximity_values_[SensorConfig::NUM_PROXIMITY];
 
+    /* Ultrasonic distance sensor state */
+    uint16_t ultrasonic_distance_cm_;
+
     /* Metal detector state */
     bool metal_detected_;           ///< Debounced metal detection state
     bool metal_raw_last_;           ///< Last raw reading
@@ -163,9 +178,15 @@ private:
     uint8_t heartbeat_phase_;        ///< Heartbeat pattern phase counter
 
     /**
+     * @brief Measure distance via HC-SR04 ultrasonic sensor with bounded microsecond timeout.
+     * @return Distance in cm [0 - US_MAX_DISTANCE_CM]
+     */
+    uint16_t measureUltrasonicCm() const;
+
+    /**
      * @brief Read a single proximity sensor with multi-sample averaging.
-     * @param pin Analog pin number
-     * @return Averaged ADC value [0-1023]
+     * @param pin Pin number
+     * @return Averaged ADC value or digital value scaled [0 or 1023]
      */
     uint16_t readProximityAveraged(uint8_t pin) const;
 

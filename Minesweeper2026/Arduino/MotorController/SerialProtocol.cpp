@@ -366,6 +366,12 @@ void SerialProtocol::sendLiftState(const char* state_str, uint8_t magnet_mask) c
 #endif
 }
 
+void SerialProtocol::sendUltrasonic(uint16_t distance_cm) const {
+    char buffer[SerialConfig::TX_BUFFER_SIZE];
+    snprintf(buffer, sizeof(buffer), "U:%u", distance_cm);
+    broadcastString(buffer);
+}
+
 void SerialProtocol::sendDiagnostics(uint16_t loop_hz, uint8_t cpu_percent, uint8_t fault_code) const {
     char buffer[SerialConfig::TX_BUFFER_SIZE];
     snprintf(buffer, sizeof(buffer), "D:%u,%u,%u", loop_hz, cpu_percent, fault_code);

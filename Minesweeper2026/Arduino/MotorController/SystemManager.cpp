@@ -228,7 +228,8 @@ void SystemManager::taskSensors() {
 
     bool current_metal = sensors_.isMetalDetected();
     bool current_prox = sensors_.isAnyProximityTriggered();
-    bool mine_detected = current_metal || current_prox;
+    bool current_us = sensors_.isObjectDetected();
+    bool mine_detected = current_metal || current_prox || current_us;
 
     if (current_metal != last_metal) {
         serial_.sendMetalDetect(current_metal);
@@ -248,7 +249,12 @@ void SystemManager::taskSensors() {
 void SystemManager::taskLift() {
 #if ENABLE_LIFT
     LiftState prev_state = lift_.getState();
-    lift_.update();
+#if ENABLE_SENSORS
+    bool obj_detected = sensors_.isObjectDetected();
+#else
+    bool obj_detected = false;
+#endif
+    lift_.update(obj_detected);
     safety_.setLiftFault(lift_.hasFault());
     if (lift_.getState() != prev_state) {
         serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState());
@@ -293,6 +299,7 @@ void SystemManager::taskLowRateTelemetry() {
         uint16_t prox[5];
         sensors_.getAllProximity(prox);
         serial_.sendProximity(prox, 5);
+        serial_.sendUltrasonic(sensors_.getUltrasonicDistanceCm());
 #endif
     }
 }
