@@ -1,0 +1,38 @@
+{
+  "serial": {
+    "port": "",
+    "baud_rate": 115200,
+    "timeout_s": 0.05,
+    "write_timeout_s": 0.5,
+    "auto_reconnect": false,
+    "reconnect_interval_s": 2.0
+  },
+  "limits": {
+    "max_velocity_rad_s": 10.0,
+    "default_velocity_rad_s": 3.0,
+    "min_velocity_rad_s": 0.2,
+    "test_mode_velocity_rad_s": 1.5,
+    "command_rate_hz": 10.0,
+    "stale_timeout_s": 1.5
+  },
+  "servo": {
+    "default_angle_deg": 90,
+    "min_angle_deg": 0,
+    "max_angle_deg": 180
+  },
+  "ui": {
+    "theme": "dark",
+    "window_width": 1280,
+    "window_height": 820,
+    "max_console_lines": 1000,
+    "auto_scroll_console": true
+  },
+  "keybindings": {
+    "forward": "W",
+    "backward": "S",
+    "turn_left": "A",
+    "turn_right": "D",
+    "stop": "Space",
+    "estop": "Esc"
+  }
+}

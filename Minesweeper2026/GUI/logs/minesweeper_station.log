@@ -1,0 +1,5 @@
+2026-10-16 16:39:18 [    INFO] (MainThread) ControlStation: Logging initialized. Output file: E:\Robotics_Team\Minesweeper\Minesweeper\Minesweeper2026\GUI\logs\minesweeper_station.log
+2026-10-16 16:39:18 [    INFO] (MainThread) ControlStation: Starting Minesweeper Control Station...
+2026-10-16 16:39:18 [    INFO] (MainThread) ControlStation.AppController: Serial background thread started.
+2026-10-16 16:39:18 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop started.
+2026-10-16 16:39:19 [    INFO] (MainThread) ControlStation: GUI window displayed. Entering Qt event loop.
