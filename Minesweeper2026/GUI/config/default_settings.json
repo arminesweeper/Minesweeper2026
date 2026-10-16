@@ -23,7 +23,7 @@
   "ui": {
     "theme": "dark",
     "window_width": 1536,
-    "window_height": 1003,
+    "window_height": 793,
     "max_console_lines": 1000,
     "auto_scroll_console": true
   },

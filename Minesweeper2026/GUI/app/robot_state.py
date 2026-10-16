@@ -79,6 +79,7 @@ class SensorsTelemetry:
     proximity: List[int] = field(default_factory=lambda: [0, 0, 0, 0, 0])
     metal_detected: bool = False
     proximity_triggered: bool = False
+    ultrasonic_distance_cm: int = 250
     timestamp: float = 0.0
 
 
@@ -167,6 +168,13 @@ class RobotState:
         with self._lock:
             now = time.time()
             self.sensors.metal_detected = detected
+            self.sensors.timestamp = now
+            self.last_rx_time = now
+
+    def update_ultrasonic(self, distance_cm: int) -> None:
+        with self._lock:
+            now = time.time()
+            self.sensors.ultrasonic_distance_cm = distance_cm
             self.sensors.timestamp = now
             self.last_rx_time = now
 

@@ -16,6 +16,7 @@ from app.protocol.telemetry_parser import (
     ProximityPacket,
     StatusPacket,
     TelemetryParser,
+    UltrasonicPacket,
 )
 
 
@@ -87,6 +88,19 @@ def test_parse_metal_detect():
 
     p0 = parser.feed("M:0\n")
     assert len(p0) == 1 and isinstance(p0[0], MetalDetectPacket) and p0[0].detected is False
+
+
+def test_parse_ultrasonic():
+    parser = TelemetryParser()
+    p1 = parser.feed("U:18\n")
+    assert len(p1) == 1
+    assert isinstance(p1[0], UltrasonicPacket)
+    assert p1[0].distance_cm == 18
+
+    p2 = parser.feed("U:250\n")
+    assert len(p2) == 1
+    assert isinstance(p2[0], UltrasonicPacket)
+    assert p2[0].distance_cm == 250
 
 
 def test_parse_lift_state():

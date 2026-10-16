@@ -55,6 +55,11 @@ class LiftStatePacket:
 
 
 @dataclass
+class UltrasonicPacket:
+    distance_cm: int
+
+
+@dataclass
 class DiagnosticsPacket:
     loop_hz: int
     cpu_percent: int
@@ -186,7 +191,13 @@ class TelemetryParser:
                     mask_val = int(parts[1].strip(), 16) if parts[1].strip() else 0
                     return LiftStatePacket(state_str=parts[0].strip(), magnet_mask=mask_val)
 
-            # 8. Diagnostics: D:hz,cpu,fault
+            # 8. Ultrasonic Distance: U:dist_cm
+            if line.startswith("U:"):
+                dist_str = line[2:].strip()
+                if dist_str.isdigit():
+                    return UltrasonicPacket(distance_cm=int(dist_str))
+
+            # 9. Diagnostics: D:hz,cpu,fault
             if line.startswith("D:"):
                 parts = line[2:].split(",")
                 if len(parts) == 3:

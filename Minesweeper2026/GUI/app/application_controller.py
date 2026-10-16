@@ -21,6 +21,7 @@ from .protocol import (
     ProximityPacket,
     RobotProtocol,
     StatusPacket,
+    UltrasonicPacket,
 )
 from .robot_state import ConnectionState, RobotState, SafetyState
 from .safety_manager import SafetyManager
@@ -149,6 +150,8 @@ class ApplicationController(QObject):
             self.robot_state.update_metal(pkt.detected)
         elif isinstance(pkt, LiftStatePacket):
             self.robot_state.update_lift_state(pkt.state_str, pkt.magnet_mask)
+        elif isinstance(pkt, UltrasonicPacket):
+            self.robot_state.update_ultrasonic(pkt.distance_cm)
         elif isinstance(pkt, DiagnosticsPacket):
             self.robot_state.update_diagnostics(pkt.loop_hz, pkt.cpu_percent, pkt.fault_code)
         elif isinstance(pkt, StatusPacket):

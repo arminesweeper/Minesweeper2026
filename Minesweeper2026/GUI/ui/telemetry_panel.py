@@ -138,7 +138,7 @@ class TelemetryPanel(QGroupBox):
 
     def update_telemetry(self, state: RobotState) -> None:
         """Efficient live update of all indicators from RobotState."""
-        # Metal detector
+        # Metal detector & Target Detection
         if state.sensors.metal_detected:
             self.badge_metal.setText("⚠️ MINE DETECTED! (METAL ALERT)")
             self.badge_metal.setStyleSheet(
@@ -150,6 +150,19 @@ class TelemetryPanel(QGroupBox):
                 "   padding: 10px;"
                 "   border-radius: 6px;"
                 "   border: 3px solid #ff1744;"
+                "}"
+            )
+        elif state.sensors.ultrasonic_distance_cm <= 15:
+            self.badge_metal.setText(f"🎯 MINE CAUGHT BENEATH GRIPPER! (US: {state.sensors.ultrasonic_distance_cm} cm)")
+            self.badge_metal.setStyleSheet(
+                "QLabel {"
+                "   background-color: #d84315;"
+                "   color: white;"
+                "   font-size: 14px;"
+                "   font-weight: 900;"
+                "   padding: 10px;"
+                "   border-radius: 6px;"
+                "   border: 3px solid #ffab40;"
                 "}"
             )
         elif state.sensors.proximity_triggered:
@@ -224,7 +237,9 @@ class TelemetryPanel(QGroupBox):
         grip_map = {"o": "Top / Open", "c": "Bottom / Closed", "m": "Moving"}
         grip_txt = grip_map.get(lift.gripper_state, lift.gripper_state)
         mag_txt = f"Active (Mask: 0x{lift.magnet_mask:02X})" if lift.magnet_mask else "OFF"
-        self.lbl_lift.setText(f"State: {lift.state_str} | Magnets: {mag_txt} | Gripper: {grip_txt}")
+        us_dist = state.sensors.ultrasonic_distance_cm
+        us_txt = f"{us_dist} cm" if us_dist < 250 else "> 25 cm (Clear)"
+        self.lbl_lift.setText(f"State: {lift.state_str} | Magnets: {mag_txt} | Gripper: {grip_txt} | US: {us_txt}")
 
         # Diagnostics
         diag = state.diagnostics

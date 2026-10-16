@@ -247,6 +247,11 @@ class SerialWorker(QObject):
                 for pkt in self._parser.feed(prox_line):
                     self.telemetry_packet.emit(pkt)
 
+                us_line = "U:25\n"
+                self.data_received.emit(us_line)
+                for pkt in self._parser.feed(us_line):
+                    self.telemetry_packet.emit(pkt)
+
     def stop(self) -> None:
         """Signal worker thread to exit."""
         self._running = False

@@ -490,3 +490,6 @@
 2026-10-16 17:32:16 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
 2026-10-16 17:32:16 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
 2026-10-16 17:32:16 [ WARNING] (MainThread) ControlStation.CommandManager: COMMAND: Rejected extended command because E-Stop is latched.
+2026-10-16 17:42:39 [    INFO] (MainThread) ControlStation.MainWindow: Application closing. Performing safe shutdown...
+2026-10-16 17:42:39 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop terminated cleanly.
+2026-10-16 17:42:39 [    INFO] (MainThread) ControlStation.AppController: ApplicationController shutdown complete.
