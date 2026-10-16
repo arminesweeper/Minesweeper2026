@@ -37,7 +37,11 @@ Sensors::Sensors()
 
 static void alertOff() {
 #if BUZZER_IS_SIREN_RELAY
+#if SIREN_ACTIVE_HIGH
     digitalWrite(Pins::BUZZER, LOW);
+#else
+    digitalWrite(Pins::BUZZER, HIGH);
+#endif
 #else
     noTone(Pins::BUZZER);
 #endif
@@ -46,7 +50,11 @@ static void alertOff() {
 static void alertOn(uint16_t freq_hz) {
 #if BUZZER_IS_SIREN_RELAY
     (void)freq_hz;
+#if SIREN_ACTIVE_HIGH
     digitalWrite(Pins::BUZZER, HIGH);
+#else
+    digitalWrite(Pins::BUZZER, LOW);
+#endif
 #else
     tone(Pins::BUZZER, freq_hz);
 #endif
@@ -71,6 +79,7 @@ void Sensors::begin() {
     pinMode(Pins::US_ECHO, INPUT);
 
     /* Buzzer / siren relay: output, initially off */
+    alertOff();
     pinMode(Pins::BUZZER, OUTPUT);
     alertOff();
 

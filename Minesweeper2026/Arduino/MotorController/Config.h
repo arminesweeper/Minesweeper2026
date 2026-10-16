@@ -123,12 +123,19 @@
 #define BUZZER_IS_SIREN_RELAY 1
 
 /**
+ * @brief Siren relay activation electrical logic level.
+ * 1 = Active-HIGH: logic HIGH turns siren ON, LOW turns siren OFF.
+ * 0 = Active-LOW: logic LOW turns siren ON, HIGH turns siren OFF (standard for optoisolated relay boards).
+ */
+#define SIREN_ACTIVE_HIGH 0
+
+/**
  * @brief Limit switch electrical logic level.
  * Mechanical limit switches are stepped down from 12V via resistor dividers or NO contacts.
  * 1 = Active-HIGH: switch closure delivers logic HIGH, open delivers 0V (LOW) (matches Safi wiring).
  * 0 = Active-LOW: switch closure pulls pin to GND (LOW) with INPUT_PULLUP.
  */
-#define LIMIT_SWITCH_ACTIVE_HIGH 1
+#define LIMIT_SWITCH_ACTIVE_HIGH 0
 
 /**
  * @brief Gripper mine detection via ultrasonic sensor.

@@ -493,3 +493,50 @@
 2026-10-16 17:42:39 [    INFO] (MainThread) ControlStation.MainWindow: Application closing. Performing safe shutdown...
 2026-10-16 17:42:39 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop terminated cleanly.
 2026-10-16 17:42:39 [    INFO] (MainThread) ControlStation.AppController: ApplicationController shutdown complete.
+2026-10-16 17:51:31 [    INFO] (MainThread) ControlStation: Logging initialized. Output file: E:\Robotics_Team\Minesweeper\Minesweeper\Minesweeper2026\GUI\logs\minesweeper_station.log
+2026-10-16 17:51:31 [    INFO] (MainThread) ControlStation: Starting Minesweeper Control Station...
+2026-10-16 17:51:31 [    INFO] (MainThread) ControlStation.AppController: Serial background thread started.
+2026-10-16 17:51:31 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop started.
+2026-10-16 17:51:31 [    INFO] (MainThread) ControlStation: GUI window displayed. Entering Qt event loop.
+2026-10-16 17:53:10 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 17:53:11 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 17:53:12 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 17:53:12 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 17:53:13 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 17:53:19 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 17:53:20 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 17:53:25 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:04:40 [    INFO] (MainThread) ControlStation.MainWindow: Application closing. Performing safe shutdown...
+2026-10-16 18:04:40 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop terminated cleanly.
+2026-10-16 18:04:40 [    INFO] (MainThread) ControlStation.AppController: ApplicationController shutdown complete.
+2026-10-16 18:05:00 [    INFO] (MainThread) ControlStation: Logging initialized. Output file: E:\Robotics_Team\Minesweeper\Minesweeper\Minesweeper2026\GUI\logs\minesweeper_station.log
+2026-10-16 18:05:00 [    INFO] (MainThread) ControlStation: Starting Minesweeper Control Station...
+2026-10-16 18:05:00 [    INFO] (MainThread) ControlStation.AppController: Serial background thread started.
+2026-10-16 18:05:00 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop started.
+2026-10-16 18:05:00 [    INFO] (MainThread) ControlStation: GUI window displayed. Entering Qt event loop.
+2026-10-16 18:05:02 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:05:04 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:05:04 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:05:04 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:05:05 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:05:05 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:05:05 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:05:05 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:05:06 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:05:06 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:05:07 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:05:07 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:05:14 [    INFO] (MainThread) ControlStation.SerialWorker: Opening serial port COM5 @ 115200 bps
+2026-10-16 18:05:14 [    INFO] (MainThread) ControlStation.SerialWorker: Serial port COM5 opened successfully.
+2026-10-16 18:10:18 [   ERROR] (Dummy-1) ControlStation.SerialWorker: Serial read error: ClearCommError failed (PermissionError(13, 'The device does not recognize the command.', None, 22))
+2026-10-16 18:10:18 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.
+2026-10-16 18:10:18 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:34:55 [    INFO] (MainThread) ControlStation.SerialWorker: Opening serial port COM5 @ 115200 bps
+2026-10-16 18:34:55 [    INFO] (MainThread) ControlStation.SerialWorker: Serial port COM5 opened successfully.
+2026-10-16 18:34:59 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:35:07 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:36:22 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:36:25 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-16 18:39:34 [   ERROR] (Dummy-1) ControlStation.SerialWorker: Serial read error: ClearCommError failed (PermissionError(13, 'The device does not recognize the command.', None, 22))
+2026-10-16 18:39:34 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.
+2026-10-16 18:39:34 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.

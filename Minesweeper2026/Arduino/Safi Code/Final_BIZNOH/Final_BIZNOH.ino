@@ -137,7 +137,7 @@ constexpr uint16_t SERVO_MAX_TICKS = 4000;   /* 10 % */
 constexpr bool DEF_MOTOR_INV[NUM_CH] = {false, false, false};   /* B inverted */
 constexpr bool DEF_ENC_FLIP[2]       = {true, false};           /* both encoders inverted */
 
-bool motorInv[NUM_CH] = {false, true, false};   /* DIR pin only */
+bool motorInv[NUM_CH] = {false, false, false};   /* DIR pin only */
 
 constexpr uint16_t PWM_TOP_16 = 799;   /* 20 kHz, 800 steps */
 constexpr uint8_t  MOVE_PCT   = 20;    /* duty used by "MOVE X FF" */
