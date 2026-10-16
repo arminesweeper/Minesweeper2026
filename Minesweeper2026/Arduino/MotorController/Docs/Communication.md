@@ -114,6 +114,8 @@ C<COMMAND>\n
 | `CDIAG\n` | Request immediate diagnostics report |
 | `CESTOP\n` | Trigger emergency stop |
 | `CCLEAR\n` | Clear emergency stop |
+| `CPID:ON\n` | Enable closed-loop PID velocity control |
+| `CPID:OFF\n` | Disable PID (switch to open-loop direct drive) |
 
 ---
 

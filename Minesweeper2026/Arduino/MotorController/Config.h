@@ -36,6 +36,7 @@
 #define ENABLE_LIFT 1
 #define ENABLE_SENSORS 1
 #define ENABLE_SERIAL2 0 // Set to 1 to enable Serial2 (WiFi/ESP Controller), 0 to disable
+#define ENABLE_PID 1     // Set to 1 to enable closed-loop PID velocity control, 0 for open-loop direct drive
 
 /**
  * PCB copper puts ENC1 on Mega D20/D21 (same MCU pins as hardware I2C).

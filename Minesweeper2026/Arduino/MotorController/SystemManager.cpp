@@ -52,8 +52,13 @@ void SystemManager::begin() {
 
     pidRight_.setTunings(params.kp_right, params.ki_right, params.kd_right, params.ff_right);
     pidLeft_.setTunings(params.kp_left, params.ki_left, params.kd_left, params.ff_left);
+#if ENABLE_PID
     pidRight_.begin();
     pidLeft_.begin();
+#else
+    pidRight_.setEnabled(false);
+    pidLeft_.setEnabled(false);
+#endif
 
     serial_.begin();
     motion_.begin();
@@ -157,9 +162,35 @@ void SystemManager::taskControlLoop() {
     
     motion_.updateProfiles(dt);
     
-    motion_.getRightStateMutable().target_pwm = pidRight_.compute(motion_.getRightState().profiled_velocity, right_meas_vel);
-    motion_.getLeftStateMutable().target_pwm = pidLeft_.compute(motion_.getLeftState().profiled_velocity, left_meas_vel);
-    
+#if ENABLE_PID
+    if (pidRight_.isEnabled() && pidLeft_.isEnabled()) {
+        motion_.getRightStateMutable().target_pwm = pidRight_.compute(motion_.getRightState().profiled_velocity, right_meas_vel);
+        motion_.getLeftStateMutable().target_pwm = pidLeft_.compute(motion_.getLeftState().profiled_velocity, left_meas_vel);
+    } else {
+        const RobotParameters& params = EEPROMManager::getParams();
+        float pwm_scale = (params.max_velocity > 0.0f) ? (255.0f / params.max_velocity) : 25.5f;
+        float target_r_pwm = motion_.getRightState().profiled_velocity * pwm_scale;
+        float target_l_pwm = motion_.getLeftState().profiled_velocity * pwm_scale;
+        if (target_r_pwm > 255.0f) target_r_pwm = 255.0f;
+        else if (target_r_pwm < -255.0f) target_r_pwm = -255.0f;
+        if (target_l_pwm > 255.0f) target_l_pwm = 255.0f;
+        else if (target_l_pwm < -255.0f) target_l_pwm = -255.0f;
+        motion_.getRightStateMutable().target_pwm = target_r_pwm;
+        motion_.getLeftStateMutable().target_pwm = target_l_pwm;
+    }
+#else
+    const RobotParameters& params = EEPROMManager::getParams();
+    float pwm_scale = (params.max_velocity > 0.0f) ? (255.0f / params.max_velocity) : 25.5f;
+    float target_r_pwm = motion_.getRightState().profiled_velocity * pwm_scale;
+    float target_l_pwm = motion_.getLeftState().profiled_velocity * pwm_scale;
+    if (target_r_pwm > 255.0f) target_r_pwm = 255.0f;
+    else if (target_r_pwm < -255.0f) target_r_pwm = -255.0f;
+    if (target_l_pwm > 255.0f) target_l_pwm = 255.0f;
+    else if (target_l_pwm < -255.0f) target_l_pwm = -255.0f;
+    motion_.getRightStateMutable().target_pwm = target_r_pwm;
+    motion_.getLeftStateMutable().target_pwm = target_l_pwm;
+#endif
+
     motion_.updatePWM(dt);
     
     if (safety_.isRunning() || safety_.getState() == SystemState::READY) {
@@ -322,6 +353,16 @@ void SystemManager::processExtendedCommands() {
             if (angle >= 0 && angle <= 180) {
                 cameraServo_.write(angle);
             }
+        }
+        else if (strcmp(cmd, "PID:ON") == 0) {
+            pidRight_.setEnabled(true);
+            pidLeft_.setEnabled(true);
+            serial_.sendStatus("PID Enabled");
+        }
+        else if (strcmp(cmd, "PID:OFF") == 0) {
+            pidRight_.setEnabled(false);
+            pidLeft_.setEnabled(false);
+            serial_.sendStatus("PID Disabled");
         }
     }
 }
