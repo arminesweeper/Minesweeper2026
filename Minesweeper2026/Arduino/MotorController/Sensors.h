@@ -106,9 +106,15 @@ public:
 
     /**
      * @brief Check if the metal detector is currently triggered.
-     * @return true if metal is detected (debounced)
+     * @return true if metal is detected (debounced and enabled)
      */
-    bool isMetalDetected() const { return metal_detected_; }
+    bool isMetalDetected() const {
+#if ENABLE_METAL_DETECTOR
+        return metal_detected_;
+#else
+        return false;
+#endif
+    }
 
     /**
      * @brief Get the last measured ultrasonic distance in cm.

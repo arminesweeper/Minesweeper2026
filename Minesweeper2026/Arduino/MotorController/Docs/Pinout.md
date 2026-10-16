@@ -17,8 +17,8 @@
 | **D4** | SERVO | Output | Camera Pan Servo (50 Hz PWM) | Discrete Lead (Preserved) |
 | **D7** | LIFT_PWM | Output | Lift actuator PWM (Timer 4 OC4B) | Lift Driver |
 | **D49** | LIFT_DIR | Output | Lift actuator DIR | Lift Driver |
-| **D53** | LIMIT_TOP | Input | Upper travel limit switch (Active HIGH) | Limit switch |
-| **D51** | LIMIT_BOT | Input | Lower travel limit switch (Active HIGH) | Limit switch |
+| **D53** | LIMIT_TOP | Input | Upper travel limit switch (Active-LOW: INPUT_PULLUP to GND) | Switch COM to GND, NO to D53 |
+| **D51** | LIMIT_BOT | Input | Lower travel limit switch (Active-LOW: INPUT_PULLUP to GND) | Switch COM to GND, NO to D51 |
 | **D43** | US_TRIG | Output | HC-SR04 Ultrasonic Trigger | Ultrasonic harness |
 | **D45** | US_ECHO | Input | HC-SR04 Ultrasonic Echo | Ultrasonic harness |
 | **D23** | PROX1 | Input | Proximity Sensor 1 | Sensor harness |

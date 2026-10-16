@@ -253,14 +253,17 @@ void SystemManager::taskSensors() {
 void SystemManager::taskLift() {
 #if ENABLE_LIFT
     LiftState prev_state = lift_.getState();
+    uint8_t prev_mag = lift_.getMagnetState();
 #if ENABLE_SENSORS
-    bool obj_detected = sensors_.isObjectDetected() || sensors_.isMetalDetected();
+    bool metal_detected = sensors_.isMetalDetected();
+    bool obj_detected = sensors_.isObjectDetected();
 #else
+    bool metal_detected = false;
     bool obj_detected = false;
 #endif
-    lift_.update(obj_detected);
+    lift_.update(obj_detected, metal_detected);
     safety_.setLiftFault(lift_.hasFault());
-    if (lift_.getState() != prev_state) {
+    if (lift_.getState() != prev_state || lift_.getMagnetState() != prev_mag) {
         serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState());
     }
 #endif

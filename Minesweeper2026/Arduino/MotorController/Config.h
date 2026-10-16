@@ -78,11 +78,18 @@
 #define ENABLE_LIFT 1
 
 /**
- * @brief Environmental sensing (Metal detector & 5x Proximity sensors).
- * 1 = Periodically sample inductive metal detector and analog IR proximity array.
+ * @brief Environmental sensing (5x Proximity sensors & Ultrasonic).
+ * 1 = Periodically sample proximity array and ultrasonic sensor.
  * 0 = Disable sensor sampling.
  */
 #define ENABLE_SENSORS 1
+
+/**
+ * @brief Pulse induction metal detector input (Pin 33).
+ * 1 = Sample digital metal detector input on Pin 33.
+ * 0 = Disable metal detector (treated as always false / disconnected for debugging).
+ */
+#define ENABLE_METAL_DETECTOR 0
 
 /**
  * @brief Auxiliary hardware serial port (Serial2 on Pins 16/17).
@@ -131,11 +138,11 @@
 
 /**
  * @brief Limit switch electrical logic level.
- * Mechanical limit switches are stepped down from 12V via resistor dividers or NO contacts.
- * 1 = Active-HIGH: switch closure delivers logic HIGH, open delivers 0V (LOW) (matches Safi wiring).
- * 0 = Active-LOW: switch closure pulls pin to GND (LOW) with INPUT_PULLUP.
+ * 1 = Active-HIGH: switch closure delivers logic HIGH, open delivers 0V (LOW).
+ * 0 = Active-LOW: switch closure pulls pin to GND (LOW) with Mega internal INPUT_PULLUP.
+ *     (Isolates limit switches completely from the 12V magnet relay).
  */
-#define LIMIT_SWITCH_ACTIVE_HIGH 1
+#define LIMIT_SWITCH_ACTIVE_HIGH 0
 
 /**
  * @brief Gripper mine detection via ultrasonic sensor.
@@ -279,6 +286,7 @@ constexpr uint8_t LIFT_PWM_SPEED = 200;            /**< Actuator motor drive spe
 constexpr unsigned long STALL_TIMEOUT_MS = 5000;   /**< Max motor run duration before aborting as stalled (ms) */
 constexpr unsigned long DEBOUNCE_MS = 20;          /**< Limit switch software debounce duration (ms) */
 constexpr unsigned long DROP_DWELL_MS = 300;       /**< Dwell time at top position with magnet OFF to drop mine (ms) */
+constexpr unsigned long MAGNET_ARM_TIMEOUT_MS = 5000;/**< Max time magnet stays armed in IDLE if mine not caught (prevents heating) */
 constexpr uint8_t NUM_MAGNETS = 5;                 /**< Number of virtual/physical electromagnet channels */
 } // namespace LiftConfig
 

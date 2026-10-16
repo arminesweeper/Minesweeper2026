@@ -68,10 +68,11 @@ public:
      * @brief Update the lift state machine.
      *
      * Must be called periodically (recommended: every 50 ms).
-     * Reads limit switches and object detection status, updates automated cycle.
-     * @param object_detected true if ultrasonic distance or sensor detects a mine
+     * Reads limit switches, metal detector, and object detection status, updates automated cycle.
+     * @param object_detected true if ultrasonic distance detects a mine caught beneath gripper
+     * @param metal_detected  true if induction metal detector senses metal
      */
-    void update(bool object_detected = false);
+    void update(bool object_detected = false, bool metal_detected = false);
 
     /**
      * @brief Trigger an automated pickup and drop cycle (from joystick or command).
@@ -165,6 +166,7 @@ private:
     uint8_t magnet_state_;          ///< Bitmask of energized magnets
     unsigned long motion_start_ms_; ///< millis() when motor motion began
     unsigned long dwell_start_ms_;  ///< millis() when top drop dwell started
+    unsigned long magnet_on_time_ms_; ///< millis() when magnet was energized in IDLE
     unsigned long debounce_top_ms_; ///< Last time top switch changed
     unsigned long debounce_bot_ms_; ///< Last time bottom switch changed
     unsigned long debounce_sensor_ms_; ///< Last time optical sensor changed

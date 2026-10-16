@@ -66,7 +66,9 @@ static void alertOn(uint16_t freq_hz) {
 
 void Sensors::begin() {
     /* Metal detector: digital input (Active HIGH) */
+#if ENABLE_METAL_DETECTOR
     pinMode(Pins::METAL_DETECTOR, INPUT);
+#endif
 
     /* Digital proximity sensors (D23, D25, D27, D29, D31: direct digital inputs) */
     for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
@@ -203,6 +205,7 @@ uint16_t Sensors::measureUltrasonicCm() const {
  * ============================================================================ */
 
 void Sensors::updateMetalDetector() {
+#if ENABLE_METAL_DETECTOR
     bool current_reading = (digitalRead(Pins::METAL_DETECTOR) == SensorConfig::METAL_ACTIVE_STATE);
 
     if (current_reading != metal_raw_last_) {
@@ -213,6 +216,9 @@ void Sensors::updateMetalDetector() {
     if (millis() - metal_change_ms_ >= SensorConfig::METAL_DEBOUNCE_MS) {
         metal_detected_ = metal_raw_last_;
     }
+#else
+    metal_detected_ = false;
+#endif
 }
 
 /* ============================================================================
