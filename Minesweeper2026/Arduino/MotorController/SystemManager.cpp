@@ -100,9 +100,11 @@ void SystemManager::update() {
         motion_.setLeftTarget(l_vel);
 
 #if ENABLE_LIFT
-        // If joystick or ROS triggers gripper (e.g. gp01.00)
+        // If joystick or ROS commands gripper velocity (e.g. gp01.00 / gn01.00)
         if (g_vel > 0.5f) {
             lift_.triggerCycle();
+        } else if (g_vel < -0.5f) {
+            lift_.lower();
         }
 #endif
 
@@ -219,17 +221,27 @@ void SystemManager::taskIMU() {
 
 void SystemManager::taskSensors() {
 #if ENABLE_SENSORS
+    static bool last_mine_detected = false;
     static bool last_metal = false;
+
     sensors_.update();
+
     bool current_metal = sensors_.isMetalDetected();
-    if (current_metal && !last_metal) {
-        serial_.sendMetalDetect(true);
+    bool current_prox = sensors_.isAnyProximityTriggered();
+    bool mine_detected = current_metal || current_prox;
+
+    if (current_metal != last_metal) {
+        serial_.sendMetalDetect(current_metal);
+        last_metal = current_metal;
+    }
+
+    if (mine_detected && !last_mine_detected) {
         sensors_.setBuzzerPattern(BuzzerPattern::MINE_DETECT);
-    } else if (!current_metal && last_metal) {
-        serial_.sendMetalDetect(false);
+    } else if (!mine_detected && last_mine_detected) {
         sensors_.setBuzzerPattern(BuzzerPattern::SILENT);
     }
-    last_metal = current_metal;
+
+    last_mine_detected = mine_detected;
 #endif
 }
 

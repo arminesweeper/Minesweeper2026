@@ -99,6 +99,12 @@ public:
     bool isProximityTriggered(uint8_t index) const;
 
     /**
+     * @brief Check if any proximity sensor is above the detection threshold.
+     * @return true if at least one proximity sensor exceeds PROXIMITY_THRESHOLD
+     */
+    bool isAnyProximityTriggered() const;
+
+    /**
      * @brief Check if the metal detector is currently triggered.
      * @return true if metal is detected (debounced)
      */

@@ -123,6 +123,15 @@ bool Sensors::isProximityTriggered(uint8_t index) const {
     return proximity_values_[index] > SensorConfig::PROXIMITY_THRESHOLD;
 }
 
+bool Sensors::isAnyProximityTriggered() const {
+    for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
+        if (proximity_values_[i] > SensorConfig::PROXIMITY_THRESHOLD) {
+            return true;
+        }
+    }
+    return false;
+}
+
 uint16_t Sensors::readProximityAveraged(uint8_t pin) const {
     if (SensorConfig::ADC_SAMPLES > 1) {
         uint32_t sum = 0;
