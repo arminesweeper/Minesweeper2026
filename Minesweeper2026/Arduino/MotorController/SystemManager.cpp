@@ -268,13 +268,13 @@ void SystemManager::taskLift() {
 
 void SystemManager::taskHighRateTelemetry() {
 #if ENABLE_LIFT
-    char gripper_state = 'c'; // default closed/lowered
-    if (lift_.isCycling()) {
-        gripper_state = 'm';
-    } else if (lift_.isAtTop()) {
+    char gripper_state = 'm'; // default intermediate / moving when neither switch is engaged
+    if (lift_.isAtTop()) {
         gripper_state = 'o';
     } else if (lift_.isAtBottom()) {
         gripper_state = 'c';
+    } else if (lift_.isCycling()) {
+        gripper_state = 'm';
     }
 #else
     char gripper_state = 'c';

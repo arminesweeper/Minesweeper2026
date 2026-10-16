@@ -151,7 +151,7 @@
  *   - Drive Motors: Right (PWM 44, DIR 42), Left (PWM 46, DIR 40)
  *   - Encoders: Right (INT2 D19, D18), Left (INT0 D21, D20)
  *   - Lift Actuator: PWM 7 (Timer 4 OC4B), DIR 49
- *   - Limit Switches: Top 51, Bottom 53 (Active-HIGH)
+ *   - Limit Switches: Top 53, Bottom 51 (Active-HIGH)
  *   - Ultrasonic Sensor: Trig 43, Echo 45 (HC-SR04)
  *   - Proximity Array: Digital inputs D23, D25, D27, D29, D31
  *   - Metal Detector: D33 (Active-HIGH)
@@ -181,8 +181,8 @@ constexpr uint8_t IMU_SCL = 36; /**< Soft-I2C Serial Clock line (moved to D36 to
 /* --- Lift Mechanism & Travel Limit Switches --- */
 constexpr uint8_t LIFT_PWM = 7;         /**< Lift actuator motor speed PWM (Timer 4 OC4B, hardware PWM) */
 constexpr uint8_t LIFT_DIR = 49;        /**< Lift actuator motor direction pin */
-constexpr uint8_t LIMIT_SW_TOP = 51;    /**< Upper travel limit switch (Active HIGH) */
-constexpr uint8_t LIMIT_SW_BOTTOM = 53; /**< Lower travel limit switch (Active HIGH) */
+constexpr uint8_t LIMIT_SW_TOP = 53;    /**< Upper travel limit switch (Active HIGH, D53) */
+constexpr uint8_t LIMIT_SW_BOTTOM = 51; /**< Lower travel limit switch (Active HIGH, D51) */
 
 /* --- HC-SR04 Ultrasonic Distance Sensor (Gripper mine detection) --- */
 constexpr uint8_t US_TRIG = 43;         /**< Ultrasonic trigger pulse output */
@@ -277,7 +277,7 @@ constexpr float VOLTAGE_DIVIDER_RATIO = 3.3f;       /**< Resistor divider attenu
 namespace LiftConfig {
 constexpr uint8_t LIFT_PWM_SPEED = 200;            /**< Actuator motor drive speed (0-255 PWM) */
 constexpr unsigned long STALL_TIMEOUT_MS = 5000;   /**< Max motor run duration before aborting as stalled (ms) */
-constexpr unsigned long DEBOUNCE_MS = 50;          /**< Limit switch software debounce duration (ms) */
+constexpr unsigned long DEBOUNCE_MS = 20;          /**< Limit switch software debounce duration (ms) */
 constexpr unsigned long DROP_DWELL_MS = 300;       /**< Dwell time at top position with magnet OFF to drop mine (ms) */
 constexpr uint8_t NUM_MAGNETS = 5;                 /**< Number of virtual/physical electromagnet channels */
 } // namespace LiftConfig
