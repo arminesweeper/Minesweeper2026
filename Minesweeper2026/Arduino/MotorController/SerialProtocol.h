@@ -37,9 +37,13 @@ public:
 
     /**
      * @brief Send high-rate telemetry compatible with ROS parser
-     * Format: rp02.50,ln01.30,gp01.00,
+     * Format: rp02.50,ln01.30,p0,m0,gc,er:123,el:456,
      */
-    void sendTelemetry(float right_vel, float left_vel, char gripper_state) const;
+    void sendTelemetry(float right_vel, float left_vel, bool proximity, bool metal,
+                       char gripper_state, int32_t enc_right = 0, int32_t enc_left = 0) const;
+    void sendTelemetry(float right_vel, float left_vel, char gripper_state) const {
+        sendTelemetry(right_vel, left_vel, false, false, gripper_state, 0, 0);
+    }
     
     void sendOdometry(float x, float y, float theta) const;
     void sendIMU(float yaw, float pitch, float roll, float ax, float ay, float az) const;
@@ -68,6 +72,10 @@ private:
     unsigned long last_rx_byte_time_;
     Stream* active_stream_;
 
+    // Token-based parser (matches RobotTest2)
+    char token_buffer_[32];
+    size_t token_index_;
+
     // Extended command state
     char cmd_buffer_[SerialConfig::CMD_BUFFER_SIZE];
     size_t cmd_index_;
@@ -89,6 +97,7 @@ private:
     bool gripper_received_;
     bool servo_received_;
 
+    void processToken(const char* token, float& right_vel, float& left_vel, float& gripper_vel, float& servo_angle);
     void resetParser();
     void resetValueBuffer();
     void processCompletePacket();

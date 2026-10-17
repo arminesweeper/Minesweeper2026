@@ -231,9 +231,9 @@ constexpr uint8_t MOTOR_L_DIR_2 = 10; /**< Secondary left motor direction pin */
 namespace Timing {
 constexpr unsigned long CONTROL_INTERVAL_MS = 20;   /**< Velocity PID control loop period (20 ms = 50 Hz) */
 constexpr unsigned long IMU_INTERVAL_MS = 20;       /**< IMU sampling & attitude filter period (20 ms = 50 Hz) */
-constexpr unsigned long SENSOR_INTERVAL_MS = 50;    /**< Metal detector & proximity ADC scan period (50 ms = 20 Hz) */
+constexpr unsigned long SENSOR_INTERVAL_MS = 20;    /**< Metal detector & proximity scan period (20 ms = 50 Hz, matches RobotTest2) */
 constexpr unsigned long LIFT_INTERVAL_MS = 50;      /**< Automated lift state machine update period (50 ms = 20 Hz) */
-constexpr unsigned long TELEMETRY_INTERVAL_MS = 100;/**< High-rate serial telemetry period (100 ms = 10 Hz) */
+constexpr unsigned long TELEMETRY_INTERVAL_MS = 10; /**< High-rate serial telemetry period (10 ms = 100 Hz, matches ros2_control read loop) */
 } // namespace Timing
 
 /* ============================================================================
@@ -265,7 +265,7 @@ constexpr float INTEGRAL_WINDUP_LIMIT = 200.0f;/**< Absolute limit for accumulat
  */
 
 namespace SafetyConfig {
-constexpr unsigned long COMMAND_TIMEOUT_MS = 1500;  /**< Max time between ROS drive packets before auto-stop (ms) */
+constexpr unsigned long COMMAND_TIMEOUT_MS = 500;   /**< Max time between ROS drive packets before auto-stop (500 ms, matches RobotTest2) */
 constexpr unsigned long WATCHDOG_TIMEOUT_MS = 2000; /**< Maximum loop stall time before watchdog triggers (ms) */
 constexpr uint16_t BATTERY_VOLTAGE_LOW = 10800;     /**< Low battery warning threshold (10.8 V, 3.6V/cell 3S LiPo) */
 constexpr uint16_t BATTERY_VOLTAGE_CRITICAL = 9600; /**< Critical battery e-stop threshold (9.6 V, 3.2V/cell 3S LiPo) */
@@ -300,9 +300,10 @@ constexpr bool LIFT_INVERT_DIR = false;            /**< Invert lift motor direct
 namespace SensorConfig {
 constexpr uint16_t PROXIMITY_THRESHOLD = 500;    /**< Threshold (0-1023) for proximity obstacle trigger */
 constexpr uint8_t NUM_PROXIMITY = 5;             /**< Total number of digital proximity sensors connected */
-constexpr uint8_t PROXIMITY_ACTIVE_STATE = LOW;  /**< Sensor logic level indicating obstacle detected (LOW for active-low IR modules) */
+constexpr uint8_t PROXIMITY_ACTIVE_STATE = HIGH; /**< Sensor logic level indicating obstacle detected (HIGH for active-high IR modules) */
 constexpr unsigned long METAL_DEBOUNCE_MS = 50;  /**< Minimum trigger confirmation time for metal detector (ms) */
 constexpr uint8_t METAL_ACTIVE_STATE = HIGH;     /**< Sensor logic level indicating metal is detected */
+constexpr unsigned long SIREN_HOLD_MS = 1500;    /**< Duration siren stays on after detection edge (ms) */
 constexpr uint8_t ADC_SAMPLES = 1;               /**< Number of ADC conversions per read (1 = fast non-blocking) */
 constexpr uint16_t BUZZER_FREQ_HZ = 500;         /**< Audio tone frequency in Hz (used only if piezo is fitted) */
 
@@ -399,29 +400,29 @@ struct RobotParameters {
 
 namespace DefaultParams {
 constexpr uint32_t MAGIC_NUMBER = 0x4D494E45; /**< "MINE" signature */
-constexpr uint16_t VERSION = 5;               /**< Schema version 5 (Calibrated feedforward & deadband) */
+constexpr uint16_t VERSION = 8;               /**< Schema version 8 (Calibrated with RobotTest2 motion parameters) */
 
 constexpr float WHEEL_DIAMETER_MM = 65.0f;                            /**< Outer tire diameter in millimeters */
 constexpr float WHEEL_RADIUS_M = (WHEEL_DIAMETER_MM / 1000.0f) / 2.0f;/**< Calibrated wheel radius (0.0325 m) */
 constexpr float WHEEL_BASE_M = 150.0f / 1000.0f;                      /**< Track width between drive wheels (0.150 m) */
-constexpr float ENCODER_PPR = 385.0f;                                 /**< Measured quadrature pulses per revolution */
+constexpr float ENCODER_PPR = 2200.0f;                                /**< Calibrated quadrature pulses per wheel rotation (matches RobotTest2) */
 constexpr float RAD_PER_PULSE = (2.0f * PI) / ENCODER_PPR;           /**< Radians per pulse ratio */
 
-constexpr float KP_RIGHT = 11.5f; /**< Factory default right wheel P gain */
-constexpr float KI_RIGHT = 7.5f;  /**< Factory default right wheel I gain */
-constexpr float KD_RIGHT = 0.1f;  /**< Factory default right wheel D gain */
-constexpr float FF_RIGHT = 22.0f; /**< Factory default right wheel feedforward gain (22.0 PWM per rad/s) */
+constexpr float KP_RIGHT = 11.5f; /**< Factory default right wheel P gain (matches RobotTest2) */
+constexpr float KI_RIGHT = 7.5f;  /**< Factory default right wheel I gain (matches RobotTest2) */
+constexpr float KD_RIGHT = 0.1f;  /**< Factory default right wheel D gain (matches RobotTest2) */
+constexpr float FF_RIGHT = 0.5f;  /**< Factory default right wheel feedforward gain (matches RobotTest2) */
 
-constexpr float KP_LEFT = 12.8f;  /**< Factory default left wheel P gain */
-constexpr float KI_LEFT = 8.3f;   /**< Factory default left wheel I gain */
-constexpr float KD_LEFT = 0.1f;   /**< Factory default left wheel D gain */
-constexpr float FF_LEFT = 22.0f;  /**< Factory default left wheel feedforward gain (22.0 PWM per rad/s) */
+constexpr float KP_LEFT = 12.8f;  /**< Factory default left wheel P gain (matches RobotTest2) */
+constexpr float KI_LEFT = 8.3f;   /**< Factory default left wheel I gain (matches RobotTest2) */
+constexpr float KD_LEFT = 0.1f;   /**< Factory default left wheel D gain (matches RobotTest2) */
+constexpr float FF_LEFT = 0.5f;   /**< Factory default left wheel feedforward gain (matches RobotTest2) */
 
-constexpr float MAX_VELOCITY = 10.0f;         /**< Default max velocity (rad/s) */
-constexpr float MAX_ACCELERATION = 15.0f;     /**< Default max acceleration (rad/s²) */
-constexpr float MAX_DECELERATION = 20.0f;     /**< Default max deceleration (rad/s²) */
-constexpr float MIN_PWM_DEADBAND = 35.0f;     /**< Overcomes motor static friction deadband */
-constexpr float MAX_PWM_SLEW_RATE = 1000.0f;  /**< Max PWM change rate per second */
+constexpr float MAX_VELOCITY = 6.0f;          /**< Default max velocity in rad/s (matches RobotTest2) */
+constexpr float MAX_ACCELERATION = 30.0f;     /**< Default max acceleration in rad/s² (matches RobotTest2) */
+constexpr float MAX_DECELERATION = 20.0f;     /**< Default max deceleration in rad/s² (matches RobotTest2) */
+constexpr float MIN_PWM_DEADBAND = 20.0f;     /**< Overcomes motor static friction deadband (matches RobotTest2) */
+constexpr float MAX_PWM_SLEW_RATE = 1000.0f;  /**< Max PWM change rate per second (matches RobotTest2) */
 
 constexpr float GYRO_BIAS_X = 0.0f; /**< Factory default Gyro X bias */
 constexpr float GYRO_BIAS_Y = 0.0f; /**< Factory default Gyro Y bias */

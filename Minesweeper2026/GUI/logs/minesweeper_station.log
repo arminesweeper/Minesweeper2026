@@ -796,3 +796,12 @@
 2026-10-17 08:39:25 [    INFO] (MainThread) ControlStation.MainWindow: Application closing. Performing safe shutdown...
 2026-10-17 08:39:25 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop terminated cleanly.
 2026-10-17 08:39:25 [    INFO] (MainThread) ControlStation.AppController: ApplicationController shutdown complete.
+2026-10-17 11:52:08 [    INFO] (MainThread) ControlStation: Logging initialized. Output file: E:\Robotics_Team\Minesweeper\Minesweeper\Minesweeper2026\GUI\logs\minesweeper_station.log
+2026-10-17 11:52:08 [    INFO] (MainThread) ControlStation: Starting Minesweeper Control Station...
+2026-10-17 11:52:08 [    INFO] (MainThread) ControlStation.AppController: Serial background thread started.
+2026-10-17 11:52:08 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop started.
+2026-10-17 11:52:09 [    INFO] (MainThread) ControlStation: GUI window displayed. Entering Qt event loop.
+2026-10-17 11:52:17 [ WARNING] (MainThread) ControlStation.SafetyManager: SAFETY: Cannot arm while disconnected.
+2026-10-17 11:52:26 [    INFO] (MainThread) ControlStation.MainWindow: Application closing. Performing safe shutdown...
+2026-10-17 11:52:26 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop terminated cleanly.
+2026-10-17 11:52:26 [    INFO] (MainThread) ControlStation.AppController: ApplicationController shutdown complete.

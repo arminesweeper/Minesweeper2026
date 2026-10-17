@@ -15,10 +15,17 @@
  * ============================================================================ */
 
 Sensors::Sensors()
-    : ultrasonic_distance_cm_(SensorConfig::US_MAX_DISTANCE_CM),
+    : prox_debounced_(false),
+      prox_candidate_(false),
+      prox_candidate_samples_(0),
+      prev_prox_for_edge_(false),
+      prev_metal_for_edge_(false),
+      ultrasonic_distance_cm_(SensorConfig::US_MAX_DISTANCE_CM),
       metal_detected_(false),
       metal_raw_last_(false),
       metal_change_ms_(0),
+      siren_hold_until_ms_(0),
+      siren_active_(false),
       buzzer_pattern_(BuzzerPattern::SILENT),
       buzzer_toggle_ms_(0),
       buzzer_on_(false),
@@ -39,8 +46,10 @@ static void alertOff() {
 #if BUZZER_IS_SIREN_RELAY
 #if SIREN_ACTIVE_HIGH
     digitalWrite(Pins::BUZZER, LOW);
+    digitalWrite(47, LOW); // Mirror to Pin 47
 #else
     digitalWrite(Pins::BUZZER, HIGH);
+    digitalWrite(47, HIGH);
 #endif
 #else
     noTone(Pins::BUZZER);
@@ -52,8 +61,10 @@ static void alertOn(uint16_t freq_hz) {
     (void)freq_hz;
 #if SIREN_ACTIVE_HIGH
     digitalWrite(Pins::BUZZER, HIGH);
+    digitalWrite(47, HIGH); // Mirror to Pin 47
 #else
     digitalWrite(Pins::BUZZER, LOW);
+    digitalWrite(47, LOW);
 #endif
 #else
     tone(Pins::BUZZER, freq_hz);
@@ -65,12 +76,13 @@ static void alertOn(uint16_t freq_hz) {
  * ============================================================================ */
 
 void Sensors::begin() {
-    /* Metal detector: digital input (Active HIGH) */
+    /* Metal detector: digital input (Active HIGH on D33, auxiliary D27) */
 #if ENABLE_METAL_DETECTOR
     pinMode(Pins::METAL_DETECTOR, INPUT);
+    pinMode(27, INPUT);
 #endif
 
-    /* Digital proximity sensors (D23, D25, D27, D29, D31: direct digital inputs) */
+    /* Digital proximity sensors (direct digital inputs, active HIGH) */
     for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
         pinMode(Pins::PROXIMITY_PINS[i], INPUT);
     }
@@ -80,9 +92,11 @@ void Sensors::begin() {
     digitalWrite(Pins::US_TRIG, LOW);
     pinMode(Pins::US_ECHO, INPUT);
 
-    /* Buzzer / siren relay: output, initially off */
+    /* Buzzer / siren relay: output, initially off (Pin 37 and Pin 47) */
     alertOff();
     pinMode(Pins::BUZZER, OUTPUT);
+    pinMode(47, OUTPUT);
+    pinMode(37, OUTPUT);
     alertOff();
 
     /* Warning LED: output, initially off */
@@ -94,6 +108,12 @@ void Sensors::begin() {
     metal_change_ms_ = now;
     buzzer_toggle_ms_ = now;
     led_toggle_ms_ = now;
+    siren_hold_until_ms_ = 0;
+    prev_prox_for_edge_ = false;
+    prev_metal_for_edge_ = false;
+    metal_raw_last_ = (digitalRead(Pins::METAL_DETECTOR) == SensorConfig::METAL_ACTIVE_STATE) ||
+                      (digitalRead(27) == SensorConfig::METAL_ACTIVE_STATE);
+    metal_detected_ = metal_raw_last_;
 }
 
 /* ============================================================================
@@ -101,17 +121,57 @@ void Sensors::begin() {
  * ============================================================================ */
 
 void Sensors::update() {
-    /* Read all 5 digital proximity sensors with EMA smoothing */
+    /* Read digital proximity sensors */
+    bool raw_prox = false;
     for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
-        uint16_t val = readProximityAveraged(Pins::PROXIMITY_PINS[i]);
-        if (proximity_values_[i] == 0) {
-            proximity_values_[i] = val;
-        } else {
-            proximity_values_[i] = (proximity_values_[i] * 3 + val) / 4;
-        }
+        bool active = (digitalRead(Pins::PROXIMITY_PINS[i]) == SensorConfig::PROXIMITY_ACTIVE_STATE);
+        proximity_values_[i] = active ? 1023 : 0;
+        if (active) raw_prox = true;
     }
 
-    /* Read HC-SR04 ultrasonic distance */
+    /* Debounce aggregate proximity level over consecutive samples (matches RobotTest2) */
+    if (raw_prox == prox_debounced_) {
+        prox_candidate_ = raw_prox;
+        prox_candidate_samples_ = 0;
+    } else if (raw_prox != prox_candidate_) {
+        prox_candidate_ = raw_prox;
+        prox_candidate_samples_ = 1;
+    } else if (prox_candidate_samples_ < 2) {
+        ++prox_candidate_samples_;
+    }
+    if (prox_candidate_samples_ >= 2) {
+        prox_debounced_ = prox_candidate_;
+        prox_candidate_samples_ = 0;
+    }
+
+    /* Update metal detector (debounced on Pin 33 and auxiliary Pin 27) */
+    updateMetalDetector();
+
+    /* Rising edge detection and siren one-shot hold logic (matches RobotTest2 / Safi reference) */
+    unsigned long now = millis();
+    const bool prox_rise = prox_debounced_ && !prev_prox_for_edge_;
+    const bool metal_rise = metal_detected_ && !prev_metal_for_edge_;
+    if (prox_rise || metal_rise) {
+        siren_hold_until_ms_ = now + SensorConfig::SIREN_HOLD_MS;
+    }
+    prev_prox_for_edge_ = prox_debounced_;
+    prev_metal_for_edge_ = metal_detected_;
+
+    const bool hold_active = (static_cast<int32_t>(siren_hold_until_ms_ - now) > 0);
+    siren_active_ = prox_debounced_ || metal_detected_ || hold_active;
+
+    /* Drive siren hardware directly or via pattern engine */
+    if (siren_active_) {
+        alertOn(SensorConfig::BUZZER_FREQ_HZ);
+        buzzer_on_ = true;
+    } else if (buzzer_pattern_ == BuzzerPattern::SILENT) {
+        alertOff();
+        buzzer_on_ = false;
+    } else {
+        updateBuzzer();
+    }
+
+    /* Read HC-SR04 ultrasonic distance (independent for gripper mine catch confirmation) */
     uint16_t raw_dist = measureUltrasonicCm();
     if (ultrasonic_distance_cm_ == SensorConfig::US_MAX_DISTANCE_CM || ultrasonic_distance_cm_ == 0) {
         ultrasonic_distance_cm_ = raw_dist;
@@ -119,11 +179,6 @@ void Sensors::update() {
         ultrasonic_distance_cm_ = (ultrasonic_distance_cm_ * 3 + raw_dist) / 4;
     }
 
-    /* Update metal detector (debounced) */
-    updateMetalDetector();
-
-    /* Update indicator outputs */
-    updateBuzzer();
     updateLED();
 }
 
@@ -152,12 +207,7 @@ bool Sensors::isProximityTriggered(uint8_t index) const {
 }
 
 bool Sensors::isAnyProximityTriggered() const {
-    for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
-        if (proximity_values_[i] > SensorConfig::PROXIMITY_THRESHOLD) {
-            return true;
-        }
-    }
-    return false;
+    return prox_debounced_;
 }
 
 uint16_t Sensors::readProximityAveraged(uint8_t pin) const {
@@ -206,7 +256,8 @@ uint16_t Sensors::measureUltrasonicCm() const {
 
 void Sensors::updateMetalDetector() {
 #if ENABLE_METAL_DETECTOR
-    bool current_reading = (digitalRead(Pins::METAL_DETECTOR) == SensorConfig::METAL_ACTIVE_STATE);
+    bool current_reading = (digitalRead(Pins::METAL_DETECTOR) == SensorConfig::METAL_ACTIVE_STATE) ||
+                           (digitalRead(27) == SensorConfig::METAL_ACTIVE_STATE);
 
     if (current_reading != metal_raw_last_) {
         metal_change_ms_ = millis();

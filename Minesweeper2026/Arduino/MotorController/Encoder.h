@@ -49,6 +49,12 @@ public:
   int32_t getPulses() const;
 
   /**
+   * @brief Get cumulative total pulse count (monotonic count for ROS encoder telemetry).
+   * @return Cumulative pulse count
+   */
+  int32_t getTotalPulses() const;
+
+  /**
    * @brief Atomically read pulse delta since last call and clear the counter.
    * @return Signed pulse count accumulated since previous getPulsesAndReset()
    */
@@ -108,7 +114,8 @@ private:
   EncoderPinConfig config_;
   bool direction_inverted_;
 
-  volatile int32_t pulse_count_; // Continuous pulse count
+  volatile int32_t pulse_count_; // Delta pulse count (reset on read)
+  volatile int32_t total_pulses_; // Monotonic cumulative pulse count
   volatile int8_t direction_;    // Last detected direction
   volatile bool error_flag_;
 

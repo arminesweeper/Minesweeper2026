@@ -149,6 +149,11 @@ public:
     void beep();
 
     /**
+     * @brief Check if the siren output is currently active.
+     */
+    bool isSirenActive() const { return siren_active_; }
+
+    /**
      * @brief Get the current buzzer pattern.
      * @return Current BuzzerPattern
      */
@@ -163,6 +168,11 @@ public:
 private:
     /* Proximity sensor data */
     uint16_t proximity_values_[SensorConfig::NUM_PROXIMITY];
+    bool prox_debounced_;
+    bool prox_candidate_;
+    uint8_t prox_candidate_samples_;
+    bool prev_prox_for_edge_;
+    bool prev_metal_for_edge_;
 
     /* Ultrasonic distance sensor state */
     uint16_t ultrasonic_distance_cm_;
@@ -171,6 +181,10 @@ private:
     bool metal_detected_;           ///< Debounced metal detection state
     bool metal_raw_last_;           ///< Last raw reading
     unsigned long metal_change_ms_; ///< Timestamp of last raw state change
+
+    /* Siren hold timer and state */
+    unsigned long siren_hold_until_ms_;
+    bool siren_active_;
 
     /* Buzzer state */
     BuzzerPattern buzzer_pattern_;

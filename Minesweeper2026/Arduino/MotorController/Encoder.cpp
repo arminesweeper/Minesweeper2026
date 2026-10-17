@@ -12,7 +12,7 @@ Encoder *Encoder::instance_left_ = nullptr;
 
 Encoder::Encoder(const EncoderPinConfig &config, bool direction_inverted)
     : config_(config), direction_inverted_(direction_inverted), pulse_count_(0),
-      direction_(1), error_flag_(false), phase_b_reg_(nullptr), phase_b_mask_(0) {}
+      total_pulses_(0), direction_(1), error_flag_(false), phase_b_reg_(nullptr), phase_b_mask_(0) {}
 
 void Encoder::begin(void (*isr)(void)) {
   pinMode(config_.phase_a_pin, INPUT_PULLUP);
@@ -33,6 +33,14 @@ int32_t Encoder::getPulses() const {
   return pulses;
 }
 
+int32_t Encoder::getTotalPulses() const {
+  int32_t pulses;
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { 
+      pulses = total_pulses_; 
+  }
+  return pulses;
+}
+
 int32_t Encoder::getPulsesAndReset() {
   int32_t pulses;
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -45,6 +53,7 @@ int32_t Encoder::getPulsesAndReset() {
 void Encoder::reset() {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { 
       pulse_count_ = 0; 
+      total_pulses_ = 0;
   }
 }
 
@@ -70,9 +79,11 @@ void Encoder::handleInterrupt() {
   if ((*phase_b_reg_ & phase_b_mask_) != 0) {
     direction_ = 1;
     pulse_count_++;
+    total_pulses_++;
   } else {
     direction_ = -1;
     pulse_count_--;
+    total_pulses_--;
   }
 }
 
