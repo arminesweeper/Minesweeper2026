@@ -131,18 +131,17 @@
 
 /**
  * @brief Siren relay activation electrical logic level.
- * 1 = Active-HIGH: logic HIGH turns siren ON, LOW turns siren OFF (matches robot transistor Q2 / relay K2).
+ * 1 = Active-HIGH: logic HIGH turns siren ON, LOW turns siren OFF.
  * 0 = Active-LOW: logic LOW turns siren ON, HIGH turns siren OFF (standard for optoisolated relay boards).
  */
-#define SIREN_ACTIVE_HIGH 1
+#define SIREN_ACTIVE_HIGH 0
 
 /**
  * @brief Limit switch electrical logic level.
- * 1 = Active-HIGH: switch closure delivers logic HIGH, open delivers 0V (LOW).
- * 0 = Active-LOW: switch closure pulls pin to GND (LOW) with Mega internal INPUT_PULLUP.
- *     (Isolates limit switches completely from the 12V magnet relay).
+ * 1 = Active-HIGH: switch closure delivers logic HIGH when powered by the magnet relay, open delivers 0V (LOW).
+ * 0 = Active-LOW: switch closure pulls pin to GND (LOW).
  */
-#define LIMIT_SWITCH_ACTIVE_HIGH 0
+#define LIMIT_SWITCH_ACTIVE_HIGH 1
 
 /**
  * @brief Gripper mine detection via ultrasonic sensor.
@@ -301,7 +300,7 @@ constexpr bool LIFT_INVERT_DIR = false;            /**< Invert lift motor direct
 namespace SensorConfig {
 constexpr uint16_t PROXIMITY_THRESHOLD = 500;    /**< Threshold (0-1023) for proximity obstacle trigger */
 constexpr uint8_t NUM_PROXIMITY = 5;             /**< Total number of digital proximity sensors connected */
-constexpr uint8_t PROXIMITY_ACTIVE_STATE = HIGH; /**< Sensor logic level indicating obstacle detected (HIGH for Safi's IR array) */
+constexpr uint8_t PROXIMITY_ACTIVE_STATE = LOW;  /**< Sensor logic level indicating obstacle detected (LOW for active-low IR modules) */
 constexpr unsigned long METAL_DEBOUNCE_MS = 50;  /**< Minimum trigger confirmation time for metal detector (ms) */
 constexpr uint8_t METAL_ACTIVE_STATE = HIGH;     /**< Sensor logic level indicating metal is detected */
 constexpr uint8_t ADC_SAMPLES = 1;               /**< Number of ADC conversions per read (1 = fast non-blocking) */
@@ -400,7 +399,7 @@ struct RobotParameters {
 
 namespace DefaultParams {
 constexpr uint32_t MAGIC_NUMBER = 0x4D494E45; /**< "MINE" signature */
-constexpr uint16_t VERSION = 4;               /**< Schema version 4 (Calibrated feedforward & deadband) */
+constexpr uint16_t VERSION = 5;               /**< Schema version 5 (Calibrated feedforward & deadband) */
 
 constexpr float WHEEL_DIAMETER_MM = 65.0f;                            /**< Outer tire diameter in millimeters */
 constexpr float WHEEL_RADIUS_M = (WHEEL_DIAMETER_MM / 1000.0f) / 2.0f;/**< Calibrated wheel radius (0.0325 m) */

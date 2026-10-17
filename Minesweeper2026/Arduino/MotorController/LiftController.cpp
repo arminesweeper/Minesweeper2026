@@ -145,7 +145,8 @@ void LiftController::update(bool object_detected, bool metal_detected) {
         /* Wait for dwell with magnet OFF so mine falls clear into container */
         if (millis() - dwell_start_ms_ >= LiftConfig::DROP_DWELL_MS) {
             if (!at_bottom) {
-                driveMotor(false); /* Move DOWN */
+                setAllMagnets(true); /* Magnet relay powers limit switches: must energize for descent */
+                driveMotor(false);    /* Move DOWN */
                 motion_start_ms_ = millis();
                 state_ = LiftState::LOWERING;
             } else {
@@ -206,6 +207,7 @@ void LiftController::lower() {
         clearFault();
     }
     if (!isAtBottom()) {
+        setAllMagnets(true); /* Magnet relay powers limit switches: must energize for descent */
         driveMotor(false);
         motion_start_ms_ = millis();
         state_ = LiftState::LOWERING;
@@ -270,11 +272,11 @@ void LiftController::setAllMagnets(bool on) {
  * ============================================================================ */
 
 bool LiftController::isAtTop() const {
-    return top_switch_stable_;
+    return top_switch_stable_ || (state_ == LiftState::DROPPING);
 }
 
 bool LiftController::isAtBottom() const {
-    return bot_switch_stable_;
+    return bot_switch_stable_ || (state_ == LiftState::IDLE);
 }
 
 const char* LiftController::getStateString() const {

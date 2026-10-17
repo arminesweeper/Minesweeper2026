@@ -374,6 +374,7 @@ void SystemManager::processExtendedCommands() {
         else if (strcmp(cmd, "LIFT:DN") == 0) lift_.lower();
         else if (strcmp(cmd, "LIFT:STOP") == 0) lift_.stop();
         else if (strcmp(cmd, "MAGNET:ON") == 0) {
+            lift_.clearFault();
             lift_.setManualMagnetOverride(true);
             lift_.setAllMagnets(true);
             serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState());
