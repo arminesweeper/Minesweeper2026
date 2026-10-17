@@ -255,6 +255,8 @@ void SystemManager::taskLift() {
 #if ENABLE_LIFT
     LiftState prev_state = lift_.getState();
     uint8_t prev_mag = lift_.getMagnetState();
+    bool prev_top = lift_.isAtTop();
+    bool prev_bot = lift_.isAtBottom();
 #if ENABLE_SENSORS
     bool metal_detected = sensors_.isMetalDetected();
     bool obj_detected = sensors_.isObjectDetected();
@@ -264,8 +266,11 @@ void SystemManager::taskLift() {
 #endif
     lift_.update(obj_detected, metal_detected);
     safety_.setLiftFault(lift_.hasFault());
-    if (lift_.getState() != prev_state || lift_.getMagnetState() != prev_mag) {
-        serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState());
+    bool curr_top = lift_.isAtTop();
+    bool curr_bot = lift_.isAtBottom();
+    if (lift_.getState() != prev_state || lift_.getMagnetState() != prev_mag ||
+        curr_top != prev_top || curr_bot != prev_bot) {
+        serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), curr_top, curr_bot);
     }
 #endif
 }
@@ -319,6 +324,9 @@ void SystemManager::taskLowRateTelemetry() {
         sensors_.getAllProximity(prox);
         serial_.sendProximity(prox, 5);
         serial_.sendUltrasonic(sensors_.getUltrasonicDistanceCm());
+#endif
+#if ENABLE_LIFT
+        serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isAtTop(), lift_.isAtBottom());
 #endif
     }
 }
@@ -389,12 +397,12 @@ void SystemManager::processExtendedCommands() {
             lift_.clearFault();
             lift_.setManualMagnetOverride(true);
             lift_.setAllMagnets(true);
-            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState());
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isAtTop(), lift_.isAtBottom());
         }
         else if (strcmp(cmd, "MAGNET:OFF") == 0) {
             lift_.setManualMagnetOverride(false);
             lift_.setAllMagnets(false);
-            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState());
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isAtTop(), lift_.isAtBottom());
         }
 #endif
 #if ENABLE_SENSORS

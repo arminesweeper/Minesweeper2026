@@ -96,7 +96,7 @@
  * 1 = Enable Serial2 communication for ESP8266 / WiFi Web Controller.
  * 0 = Disable Serial2 (saves RX/TX buffers and interrupts when only USB is used).
  */
-#define ENABLE_SERIAL2 0
+#define ENABLE_SERIAL2 1
 
 /**
  * @brief Closed-loop PID velocity control.
@@ -187,8 +187,8 @@ constexpr uint8_t IMU_SCL = 36; /**< Soft-I2C Serial Clock line (moved to D36 to
 /* --- Lift Mechanism & Travel Limit Switches --- */
 constexpr uint8_t LIFT_PWM = 7;         /**< Lift actuator motor speed PWM (Timer 4 OC4B, hardware PWM) */
 constexpr uint8_t LIFT_DIR = 49;        /**< Lift actuator motor direction pin */
-constexpr uint8_t LIMIT_SW_TOP = 53;    /**< Upper travel limit switch (Active HIGH, D53) */
-constexpr uint8_t LIMIT_SW_BOTTOM = 51; /**< Lower travel limit switch (Active HIGH, D51) */
+constexpr uint8_t LIMIT_SW_TOP = 51;    /**< Upper travel limit switch (Active HIGH, D53) */
+constexpr uint8_t LIMIT_SW_BOTTOM = 53                ; /**< Lower travel limit switch (Active HIGH, D51) */
 
 /* --- HC-SR04 Ultrasonic Distance Sensor (Gripper mine detection) --- */
 constexpr uint8_t US_TRIG = 43;         /**< Ultrasonic trigger pulse output */
@@ -232,7 +232,7 @@ namespace Timing {
 constexpr unsigned long CONTROL_INTERVAL_MS = 20;   /**< Velocity PID control loop period (20 ms = 50 Hz) */
 constexpr unsigned long IMU_INTERVAL_MS = 20;       /**< IMU sampling & attitude filter period (20 ms = 50 Hz) */
 constexpr unsigned long SENSOR_INTERVAL_MS = 20;    /**< Metal detector & proximity scan period (20 ms = 50 Hz, matches RobotTest2) */
-constexpr unsigned long LIFT_INTERVAL_MS = 50;      /**< Automated lift state machine update period (50 ms = 20 Hz) */
+constexpr unsigned long LIFT_INTERVAL_MS = 10;      /**< Automated lift state machine update period (10 ms = 100 Hz for instant switch response) */
 constexpr unsigned long TELEMETRY_INTERVAL_MS = 10; /**< High-rate serial telemetry period (10 ms = 100 Hz, matches ros2_control read loop) */
 } // namespace Timing
 
@@ -281,11 +281,11 @@ constexpr float VOLTAGE_DIVIDER_RATIO = 3.3f;       /**< Resistor divider attenu
  */
 
 namespace LiftConfig {
-constexpr uint8_t LIFT_PWM_SPEED = 220;            /**< Actuator motor drive speed (0-255 PWM) */
+constexpr uint8_t LIFT_PWM_SPEED = 90;             /**< Actuator motor drive speed (reduced from 220 to 90 to prevent breaking limit switches) */
 constexpr unsigned long STALL_TIMEOUT_MS = 8000;   /**< Max motor run duration before aborting as stalled (ms) */
-constexpr unsigned long DEBOUNCE_MS = 20;          /**< Limit switch software debounce duration (ms) */
-constexpr unsigned long DROP_DWELL_MS = 300;       /**< Dwell time at top position with magnet OFF to drop mine (ms) */
-constexpr unsigned long MAGNET_ARM_TIMEOUT_MS = 5000;/**< Max time magnet stays armed in IDLE if mine not caught (prevents heating) */
+constexpr unsigned long DEBOUNCE_MS = 5;           /**< Limit switch software debounce duration (ms) */
+constexpr unsigned long DROP_DWELL_MS = 400;       /**< Dwell time at top position with magnet OFF to drop mine (ms) */
+constexpr unsigned long MAGNET_ARM_TIMEOUT_MS = 5000;/**< Max time magnet stays armed (prevents heating) */
 constexpr uint8_t NUM_MAGNETS = 5;                 /**< Number of virtual/physical electromagnet channels */
 constexpr bool LIFT_INVERT_DIR = false;            /**< Invert lift motor direction if UP/DOWN are swapped */
 } // namespace LiftConfig

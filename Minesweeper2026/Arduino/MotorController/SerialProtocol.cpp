@@ -24,11 +24,15 @@ static void sendPrefixAndStringToPort(HardwareSerial& port, const __FlashStringH
     port.println(str);
 }
 
-static void sendLiftStateToPort(HardwareSerial& port, const char* state_str, uint8_t magnet_mask) {
+static void sendLiftStateToPort(HardwareSerial& port, const char* state_str, uint8_t magnet_mask, bool top_sw, bool bot_sw) {
     port.print(F("L:"));
     port.print(state_str);
     port.print(F(","));
-    port.println(magnet_mask, HEX);
+    port.print(magnet_mask, HEX);
+    port.print(F(","));
+    port.print(top_sw ? '1' : '0');
+    port.print(F(","));
+    port.println(bot_sw ? '1' : '0');
 }
 
 static void sendErrorToPort(HardwareSerial& port, uint8_t error_code, const char* message) {
@@ -312,10 +316,10 @@ void SerialProtocol::sendMetalDetect(bool detected) const {
 #endif
 }
 
-void SerialProtocol::sendLiftState(const char* state_str, uint8_t magnet_mask) const {
-    sendLiftStateToPort(Serial, state_str, magnet_mask);
+void SerialProtocol::sendLiftState(const char* state_str, uint8_t magnet_mask, bool top_sw, bool bot_sw) const {
+    sendLiftStateToPort(Serial, state_str, magnet_mask, top_sw, bot_sw);
 #if ENABLE_SERIAL2
-    sendLiftStateToPort(Serial2, state_str, magnet_mask);
+    sendLiftStateToPort(Serial2, state_str, magnet_mask, top_sw, bot_sw);
 #endif
 }
 

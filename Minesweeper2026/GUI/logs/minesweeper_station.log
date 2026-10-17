@@ -897,3 +897,6 @@
 2026-10-17 15:03:42 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
 2026-10-17 15:03:57 [   ERROR] (Dummy-1) ControlStation.SerialWorker: Serial read error: ClearCommError failed (PermissionError(13, 'The device does not recognize the command.', None, 22))
 2026-10-17 15:03:57 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.
+2026-10-17 15:55:02 [    INFO] (MainThread) ControlStation.MainWindow: Application closing. Performing safe shutdown...
+2026-10-17 15:55:02 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop terminated cleanly.
+2026-10-17 15:55:02 [    INFO] (MainThread) ControlStation.AppController: ApplicationController shutdown complete.

@@ -174,6 +174,17 @@ public:
      */
     uint8_t getMagnetState() const { return magnet_state_; }
 
+    /**
+     * @brief Raw limit switch states (instant, non-debounced).
+     */
+    bool isTopSwitchRaw() const { return isSwitchRawActive(Pins::LIMIT_SW_TOP); }
+    bool isBottomSwitchRaw() const { return isSwitchRawActive(Pins::LIMIT_SW_BOTTOM); }
+
+    /**
+     * @brief Apply hardware or software PWM for motor speed.
+     */
+    void applyPWM();
+
 private:
     LiftState state_;               ///< Current state machine state
     uint8_t magnet_state_;          ///< Bitmask of energized magnets
@@ -191,6 +202,8 @@ private:
     bool manual_magnet_override_;   ///< Operator manual magnet hold flag
     bool is_auto_cycling_;          ///< Automated pickup/drop sequence is actively running
     bool manual_active_;            ///< Manual joystick movement is actively commanding motor
+    bool motor_running_;            ///< Lift motor active flag
+    bool motor_dir_up_;             ///< Lift motor current direction (true = UP, false = DOWN)
 
     /**
      * @brief Drive the lift motor at configured speed.

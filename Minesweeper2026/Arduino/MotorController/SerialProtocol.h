@@ -50,7 +50,7 @@ public:
     void sendProximity(const uint16_t* values, uint8_t count) const;
     void sendBattery(float voltage_mv) const;
     void sendMetalDetect(bool detected) const;
-    void sendLiftState(const char* state_str, uint8_t magnet_mask) const;
+    void sendLiftState(const char* state_str, uint8_t magnet_mask, bool top_sw = false, bool bot_sw = false) const;
     void sendUltrasonic(uint16_t distance_cm) const;
     
     void sendDiagnostics(uint16_t loop_hz, uint8_t cpu_percent, uint8_t fault_code) const;
