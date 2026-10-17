@@ -281,7 +281,7 @@ constexpr float VOLTAGE_DIVIDER_RATIO = 3.3f;       /**< Resistor divider attenu
  */
 
 namespace LiftConfig {
-constexpr uint8_t LIFT_PWM_SPEED = 200;            /**< Actuator motor drive speed (0-255 PWM) */
+constexpr uint8_t LIFT_PWM_SPEED = 220;            /**< Actuator motor drive speed (0-255 PWM) */
 constexpr unsigned long STALL_TIMEOUT_MS = 8000;   /**< Max motor run duration before aborting as stalled (ms) */
 constexpr unsigned long DEBOUNCE_MS = 20;          /**< Limit switch software debounce duration (ms) */
 constexpr unsigned long DROP_DWELL_MS = 300;       /**< Dwell time at top position with magnet OFF to drop mine (ms) */
@@ -400,7 +400,7 @@ struct RobotParameters {
 
 namespace DefaultParams {
 constexpr uint32_t MAGIC_NUMBER = 0x4D494E45; /**< "MINE" signature */
-constexpr uint16_t VERSION = 8;               /**< Schema version 8 (Calibrated with RobotTest2 motion parameters) */
+constexpr uint16_t VERSION = 9;               /**< Schema version 9 (Invert right motor & encoder so forward command drives forward) */
 
 constexpr float WHEEL_DIAMETER_MM = 65.0f;                            /**< Outer tire diameter in millimeters */
 constexpr float WHEEL_RADIUS_M = (WHEEL_DIAMETER_MM / 1000.0f) / 2.0f;/**< Calibrated wheel radius (0.0325 m) */
@@ -428,9 +428,9 @@ constexpr float GYRO_BIAS_X = 0.0f; /**< Factory default Gyro X bias */
 constexpr float GYRO_BIAS_Y = 0.0f; /**< Factory default Gyro Y bias */
 constexpr float GYRO_BIAS_Z = 0.0f; /**< Factory default Gyro Z bias */
 
-constexpr bool INVERT_RIGHT_ENCODER = false; /**< Right encoder normal polarity */
+constexpr bool INVERT_RIGHT_ENCODER = true;  /**< Inverted so forward motion produces positive counts */
 constexpr bool INVERT_LEFT_ENCODER = true;   /**< Left encoder reversed polarity */
-constexpr bool INVERT_RIGHT_MOTOR = false;   /**< Right motor normal direction */
+constexpr bool INVERT_RIGHT_MOTOR = true;    /**< Inverted so forward command moves forward */
 constexpr bool INVERT_LEFT_MOTOR = true;     /**< Left motor reversed direction */
 } // namespace DefaultParams
 

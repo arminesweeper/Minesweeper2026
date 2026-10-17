@@ -171,12 +171,14 @@ void Sensors::update() {
         updateBuzzer();
     }
 
-    /* Read HC-SR04 ultrasonic distance (independent for gripper mine catch confirmation) */
-    uint16_t raw_dist = measureUltrasonicCm();
-    if (ultrasonic_distance_cm_ == SensorConfig::US_MAX_DISTANCE_CM || ultrasonic_distance_cm_ == 0) {
-        ultrasonic_distance_cm_ = raw_dist;
-    } else {
-        ultrasonic_distance_cm_ = (ultrasonic_distance_cm_ * 3 + raw_dist) / 4;
+    /* Read HC-SR04 ultrasonic distance every 60 ms (prevents sensor freeze/ringing) */
+    static unsigned long last_us_time = 0;
+    if (now - last_us_time >= 60) {
+        last_us_time = now;
+        uint16_t raw_dist = measureUltrasonicCm();
+        if (raw_dist > 0 && raw_dist <= SensorConfig::US_MAX_DISTANCE_CM) {
+            ultrasonic_distance_cm_ = raw_dist;
+        }
     }
 
     updateLED();
@@ -226,16 +228,12 @@ uint16_t Sensors::measureUltrasonicCm() const {
     delayMicroseconds(10);
     digitalWrite(Pins::US_TRIG, LOW);
 
-    unsigned long duration = pulseIn(Pins::US_ECHO, HIGH, 30000UL); // 30 ms timeout (~500 cm)
-    if (duration == 0) {
-        return SensorConfig::US_MAX_DISTANCE_CM;
+    unsigned long duration = pulseIn(Pins::US_ECHO, HIGH, 25000UL); // 25 ms timeout (~430 cm)
+    if (duration > 50 && duration < 25000UL) {
+        uint16_t dist = static_cast<uint16_t>(duration / 58UL);
+        return (dist > 0) ? dist : 1;
     }
-
-    uint16_t dist = static_cast<uint16_t>(duration / 58UL);
-    if (dist > SensorConfig::US_MAX_DISTANCE_CM) {
-        dist = SensorConfig::US_MAX_DISTANCE_CM;
-    }
-    return dist;
+    return SensorConfig::US_MAX_DISTANCE_CM;
 }
 
 /* ============================================================================

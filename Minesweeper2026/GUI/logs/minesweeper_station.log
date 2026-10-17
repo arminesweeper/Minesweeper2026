@@ -888,3 +888,12 @@
 2026-10-17 14:41:29 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
 2026-10-17 14:42:07 [   ERROR] (Dummy-1) ControlStation.SerialWorker: Serial read error: ClearCommError failed (PermissionError(13, 'The device does not recognize the command.', None, 22))
 2026-10-17 14:42:07 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.
+2026-10-17 15:03:23 [ WARNING] (MainThread) ControlStation.SafetyManager: SAFETY: Cannot arm while disconnected.
+2026-10-17 15:03:27 [    INFO] (MainThread) ControlStation.SerialWorker: Opening serial port COM5 @ 115200 bps
+2026-10-17 15:03:27 [    INFO] (MainThread) ControlStation.SerialWorker: Serial port COM5 opened successfully.
+2026-10-17 15:03:29 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot ARMED.
+2026-10-17 15:03:33 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 15:03:35 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 15:03:42 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 15:03:57 [   ERROR] (Dummy-1) ControlStation.SerialWorker: Serial read error: ClearCommError failed (PermissionError(13, 'The device does not recognize the command.', None, 22))
+2026-10-17 15:03:57 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.

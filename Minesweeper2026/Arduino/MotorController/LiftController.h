@@ -189,6 +189,8 @@ private:
     bool sensor_prev_state_;        ///< Edge detection for optical sensor
     bool manual_trigger_;           ///< Flag for joystick/serial trigger
     bool manual_magnet_override_;   ///< Operator manual magnet hold flag
+    bool is_auto_cycling_;          ///< Automated pickup/drop sequence is actively running
+    bool manual_active_;            ///< Manual joystick movement is actively commanding motor
 
     /**
      * @brief Drive the lift motor at configured speed.

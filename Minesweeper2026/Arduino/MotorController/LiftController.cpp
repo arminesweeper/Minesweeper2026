@@ -28,7 +28,9 @@ LiftController::LiftController()
       sensor_stable_(false),
       sensor_prev_state_(false),
       manual_trigger_(false),
-      manual_magnet_override_(false) {}
+      manual_magnet_override_(false),
+      is_auto_cycling_(false),
+      manual_active_(false) {}
 
 /* ============================================================================
  * INITIALIZATION
@@ -61,12 +63,14 @@ void LiftController::begin() {
     }
 #endif
 
-    /* Magnet starts OFF in IDLE to prevent heating */
-    setAllMagnets(false);
+    /* Magnets start ON and armed to catch mines */
+    setAllMagnets(true);
     state_ = LiftState::IDLE;
     manual_trigger_ = false;
     manual_magnet_override_ = false;
-    magnet_on_time_ms_ = 0;
+    is_auto_cycling_ = false;
+    manual_active_ = false;
+    magnet_on_time_ms_ = millis();
 
     /* Initialize debounce states */
     unsigned long now = millis();
@@ -92,51 +96,39 @@ void LiftController::update(bool object_detected, bool metal_detected) {
 
     switch (state_) {
     case LiftState::IDLE: {
-        /* If metal is detected, energize magnet to catch mine and start timeout */
-        if (metal_detected && !isMagnetActive()) {
+        /* Keep magnets armed in IDLE unless manually turned off */
+        if (!isMagnetActive() && !manual_magnet_override_) {
             setAllMagnets(true);
             magnet_on_time_ms_ = millis();
         }
 
-        /* Auto-shutoff magnet if timeout passes in IDLE without picking up a mine (prevents heating).
-         * Does NOT shut off if operator manually energized the magnets (manual_magnet_override_). */
-        if (isMagnetActive() && !manual_trigger_ && !manual_magnet_override_ && (millis() - magnet_on_time_ms_ > LiftConfig::MAGNET_ARM_TIMEOUT_MS)) {
-            setAllMagnets(false);
-        }
-
-        /* Trigger cycle if an object/mine newly enters ultrasonic detection range (edge trigger),
+        /* Trigger cycle if an object/mine newly enters ultrasonic detection range,
          * OR if triggered manually via command. */
         bool new_object = (object_detected && !sensor_prev_state_);
         sensor_prev_state_ = object_detected;
 
         if (new_object || manual_trigger_ || (object_detected && !at_top && (millis() - motion_start_ms_ > 2000))) {
             manual_trigger_ = false;
-            if (!at_top) {
-                setAllMagnets(true); /* Ensure magnet is ON while lifting */
-                driveMotor(true);    /* Move UP */
-                motion_start_ms_ = millis();
-                state_ = LiftState::RAISING;
-            }
+            is_auto_cycling_ = true;
+            manual_active_ = false;
+            setAllMagnets(true); /* Ensure magnet is ON while lifting */
+            driveMotor(true);    /* Move UP */
+            motion_start_ms_ = millis();
+            state_ = LiftState::RAISING;
         }
         break;
     }
 
     case LiftState::RAISING:
         sensor_prev_state_ = object_detected;
-        if (at_top) {
-            /* Reached top limit switch — stop motor, release magnet to drop mine (unless manual override), start dwell */
+        if (at_top || (millis() - motion_start_ms_ > LiftConfig::STALL_TIMEOUT_MS)) {
+            /* Reached top limit switch or travel timeout — stop motor, release magnet to drop mine, start dwell */
             stopMotor();
             if (!manual_magnet_override_) {
                 setAllMagnets(false);
             }
             dwell_start_ms_ = millis();
             state_ = LiftState::DROPPING;
-        } else if (millis() - motion_start_ms_ > LiftConfig::STALL_TIMEOUT_MS) {
-            stopMotor();
-            if (!manual_magnet_override_) {
-                setAllMagnets(false);
-            }
-            state_ = LiftState::FAULT;
         }
         break;
 
@@ -144,43 +136,29 @@ void LiftController::update(bool object_detected, bool metal_detected) {
         sensor_prev_state_ = object_detected;
         /* Wait for dwell with magnet OFF so mine falls clear into container */
         if (millis() - dwell_start_ms_ >= LiftConfig::DROP_DWELL_MS) {
-            if (!at_bottom) {
-                setAllMagnets(true); /* Magnet relay powers limit switches: must energize for descent */
-                driveMotor(false);    /* Move DOWN */
-                motion_start_ms_ = millis();
-                state_ = LiftState::LOWERING;
-            } else {
-                if (!manual_magnet_override_) {
-                    setAllMagnets(false);
-                }
-                state_ = LiftState::IDLE;
-            }
+            setAllMagnets(true); /* Re-arm magnet for descent and next mine */
+            driveMotor(false);   /* Move DOWN */
+            motion_start_ms_ = millis();
+            state_ = LiftState::LOWERING;
         }
         break;
 
     case LiftState::LOWERING:
         sensor_prev_state_ = object_detected;
-        if (at_bottom) {
-            /* Reached bottom limit switch — stop motor */
+        if (at_bottom || (millis() - motion_start_ms_ > LiftConfig::STALL_TIMEOUT_MS)) {
+            /* Reached bottom limit switch or travel timeout — stop motor and return to ready IDLE */
             stopMotor();
-            if (!manual_magnet_override_) {
-                setAllMagnets(false);
-            }
+            setAllMagnets(true);
+            is_auto_cycling_ = false;
             state_ = LiftState::IDLE;
-        } else if (millis() - motion_start_ms_ > LiftConfig::STALL_TIMEOUT_MS) {
-            stopMotor();
-            if (!manual_magnet_override_) {
-                setAllMagnets(false);
-            }
-            state_ = LiftState::FAULT;
         }
         break;
 
     case LiftState::FAULT:
+        sensor_prev_state_ = object_detected;
         stopMotor();
-        if (!manual_magnet_override_) {
-            setAllMagnets(false);
-        }
+        is_auto_cycling_ = false;
+        manual_active_ = false;
         break;
     }
 }
@@ -190,10 +168,14 @@ void LiftController::update(bool object_detected, bool metal_detected) {
  * ============================================================================ */
 
 void LiftController::triggerCycle() {
-    if (state_ == LiftState::FAULT) {
-        clearFault();
-    }
+    clearFault();
     manual_trigger_ = true;
+    is_auto_cycling_ = true;
+    manual_active_ = false;
+    setAllMagnets(true);
+    driveMotor(true);
+    motion_start_ms_ = millis();
+    state_ = LiftState::RAISING;
 }
 
 void LiftController::raise() {
@@ -216,13 +198,25 @@ void LiftController::lower() {
 
 void LiftController::stop() {
     stopMotor();
+    is_auto_cycling_ = false;
+    manual_active_ = false;
     state_ = LiftState::IDLE;
 }
 
 void LiftController::handleVelocityCommand(float g_vel) {
+    if (is_auto_cycling_) {
+        // Automated cycle in progress: ignore neutral velocity commands
+        if (fabs(g_vel) <= 0.1f) {
+            return;
+        }
+        // Active operator command cancels automatic cycle and engages manual driving
+        is_auto_cycling_ = false;
+    }
+
     if (g_vel > 0.1f) {
-        // Raise upward
+        // Manual raise UP
         if (state_ == LiftState::FAULT) clearFault();
+        manual_active_ = true;
         setAllMagnets(true);
         if (!isAtTop()) {
             driveMotor(true);
@@ -232,8 +226,9 @@ void LiftController::handleVelocityCommand(float g_vel) {
             stopMotor();
         }
     } else if (g_vel < -0.1f) {
-        // Lower downward
+        // Manual lower DOWN
         if (state_ == LiftState::FAULT) clearFault();
+        manual_active_ = true;
         setAllMagnets(true);
         if (!isAtBottom()) {
             driveMotor(false);
@@ -243,9 +238,10 @@ void LiftController::handleVelocityCommand(float g_vel) {
             stopMotor();
         }
     } else {
-        // Neutral joystick: stop if not running an automated cycle
-        if (state_ == LiftState::RAISING || state_ == LiftState::LOWERING) {
+        // Neutral joystick: only stop if currently driving manually
+        if (manual_active_) {
             stopMotor();
+            manual_active_ = false;
             state_ = LiftState::IDLE;
         }
     }
@@ -255,6 +251,8 @@ void LiftController::clearFault() {
     stopMotor();
     state_ = LiftState::IDLE;
     manual_trigger_ = false;
+    is_auto_cycling_ = false;
+    manual_active_ = false;
 }
 
 /* ============================================================================

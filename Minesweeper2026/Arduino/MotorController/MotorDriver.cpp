@@ -52,10 +52,8 @@ void MotorDriver::emergencyStop() {
 }
 
 void MotorDriver::setDirection(bool forward) {
-  if (is_forward_ != forward) {
-    is_forward_ = forward;
-    digitalWrite(config_.dir_pin, forward ? HIGH : LOW);
-  }
+  is_forward_ = forward;
+  digitalWrite(config_.dir_pin, forward ? HIGH : LOW);
 }
 
 void MotorDriver::writePWM(uint8_t pwm) {
