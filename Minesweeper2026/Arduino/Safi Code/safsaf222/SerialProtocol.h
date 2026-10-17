@@ -1,0 +1,101 @@
+/**
+ * ============================================================================
+ * SERIALPROTOCOL.H - Serial Communication Protocol
+ * Same RPi / control-station framing as MotorController (SerialProtocol.cpp).
+ * ============================================================================
+ */
+
+#ifndef SERIALPROTOCOL_H
+#define SERIALPROTOCOL_H
+
+#include "Config.h"
+#include <Arduino.h>
+
+class SerialProtocol {
+public:
+    enum class State : uint8_t {
+        WAITING_PREFIX,
+        READING_DIRECTION,
+        READING_VALUE,
+        READING_COMMAND,
+        READING_TEXT,
+        COMPLETE
+    };
+
+    SerialProtocol();
+    void begin();
+
+    /**
+     * @brief Process incoming serial data
+     * @return true if a complete velocity command packet was received
+     */
+    bool processInput(float& right_vel, float& left_vel, float& gripper_vel, float& servo_angle);
+    bool processInput(float& right_vel, float& left_vel, float& gripper_vel) {
+        float dummy_servo = -1.0f;
+        return processInput(right_vel, left_vel, gripper_vel, dummy_servo);
+    }
+
+    bool getExtendedCommand(char* cmd_buf, size_t buf_size);
+    bool getTextCommand(char* cmd_buf, size_t buf_size);
+
+    /**
+     * @brief Send high-rate telemetry
+     * Format: rp0.00,lp0.00,go,
+     */
+    void sendTelemetry(float right_vel, float left_vel, char gripper_state) const;
+
+    void sendOdometry(float x, float y, float theta) const;
+    void sendIMU(float yaw, float pitch, float roll, float ax, float ay, float az) const;
+    void sendProximity(const uint16_t* values, uint8_t count) const;
+    void sendBattery(float voltage_mv) const;
+    void sendMetalDetect(bool detected) const;
+    void sendLiftState(const char* state_str, uint8_t magnet_mask) const;
+    void sendUltrasonic(uint16_t distance_cm) const;
+
+    void sendDiagnostics(uint16_t loop_hz, uint8_t cpu_percent, uint8_t fault_code) const;
+    void sendStatus(const char* message) const;
+    void sendError(uint8_t error_code, const char* message) const;
+
+    unsigned long getLastCommandTime() const { return last_command_time_; }
+#if ENABLE_SERIAL2
+    bool dataAvailable() const { return Serial.available() > 0 || Serial2.available() > 0; }
+#else
+    bool dataAvailable() const { return Serial.available() > 0; }
+#endif
+
+private:
+    State parser_state_;
+    char rx_buffer_[SerialConfig::RX_BUFFER_SIZE];
+    size_t rx_index_;
+    unsigned long last_command_time_;
+    unsigned long last_rx_byte_time_;
+    Stream* active_stream_;
+
+    char cmd_buffer_[SerialConfig::CMD_BUFFER_SIZE];
+    size_t cmd_index_;
+    bool cmd_ready_;
+
+    char text_buffer_[SerialConfig::TEXT_BUFFER_SIZE];
+    size_t text_index_;
+    bool text_ready_;
+
+    char current_motor_;
+    char current_sign_;
+    char value_buffer_[8];
+    size_t value_index_;
+
+    float pending_right_vel_;
+    float pending_left_vel_;
+    float pending_gripper_vel_;
+    float pending_servo_angle_;
+    bool right_received_;
+    bool left_received_;
+    bool gripper_received_;
+    bool servo_received_;
+
+    void resetParser();
+    void resetValueBuffer();
+    void processCompletePacket();
+};
+
+#endif

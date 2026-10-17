@@ -93,32 +93,24 @@
  *                     Auto mode is ALSO entered by itself on the first valid frame
  *                     from ROS (the Arduino resets when ROS opens the port).
  *
- *   ROS -> Arduino (one line per ROS write(), comma separated, trailing comma):
- *        rp12.34,lp12.34,gp00.00,sp00.00,
+ *   RPi / control station (MotorController SerialProtocol, same framing):
+ *        rp12.34,lp12.34,gp01.00,sp90.00,
  *        r / l : right / left wheel velocity command in rad/s ('p' = +, 'n' = -),
  *                converted to counts/s with COUNTS_PER_RAD (PPR = 2400)
- *        g     : gripper command (ros2_control velocity). A change from 0 to
- *                non-zero (rising edge) = GRIP request. (token may be missing)
- *        s     : camera servo direction -1 / 0 / +1. The servo angle (0..180,
- *                start 90) is integrated at SERVO_RATE_DPS deg/s while non-zero.
- *   If no frame arrives for FRAME_TIMEOUT_MS the wheel targets are set to 0.
+ *        g     : gripper velocity. gp > 0.5 = GRIP / lift cycle, gn < -0.5 = lower
+ *        s     : camera servo absolute angle 0..180 (ignored if omitted)
+ *        C...  : extended commands (CESTOP, CCLEAR, CRESET, CLIFT:CYCLE, CLIFT:DN,
+ *                CLIFT:STOP, CMAGNET:ON/OFF, CBUZZ:ALERT/SILENT, CSERVO:angle,
+ *                CPID:ON/OFF)
+ *   If no velocity frame arrives for FRAME_TIMEOUT_MS the wheel targets are set to 0.
  *
- *   Arduino -> ROS (one line, comma separated, trailing comma):
- *        rp12.34,ln05.00,p1,m0,gc,
- *        r / l : measured wheel velocity in rad/s ('p'/'n' sign, 2 decimals)
- *        p1|p0 : 1 if any of the 5 proximity sensors is HIGH, or had a rising edge
- *                since the last message
- *        m1|m0 : 1 only in the ONE message after a metal-detector rising edge
- *        go|gc|gm|gf : gripper open (lift up, metal released) / closed (lift down,
- *                idle) / moving (sanity check, lifting, lowering, recovery) / fault
- *   FRAME-SYNCHRONOUS REPLY: the ROS hardware interface reads exactly ONE status
- *   line per control cycle (read() then write()). To keep both sides in step,
- *   once ROS frames are arriving the Arduino sends exactly ONE status line per
- *   received frame (it carries the newest PID measurement). The line count can
- *   therefore never run ahead of what ROS reads, whatever the ROS update rate is,
- *   so no stale data piles up in the serial buffer. The PID itself keeps running at
- *   its own sampling time. Typed "AUTOM XX" without ROS frames still streams one
- *   status line per PID sample, for testing.
+ *   Arduino -> RPi (MotorController telemetry lines):
+ *        rp12.34,lp05.00,go,     high-rate measured wheel rad/s + gripper o/c/m
+ *        P:s0,s1,s2,s3,s4        proximity (0/1)
+ *        M:0|1                   metal detector
+ *        U:cm                    ultrasonic distance
+ *        L:STATE,mask            lift state + magnet mask (hex)
+ *        S:msg  /  E:code:msg    status / error
  *   Wheel units: ENC_COUNTS_PER_REV (below) converts counts/s <-> rad/s.
  *
  *  GRIPPER (state machine, same for GRIP and the "g" token of the ROS frame)
@@ -191,6 +183,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <math.h>
+#include "SerialProtocol.h"
 
 /* ------------------------- AUTO MODE TUNING (see header) ------------------------- */
 /* >>> Start-up behaviour.
@@ -285,6 +278,7 @@ QueueHandle_t     motorQ[NUM_CH];                /* length 1, written with xQueu
 SemaphoreHandle_t serialMx, driveMx;
 TaskHandle_t hMotor, hSignal, hMotion, hCmd, hTel;
 TaskHandle_t hUs, hGrip, hAuto;
+SerialProtocol serialProto;
 
 /* printf-style, task-safe print. NOTE: AVR printf has no %f, use dtostrf. */
 void sayf(const char *fmt_P, ...) {
@@ -298,6 +292,9 @@ void sayf(const char *fmt_P, ...) {
   xSemaphoreGive(serialMx);
 }
 #define SAY(fmt, ...) sayf(PSTR(fmt), ##__VA_ARGS__)
+
+static void protoLock()   { if (serialMx) xSemaphoreTake(serialMx, portMAX_DELAY); }
+static void protoUnlock() { if (serialMx) xSemaphoreGive(serialMx); }
 
 inline void lockDrive()   { xSemaphoreTake(driveMx, portMAX_DELAY); }
 inline void unlockDrive() { xSemaphoreGive(driveMx); }
@@ -862,6 +859,27 @@ char gripRosChar() {
   }
 }
 
+/* MotorController high-rate gripper letter (GUI accepts o/c/m only) */
+char gripTelChar() {
+  switch (gripState) {
+    case GS_READY: return 'c';
+    case GS_TOP:   return 'o';
+    default:       return 'm';
+  }
+}
+
+const char* liftStateString() {
+  switch (gripState) {
+    case GS_UP:
+    case GS_SANITY_UP:   return "RAISING";
+    case GS_TOP:         return "DROPPING";
+    case GS_DOWN:
+    case GS_SANITY_DOWN: return "LOWERING";
+    case GS_FAULT:       return "FAULT";
+    default:             return "IDLE";
+  }
+}
+
 /* messages only in manual mode: the automatic status stream must stay clean */
 #define GSAY(fmt, ...) do { if (!autoMode) sayf(PSTR(fmt), ##__VA_ARGS__); } while (0)
 
@@ -1158,25 +1176,21 @@ void telemetryTask(void *) {
 
 /* ------------------------- Automatic status message ------------------------- */
 /*
- * Format read by rover_interface.cpp:
- *    rp12.34,ln05.00,p1,m0,gc,
- *
- * When ROS frames are arriving (rosSync) ONE line is sent per received frame
- * (statusReq, set by handleRosFrame): the ROS read() takes one line per cycle,
- * so the two sides stay in lock-step and nothing queues up. Without ROS frames
- * (typed AUTOM) one line is sent per PID sample (pidSeq).
- * The ROS watchdog runs on every PID sample in both cases.
+ * MotorController / RPi telemetry:
+ *   high-rate (~10 Hz): rp12.34,lp05.00,go,
+ *   low-rate  (~2 Hz):  P:..., U:..., L:...
+ *   metal:              M:0 / M:1 on level change
+ * Frame watchdog still runs on every PID sample.
  */
-/* counts/s -> sign letter + rad/s with 2 decimals (ip.fp) */
-static void splitVel(float cps, char &sg, long &ip, long &fp) {
-  long x = lroundf(fabsf(cpsToRads(cps)) * 100.0f);
-  sg = (cps < 0.0f && x != 0) ? 'n' : 'p';
-  ip = x / 100;
-  fp = x % 100;
-}
+constexpr uint32_t HI_TELEM_MS = 100;
+constexpr uint32_t LO_TELEM_MS = 500;
 
 void autoStatusTask(void *) {
   uint8_t last = pidSeq;
+  uint32_t lastHi = 0, lastLo = 0;
+  bool lastMetal = (digitalRead(MD_PIN) == MD_METAL_LEVEL);
+  uint8_t lastLift = 255;
+  uint8_t lastMag = 255;
   for (;;) {
     if (!autoMode) {
       mdEdgeLatch = false; proxEdgeLatch = false; statusReq = false;
@@ -1184,42 +1198,64 @@ void autoStatusTask(void *) {
       last = pidSeq;
       continue;
     }
-    const bool tick = (pidSeq != last);
-    const bool due  = rosSync ? statusReq : tick;
-    if (!tick && !due) { taskYIELD(); continue; }
 
+    const bool tick = (pidSeq != last);
     if (tick) {
       last = pidSeq;
       uint32_t lf; bool fs;
       noInterrupts(); lf = lastFrameMs; fs = frameSeen; interrupts();
-      /* ROS watchdog: frames stopped -> stop the wheels */
       if (fs && (uint32_t)(millis() - lf) > FRAME_TIMEOUT_MS) {
         noInterrupts();
         for (uint8_t m = 0; m < NUM_MOTORS; m++) pid[m].target = 0;
         interrupts();
       }
     }
-    if (!due) continue;
 
-    statusReq = false;                               /* a frame arriving from now on asks for a new line */
-    float vr, vl;
-    bool mdEdge, pxEdge;
-    noInterrupts();
-    vr = pid[0].meas; vl = pid[1].meas;
-    mdEdge = mdEdgeLatch;  mdEdgeLatch = false;      /* edge since the last message, then cleared */
-    pxEdge = proxEdgeLatch; proxEdgeLatch = false;
-    interrupts();
+    const uint32_t now = millis();
 
-    bool pxLevel = pxEdge;
-    for (uint8_t i = 0; i < NUM_PROX; i++)
-      if (digitalRead(PROX_PINS[i]) == PROX_ACTIVE_LEVEL) pxLevel = true;
+    const bool metalNow = (digitalRead(MD_PIN) == MD_METAL_LEVEL);
+    if (metalNow != lastMetal) {
+      lastMetal = metalNow;
+      protoLock();
+      serialProto.sendMetalDetect(metalNow);
+      protoUnlock();
+    }
 
-    char sr, sl; long ri, rf, li, lfr;
-    splitVel(vr, sr, ri, rf);
-    splitVel(vl, sl, li, lfr);
-    SAY("r%c%ld.%02ld,l%c%ld.%02ld,p%c,m%c,g%c,",
-        sr, ri, rf, sl, li, lfr,
-        pxLevel ? '1' : '0', mdEdge ? '1' : '0', gripRosChar());
+    if ((uint32_t)(now - lastHi) >= HI_TELEM_MS) {
+      lastHi = now;
+      float vr, vl;
+      noInterrupts();
+      vr = pid[0].meas; vl = pid[1].meas;
+      interrupts();
+      protoLock();
+      serialProto.sendTelemetry(cpsToRads(vr), cpsToRads(vl), gripTelChar());
+      protoUnlock();
+    }
+
+    if ((uint32_t)(now - lastLo) >= LO_TELEM_MS) {
+      lastLo = now;
+      uint16_t prox[NUM_PROX];
+      for (uint8_t i = 0; i < NUM_PROX; i++)
+        prox[i] = (digitalRead(PROX_PINS[i]) == PROX_ACTIVE_LEVEL) ? 1 : 0;
+      uint16_t ud, ur; uint32_t sq;
+      usGet(ud, ur, sq);
+      const uint8_t gs = gripState;
+      const uint8_t mag = mgntState ? 0x1F : 0x00;
+      protoLock();
+      serialProto.sendProximity(prox, NUM_PROX);
+      serialProto.sendUltrasonic((uint16_t)(ud / 10));
+      if (gs != lastLift || mag != lastMag) {
+        serialProto.sendLiftState(liftStateString(), mag);
+        lastLift = gs;
+        lastMag = mag;
+      }
+      protoUnlock();
+    }
+
+    mdEdgeLatch = false;
+    proxEdgeLatch = false;
+    statusReq = false;
+    taskYIELD();
   }
 }
 
@@ -1305,8 +1341,10 @@ void printHelp() {
   SAY("LOOP ON/OFF | TOL v | PWMMAX v [A/B] | PWMMIN v [A/B] | ZERO | RESET");
   SAY("INV A/B/LIFT/ENCA/ENCB | PPR A/B | ENCDBG | TEL ms | STAT");
   SAY("AUTOM xx|OFF  (xx = PID ms, default %u)", (unsigned)AUTO_DEFAULT_MS);
-  SAY("ROS frame in : see header (r l g s tokens)");
-  SAY("status out   : see header (r l p m g tokens)");
+  SAY("RPi frame    : rpXX.XX,lpXX.XX,[gpXX.XX,][spXXX.XX,]");
+  SAY("RPi commands : CESTOP CCLEAR CRESET CLIFT:CYCLE CLIFT:DN CLIFT:STOP");
+  SAY("               CMAGNET:ON/OFF CBUZZ:ALERT/SILENT CSERVO:angle CPID:ON/OFF");
+  SAY("telemetry    : r/l/g  P:  M:  U:  L:  S:  E:");
 }
 
 /*
@@ -1378,29 +1416,13 @@ static bool rosTok(const char *t, char key, float &v) {
   return true;
 }
 
-void handleRosFrame(char *tok[], uint8_t nt) {
-  static bool  gripPrev  = false;
-  static bool  servoInit = false;
-  static float angle     = 90.0f;
+void applyVelCommand(float r, float l, float g, float s) {
+  static bool gripPrev = false;
+  static bool lowerPrev = false;
 
-  float r = 0, l = 0, g = 0, s = 0, v;
-  bool hr = false, hl = false, hg = false, hs = false;
-  for (uint8_t i = 0; i < nt; i++) {
-    const char *t = tok[i];
-    if      (rosTok(t, 'r', v)) { r = v; hr = true; }
-    else if (rosTok(t, 'l', v)) { l = v; hl = true; }
-    else if (rosTok(t, 'g', v)) { g = v; hg = true; }
-    else if (rosTok(t, 's', v)) { s = v; hs = true; }
-  }
-  if (!hr || !hl) { SAY("ERR: bad frame (r and l tokens required)"); return; }
-
-  if (!autoMode) startAuto(AUTO_DEFAULT_MS, false);   /* first ROS frame switches auto mode on */
+  if (!autoMode) startAuto(AUTO_DEFAULT_MS, false);
 
   const uint32_t now = millis();
-  uint32_t dtm = frameSeen ? (uint32_t)(now - lastFrameMs) : 0;
-  if (dtm > 100) dtm = 100;
-
-  /* wheels: rad/s -> counts/s with PPR = 2400 (A = right, B = left) */
   float t[2] = { radsToCps(r), radsToCps(l) };
   noInterrupts();
   for (uint8_t m = 0; m < NUM_MOTORS; m++) {
@@ -1412,26 +1434,85 @@ void handleRosFrame(char *tok[], uint8_t nt) {
   frameSeen = true;
   interrupts();
 
-  /* camera servo: direction -1/0/+1 integrated into an angle */
-  if (!servoInit) {
-    servoInit = true;
-    motorSend(SERVO_IDX, (uint8_t)angle, true);       /* centre on the first frame */
-  }
-  if (hs && fabsf(s) > 0.05f && dtm) {
-    s = constrain(s, -1.0f, 1.0f);
-    angle += s * SERVO_RATE_DPS * (float)dtm * 0.001f;
-    angle = constrain(angle, 0.0f, 180.0f);
-    motorSend(SERVO_IDX, (uint8_t)(angle + 0.5f), true);
+  /* MotorController: s is an absolute servo angle in degrees (0..180) */
+  if (s >= 0.0f && s <= 180.0f)
+    motorSend(SERVO_IDX, (uint8_t)(s + 0.5f), true);
+
+  /* MotorController: gp > 0.5 triggers a lift cycle, gn < -0.5 lowers */
+  if (g > 0.5f) {
+    if (!gripPrev && gripState == GS_READY) gripCmdReq = true;
+    gripPrev = true;
+    lowerPrev = false;
+  } else if (g < -0.5f) {
+    if (!lowerPrev && gripState != GS_FAULT && gripState != GS_DOWN)
+      gripRecover();
+    lowerPrev = true;
+    gripPrev = false;
+  } else {
+    gripPrev = false;
+    lowerPrev = false;
   }
 
-  /* gripper: rising edge of a non-zero command = GRIP request */
-  const bool gOn = hg && fabsf(g) > 0.001f;
-  if (gOn && !gripPrev && gripState == GS_READY) gripCmdReq = true;
-  gripPrev = gOn;
-
-  /* ROS is talking: answer this frame with exactly one status line */
   rosSync   = true;
   statusReq = true;
+}
+
+void handleRosFrame(char *tok[], uint8_t nt) {
+  float r = 0, l = 0, g = 0, s = -1.0f, v;
+  bool hr = false, hl = false;
+  for (uint8_t i = 0; i < nt; i++) {
+    const char *t = tok[i];
+    if      (rosTok(t, 'r', v)) { r = v; hr = true; }
+    else if (rosTok(t, 'l', v)) { l = v; hl = true; }
+    else if (rosTok(t, 'g', v)) { g = v; }
+    else if (rosTok(t, 's', v)) { s = v; }
+  }
+  if (!hr || !hl) { SAY("ERR: bad frame (r and l tokens required)"); return; }
+  applyVelCommand(r, l, g, s);
+}
+
+void handleExtendedCommand(const char *cmd) {
+  if (!strcmp(cmd, "ESTOP")) {
+    lockDrive();
+    noInterrupts();
+    for (uint8_t m = 0; m < NUM_MOTORS; m++) pid[m].target = 0;
+    interrupts();
+    stopDrive();
+    unlockDrive();
+    protoLock(); serialProto.sendStatus("ESTOP"); protoUnlock();
+  } else if (!strcmp(cmd, "CLEAR")) {
+    protoLock(); serialProto.sendStatus("CLEAR"); protoUnlock();
+  } else if (!strcmp(cmd, "RESET")) {
+    resetAll();
+    protoLock(); serialProto.sendStatus("Reset complete"); protoUnlock();
+  } else if (!strcmp(cmd, "LIFT:UP") || !strcmp(cmd, "LIFT:CYCLE")) {
+    if (gripState == GS_READY) gripCmdReq = true;
+  } else if (!strcmp(cmd, "LIFT:DN")) {
+    if (gripState != GS_FAULT && gripState != GS_DOWN) gripRecover();
+  } else if (!strcmp(cmd, "LIFT:STOP")) {
+    gripHalt();
+    setCycleActive(false);
+  } else if (!strcmp(cmd, "MAGNET:ON")) {
+    if (gripState == GS_READY) setMagnet(true);
+  } else if (!strcmp(cmd, "MAGNET:OFF")) {
+    if (gripState == GS_READY) setMagnet(false);
+  } else if (!strcmp(cmd, "BUZZ:ALERT")) {
+    setSiren(true);
+  } else if (!strcmp(cmd, "BUZZ:SILENT")) {
+    setSiren(false);
+  } else if (!strncmp(cmd, "SERVO:", 6)) {
+    int angle = atoi(cmd + 6);
+    if (angle >= 0 && angle <= 180) motorSend(SERVO_IDX, (uint8_t)angle, true);
+  } else if (!strcmp(cmd, "PID:ON")) {
+    lockDrive();
+    motionActive = false;
+    noInterrupts(); resetPidState(); loopEnabled = true; interrupts();
+    unlockDrive();
+    protoLock(); serialProto.sendStatus("PID Enabled"); protoUnlock();
+  } else if (!strcmp(cmd, "PID:OFF")) {
+    haltDrive();
+    protoLock(); serialProto.sendStatus("PID Disabled"); protoUnlock();
+  }
 }
 
 void processLine(char *line) {
@@ -1669,34 +1750,26 @@ void processLine(char *line) {
  *    tail of an over-long line was executed as a new command).
  */
 void commandTask(void *) {
-  static char buf[CMD_BUF_LEN];
-  uint8_t len = 0;
-  bool overflow = false;
   for (;;) {
-    while (Serial.available() > 0) {
-      int r = Serial.read();
-      if (r < 0) break;
-      char c = (char)r;
-      if (c == '\n' || c == '\r') {
-        if (overflow)  SAY("ERR: line too long (max %d)", CMD_BUF_LEN - 1);
-        else if (len)  { buf[len] = 0; processLine(buf); }
-        len = 0;
-        overflow = false;
-      } else if (overflow) {
-        /* skip the rest of the line */
-      } else if (len < CMD_BUF_LEN - 1) {
-        buf[len++] = c;
-      } else {
-        overflow = true;
-      }
-    }
+    float r = 0, l = 0, g = 0, s = -1.0f;
+    if (serialProto.processInput(r, l, g, s))
+      applyVelCommand(r, l, g, s);
+
+    char cmd[SerialConfig::CMD_BUFFER_SIZE];
+    if (serialProto.getExtendedCommand(cmd, sizeof(cmd)))
+      handleExtendedCommand(cmd);
+
+    char line[SerialConfig::TEXT_BUFFER_SIZE];
+    if (serialProto.getTextCommand(line, sizeof(line)))
+      processLine(line);
+
     taskYIELD();
   }
 }
 
 /* ------------------------------ Arduino ------------------------------- */
 void setup() {
-  Serial.begin(115200);
+  serialProto.begin();
   for (uint8_t i = 0; i < NUM_PROX; i++) pinMode(PROX_PINS[i], INPUT);
   pinMode(MD_PIN, INPUT);
   pinMode(US_TRIG_PIN, OUTPUT); digitalWrite(US_TRIG_PIN, LOW);
@@ -1727,8 +1800,8 @@ void setup() {
   if (!ok) Serial.println(F("ERR: task creation failed - raise configTOTAL_HEAP_SIZE"));
 
   if (START_IN_AUTO_MODE) {
-    startAuto(AUTO_DEFAULT_MS, false); /* velocity PID on, AUTO_* parameters loaded, no text on the serial line */
-    rosSync = true;                    /* stay silent until the first ROS frame, then one status line per frame */
+    startAuto(AUTO_DEFAULT_MS, false); /* velocity PID on, AUTO_* parameters loaded */
+    rosSync = true;                    /* MotorController telemetry streams from autoStatusTask */
   } else {
     setPidPeriod(10);                  /* default PID sampling time: 10 ms (auto mode sets AUTO_DEFAULT_MS) */
     Serial.println(F("Ready. Type HELP for commands."));

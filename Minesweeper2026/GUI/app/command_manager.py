@@ -59,20 +59,24 @@ class CommandManager:
         self._last_send_time = time.time()
         logger.warning("COMMAND: Dispatched ESTOP packets.")
 
-    def request_stop(self) -> None:
+    def request_stop(self, force: bool = False) -> None:
         """
         Priority 2: Immediate neutral stop.
+        Only transmits stop packet if the robot was actively moving or if forced.
         """
+        was_moving = self._is_moving or abs(self._last_sent_r) > 0.001 or abs(self._last_sent_l) > 0.001
         self._active_target_r = 0.0
         self._active_target_l = 0.0
         self._is_moving = False
-        stop_bytes = self.protocol.encode_stop()
-        self.send_fn(stop_bytes)
-        self._last_sent_r = 0.0
-        self._last_sent_l = 0.0
-        self._last_send_time = time.time()
-        self.safety.state.record_command_sent("STOP", 0.0, 0.0)
-        logger.info("COMMAND: Dispatched STOP.")
+
+        if was_moving or force:
+            stop_bytes = self.protocol.encode_stop()
+            self.send_fn(stop_bytes)
+            self._last_sent_r = 0.0
+            self._last_sent_l = 0.0
+            self._last_send_time = time.time()
+            self.safety.state.record_command_sent("STOP", 0.0, 0.0)
+            logger.info("COMMAND: Dispatched STOP.")
 
     def set_drive_targets(
         self,

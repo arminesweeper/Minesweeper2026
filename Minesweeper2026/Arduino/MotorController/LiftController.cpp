@@ -27,7 +27,8 @@ LiftController::LiftController()
       bot_switch_stable_(false),
       sensor_stable_(false),
       sensor_prev_state_(false),
-      manual_trigger_(false) {}
+      manual_trigger_(false),
+      manual_magnet_override_(false) {}
 
 /* ============================================================================
  * INITIALIZATION
@@ -64,6 +65,7 @@ void LiftController::begin() {
     setAllMagnets(false);
     state_ = LiftState::IDLE;
     manual_trigger_ = false;
+    manual_magnet_override_ = false;
     magnet_on_time_ms_ = 0;
 
     /* Initialize debounce states */
@@ -90,14 +92,15 @@ void LiftController::update(bool object_detected, bool metal_detected) {
 
     switch (state_) {
     case LiftState::IDLE: {
-        /* If metal is detected, energize magnet to catch mine and start 10s timeout */
+        /* If metal is detected, energize magnet to catch mine and start timeout */
         if (metal_detected && !isMagnetActive()) {
             setAllMagnets(true);
             magnet_on_time_ms_ = millis();
         }
 
-        /* Auto-shutoff magnet if 10s passes in IDLE without picking up a mine (prevents heating) */
-        if (isMagnetActive() && !manual_trigger_ && (millis() - magnet_on_time_ms_ > LiftConfig::MAGNET_ARM_TIMEOUT_MS)) {
+        /* Auto-shutoff magnet if timeout passes in IDLE without picking up a mine (prevents heating).
+         * Does NOT shut off if operator manually energized the magnets (manual_magnet_override_). */
+        if (isMagnetActive() && !manual_trigger_ && !manual_magnet_override_ && (millis() - magnet_on_time_ms_ > LiftConfig::MAGNET_ARM_TIMEOUT_MS)) {
             setAllMagnets(false);
         }
 
@@ -121,28 +124,34 @@ void LiftController::update(bool object_detected, bool metal_detected) {
     case LiftState::RAISING:
         sensor_prev_state_ = object_detected;
         if (at_top) {
-            /* Reached top limit switch — stop motor, release magnet to drop mine, start 300ms dwell */
+            /* Reached top limit switch — stop motor, release magnet to drop mine (unless manual override), start dwell */
             stopMotor();
-            setAllMagnets(false);
+            if (!manual_magnet_override_) {
+                setAllMagnets(false);
+            }
             dwell_start_ms_ = millis();
             state_ = LiftState::DROPPING;
         } else if (millis() - motion_start_ms_ > LiftConfig::STALL_TIMEOUT_MS) {
             stopMotor();
-            setAllMagnets(false);
+            if (!manual_magnet_override_) {
+                setAllMagnets(false);
+            }
             state_ = LiftState::FAULT;
         }
         break;
 
     case LiftState::DROPPING:
         sensor_prev_state_ = object_detected;
-        /* Wait for 300 ms dwell with magnet OFF so mine falls clear into container */
+        /* Wait for dwell with magnet OFF so mine falls clear into container */
         if (millis() - dwell_start_ms_ >= LiftConfig::DROP_DWELL_MS) {
             if (!at_bottom) {
                 driveMotor(false); /* Move DOWN */
                 motion_start_ms_ = millis();
                 state_ = LiftState::LOWERING;
             } else {
-                setAllMagnets(false); /* Keep magnet OFF at bottom */
+                if (!manual_magnet_override_) {
+                    setAllMagnets(false);
+                }
                 state_ = LiftState::IDLE;
             }
         }
@@ -151,20 +160,26 @@ void LiftController::update(bool object_detected, bool metal_detected) {
     case LiftState::LOWERING:
         sensor_prev_state_ = object_detected;
         if (at_bottom) {
-            /* Reached bottom limit switch — stop motor, keep magnet OFF */
+            /* Reached bottom limit switch — stop motor */
             stopMotor();
-            setAllMagnets(false);
+            if (!manual_magnet_override_) {
+                setAllMagnets(false);
+            }
             state_ = LiftState::IDLE;
         } else if (millis() - motion_start_ms_ > LiftConfig::STALL_TIMEOUT_MS) {
             stopMotor();
-            setAllMagnets(false);
+            if (!manual_magnet_override_) {
+                setAllMagnets(false);
+            }
             state_ = LiftState::FAULT;
         }
         break;
 
     case LiftState::FAULT:
         stopMotor();
-        setAllMagnets(false);
+        if (!manual_magnet_override_) {
+            setAllMagnets(false);
+        }
         break;
     }
 }
@@ -174,9 +189,10 @@ void LiftController::update(bool object_detected, bool metal_detected) {
  * ============================================================================ */
 
 void LiftController::triggerCycle() {
-    if (state_ == LiftState::IDLE) {
-        manual_trigger_ = true;
+    if (state_ == LiftState::FAULT) {
+        clearFault();
     }
+    manual_trigger_ = true;
 }
 
 void LiftController::raise() {
@@ -187,8 +203,9 @@ void LiftController::lower() {
     if (state_ == LiftState::DROPPING) {
         dwell_start_ms_ = 0; /* Force immediate descent */
     } else if (state_ == LiftState::FAULT) {
-        return;
-    } else if (!isAtBottom()) {
+        clearFault();
+    }
+    if (!isAtBottom()) {
         driveMotor(false);
         motion_start_ms_ = millis();
         state_ = LiftState::LOWERING;
@@ -197,14 +214,14 @@ void LiftController::lower() {
 
 void LiftController::stop() {
     stopMotor();
-    if (state_ != LiftState::FAULT) {
-        state_ = LiftState::IDLE;
-    }
+    state_ = LiftState::IDLE;
 }
 
 void LiftController::clearFault() {
     stopMotor();
-    setAllMagnets(false);
+    if (!manual_magnet_override_) {
+        setAllMagnets(false);
+    }
     state_ = LiftState::IDLE;
     manual_trigger_ = false;
 }
@@ -276,7 +293,8 @@ const char* LiftController::getStateString() const {
  * ============================================================================ */
 
 void LiftController::driveMotor(bool up) {
-    digitalWrite(Pins::LIFT_DIR, up ? HIGH : LOW);
+    bool dir = LiftConfig::LIFT_INVERT_DIR ? !up : up;
+    digitalWrite(Pins::LIFT_DIR, dir ? HIGH : LOW);
     analogWrite(Pins::LIFT_PWM, LiftConfig::LIFT_PWM_SPEED);
 }
 

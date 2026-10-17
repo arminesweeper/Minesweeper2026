@@ -108,6 +108,13 @@ public:
     void setAllMagnets(bool on);
 
     /**
+     * @brief Set manual magnet override flag.
+     * When true, magnets will stay on until manually turned off by operator.
+     */
+    void setManualMagnetOverride(bool override_on) { manual_magnet_override_ = override_on; }
+    bool isManualMagnetOverride() const { return manual_magnet_override_; }
+
+    /**
      * @brief Get the current lift state.
      * @return Current LiftState enum value
      */
@@ -175,6 +182,7 @@ private:
     bool sensor_stable_;            ///< Debounced optical sensor state
     bool sensor_prev_state_;        ///< Edge detection for optical sensor
     bool manual_trigger_;           ///< Flag for joystick/serial trigger
+    bool manual_magnet_override_;   ///< Operator manual magnet hold flag
 
     /**
      * @brief Drive the lift motor at configured speed.

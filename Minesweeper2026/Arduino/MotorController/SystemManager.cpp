@@ -356,7 +356,13 @@ void SystemManager::processExtendedCommands() {
         
         // Note: SerialProtocol strips the leading 'C', so "CESTOP" arrives as "ESTOP"
         if (strcmp(cmd, "ESTOP") == 0) safety_.triggerEStop();
-        else if (strcmp(cmd, "CLEAR") == 0) safety_.clearFaults();
+        else if (strcmp(cmd, "CLEAR") == 0) {
+            safety_.clearFaults();
+#if ENABLE_LIFT
+            lift_.clearFault();
+#endif
+            serial_.sendStatus("Faults Cleared");
+        }
         else if (strcmp(cmd, "RESET") == 0) {
             odom_.reset();
             imu_.resetYaw();
@@ -367,12 +373,20 @@ void SystemManager::processExtendedCommands() {
         else if (strcmp(cmd, "LIFT:UP") == 0 || strcmp(cmd, "LIFT:CYCLE") == 0) lift_.triggerCycle();
         else if (strcmp(cmd, "LIFT:DN") == 0) lift_.lower();
         else if (strcmp(cmd, "LIFT:STOP") == 0) lift_.stop();
-        else if (strcmp(cmd, "MAGNET:ON") == 0) lift_.setAllMagnets(true);
-        else if (strcmp(cmd, "MAGNET:OFF") == 0) lift_.setAllMagnets(false);
+        else if (strcmp(cmd, "MAGNET:ON") == 0) {
+            lift_.setManualMagnetOverride(true);
+            lift_.setAllMagnets(true);
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState());
+        }
+        else if (strcmp(cmd, "MAGNET:OFF") == 0) {
+            lift_.setManualMagnetOverride(false);
+            lift_.setAllMagnets(false);
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState());
+        }
 #endif
 #if ENABLE_SENSORS
-        else if (strcmp(cmd, "BUZZ:ALERT") == 0) sensors_.setBuzzerPattern(BuzzerPattern::ALERT);
-        else if (strcmp(cmd, "BUZZ:SILENT") == 0) sensors_.setBuzzerPattern(BuzzerPattern::SILENT);
+        else if (strcmp(cmd, "BUZZ:ALERT") == 0 || strcmp(cmd, "BUZZ:ON") == 0) sensors_.setBuzzerPattern(BuzzerPattern::ALERT);
+        else if (strcmp(cmd, "BUZZ:SILENT") == 0 || strcmp(cmd, "BUZZ:OFF") == 0) sensors_.setBuzzerPattern(BuzzerPattern::SILENT);
 #endif
         else if (strncmp(cmd, "SERVO:", 6) == 0) {
             int angle = atoi(cmd + 6);

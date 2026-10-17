@@ -238,7 +238,7 @@ class TelemetryPanel(QGroupBox):
         grip_txt = grip_map.get(lift.gripper_state, lift.gripper_state)
         mag_txt = f"Active (Mask: 0x{lift.magnet_mask:02X})" if lift.magnet_mask else "OFF"
         us_dist = state.sensors.ultrasonic_distance_cm
-        us_txt = f"{us_dist} cm" if us_dist < 250 else "> 25 cm (Clear)"
+        us_txt = f"{us_dist} cm" if us_dist < 250 else "> 250 cm (Clear)"
         self.lbl_lift.setText(f"State: {lift.state_str} | Magnets: {mag_txt} | Gripper: {grip_txt} | US: {us_txt}")
 
         # Diagnostics

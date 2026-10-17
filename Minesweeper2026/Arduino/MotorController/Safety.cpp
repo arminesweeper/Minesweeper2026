@@ -67,10 +67,10 @@ SystemState SafetyMonitor::update(unsigned long last_command_time,
 }
 
 void SafetyMonitor::checkMotorStall(float right_vel, float left_vel, float right_pwm, float left_pwm) {
-    // Thresholds
-    const float STALL_PWM_THRESHOLD = 150.0f;
+    // Thresholds: Only consider stall near full power (PWM > 200) for sustained duration (6s)
+    const float STALL_PWM_THRESHOLD = 200.0f;
     const float STALL_VEL_THRESHOLD = 0.05f;
-    const unsigned long STALL_TIME_MS = 3000;
+    const unsigned long STALL_TIME_MS = 6000;
 
     // Right Wheel
     if (abs(right_pwm) > STALL_PWM_THRESHOLD && abs(right_vel) < STALL_VEL_THRESHOLD) {
@@ -78,6 +78,7 @@ void SafetyMonitor::checkMotorStall(float right_vel, float left_vel, float right
         else if (millis() - stall_timer_r_ > STALL_TIME_MS) faults_.motor_stall_r = true;
     } else {
         stall_timer_r_ = 0;
+        faults_.motor_stall_r = false;
     }
 
     // Left Wheel
@@ -86,6 +87,7 @@ void SafetyMonitor::checkMotorStall(float right_vel, float left_vel, float right
         else if (millis() - stall_timer_l_ > STALL_TIME_MS) faults_.motor_stall_l = true;
     } else {
         stall_timer_l_ = 0;
+        faults_.motor_stall_l = false;
     }
 }
 
@@ -162,8 +164,7 @@ bool SafetyMonitor::hasFault() const {
     return faults_.encoder_right ||
            faults_.encoder_left ||
            faults_.battery_critical || faults_.imu_fault || 
-           faults_.motor_stall_r || faults_.motor_stall_l ||
-           faults_.lift_fault;
+           faults_.motor_stall_r || faults_.motor_stall_l;
 }
 
 void SafetyMonitor::setEncoderFault(bool is_right, bool fault) {

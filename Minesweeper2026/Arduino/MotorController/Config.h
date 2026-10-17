@@ -89,7 +89,7 @@
  * 1 = Sample digital metal detector input on Pin 33.
  * 0 = Disable metal detector (treated as always false / disconnected for debugging).
  */
-#define ENABLE_METAL_DETECTOR 0
+#define ENABLE_METAL_DETECTOR 1
 
 /**
  * @brief Auxiliary hardware serial port (Serial2 on Pins 16/17).
@@ -283,11 +283,12 @@ constexpr float VOLTAGE_DIVIDER_RATIO = 3.3f;       /**< Resistor divider attenu
 
 namespace LiftConfig {
 constexpr uint8_t LIFT_PWM_SPEED = 200;            /**< Actuator motor drive speed (0-255 PWM) */
-constexpr unsigned long STALL_TIMEOUT_MS = 5000;   /**< Max motor run duration before aborting as stalled (ms) */
+constexpr unsigned long STALL_TIMEOUT_MS = 8000;   /**< Max motor run duration before aborting as stalled (ms) */
 constexpr unsigned long DEBOUNCE_MS = 20;          /**< Limit switch software debounce duration (ms) */
 constexpr unsigned long DROP_DWELL_MS = 300;       /**< Dwell time at top position with magnet OFF to drop mine (ms) */
 constexpr unsigned long MAGNET_ARM_TIMEOUT_MS = 5000;/**< Max time magnet stays armed in IDLE if mine not caught (prevents heating) */
 constexpr uint8_t NUM_MAGNETS = 5;                 /**< Number of virtual/physical electromagnet channels */
+constexpr bool LIFT_INVERT_DIR = false;            /**< Invert lift motor direction if UP/DOWN are swapped */
 } // namespace LiftConfig
 
 /* ============================================================================
@@ -302,7 +303,7 @@ constexpr uint16_t PROXIMITY_THRESHOLD = 500;    /**< Threshold (0-1023) for pro
 constexpr uint8_t NUM_PROXIMITY = 5;             /**< Total number of digital proximity sensors connected */
 constexpr uint8_t PROXIMITY_ACTIVE_STATE = HIGH; /**< Sensor logic level indicating obstacle detected (HIGH for Safi's IR array) */
 constexpr unsigned long METAL_DEBOUNCE_MS = 50;  /**< Minimum trigger confirmation time for metal detector (ms) */
-constexpr uint8_t METAL_ACTIVE_STATE = HIGH;     /**< Sensor logic level indicating metal is detected (HIGH for Safi's wiring) */
+constexpr uint8_t METAL_ACTIVE_STATE = HIGH;     /**< Sensor logic level indicating metal is detected */
 constexpr uint8_t ADC_SAMPLES = 1;               /**< Number of ADC conversions per read (1 = fast non-blocking) */
 constexpr uint16_t BUZZER_FREQ_HZ = 500;         /**< Audio tone frequency in Hz (used only if piezo is fitted) */
 
@@ -375,7 +376,7 @@ struct RobotParameters {
   float max_velocity;      /**< Maximum allowable wheel angular speed in rad/s (10.0 rad/s) */
   float max_acceleration;  /**< Maximum velocity ramp acceleration in rad/s² (15.0 rad/s²) */
   float max_deceleration;  /**< Maximum velocity ramp braking deceleration in rad/s² (20.0 rad/s²) */
-  float min_pwm_deadband;  /**< Minimum motor PWM threshold to overcome static friction (20.0) */
+  float min_pwm_deadband;  /**< Minimum motor PWM threshold to overcome static friction (35.0) */
   float max_pwm_slew_rate; /**< Maximum motor PWM step change rate per second (1000.0 PWM/s) */
 
   /* IMU Calibration Biases */
@@ -399,7 +400,7 @@ struct RobotParameters {
 
 namespace DefaultParams {
 constexpr uint32_t MAGIC_NUMBER = 0x4D494E45; /**< "MINE" signature */
-constexpr uint16_t VERSION = 3;               /**< Schema version 3 (No PCB cuts, soft-I2C IMU) */
+constexpr uint16_t VERSION = 4;               /**< Schema version 4 (Calibrated feedforward & deadband) */
 
 constexpr float WHEEL_DIAMETER_MM = 65.0f;                            /**< Outer tire diameter in millimeters */
 constexpr float WHEEL_RADIUS_M = (WHEEL_DIAMETER_MM / 1000.0f) / 2.0f;/**< Calibrated wheel radius (0.0325 m) */
@@ -410,17 +411,17 @@ constexpr float RAD_PER_PULSE = (2.0f * PI) / ENCODER_PPR;           /**< Radian
 constexpr float KP_RIGHT = 11.5f; /**< Factory default right wheel P gain */
 constexpr float KI_RIGHT = 7.5f;  /**< Factory default right wheel I gain */
 constexpr float KD_RIGHT = 0.1f;  /**< Factory default right wheel D gain */
-constexpr float FF_RIGHT = 0.5f;  /**< Factory default right wheel feedforward gain */
+constexpr float FF_RIGHT = 22.0f; /**< Factory default right wheel feedforward gain (22.0 PWM per rad/s) */
 
 constexpr float KP_LEFT = 12.8f;  /**< Factory default left wheel P gain */
 constexpr float KI_LEFT = 8.3f;   /**< Factory default left wheel I gain */
 constexpr float KD_LEFT = 0.1f;   /**< Factory default left wheel D gain */
-constexpr float FF_LEFT = 0.5f;   /**< Factory default left wheel feedforward gain */
+constexpr float FF_LEFT = 22.0f;  /**< Factory default left wheel feedforward gain (22.0 PWM per rad/s) */
 
 constexpr float MAX_VELOCITY = 10.0f;         /**< Default max velocity (rad/s) */
 constexpr float MAX_ACCELERATION = 15.0f;     /**< Default max acceleration (rad/s²) */
 constexpr float MAX_DECELERATION = 20.0f;     /**< Default max deceleration (rad/s²) */
-constexpr float MIN_PWM_DEADBAND = 20.0f;     /**< Overcomes motor static friction deadband */
+constexpr float MIN_PWM_DEADBAND = 35.0f;     /**< Overcomes motor static friction deadband */
 constexpr float MAX_PWM_SLEW_RATE = 1000.0f;  /**< Max PWM change rate per second */
 
 constexpr float GYRO_BIAS_X = 0.0f; /**< Factory default Gyro X bias */
