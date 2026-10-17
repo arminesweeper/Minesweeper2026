@@ -805,3 +805,86 @@
 2026-10-17 11:52:26 [    INFO] (MainThread) ControlStation.MainWindow: Application closing. Performing safe shutdown...
 2026-10-17 11:52:26 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop terminated cleanly.
 2026-10-17 11:52:26 [    INFO] (MainThread) ControlStation.AppController: ApplicationController shutdown complete.
+2026-10-17 14:17:59 [    INFO] (MainThread) ControlStation: Logging initialized. Output file: E:\Robotics_Team\Minesweeper\Minesweeper\Minesweeper2026\GUI\logs\minesweeper_station.log
+2026-10-17 14:17:59 [    INFO] (MainThread) ControlStation: Starting Minesweeper Control Station...
+2026-10-17 14:17:59 [    INFO] (MainThread) ControlStation.AppController: Serial background thread started.
+2026-10-17 14:17:59 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop started.
+2026-10-17 14:18:00 [    INFO] (MainThread) ControlStation: GUI window displayed. Entering Qt event loop.
+2026-10-17 14:18:37 [    INFO] (MainThread) ControlStation.MainWindow: Application closing. Performing safe shutdown...
+2026-10-17 14:18:37 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop terminated cleanly.
+2026-10-17 14:18:37 [    INFO] (MainThread) ControlStation.AppController: ApplicationController shutdown complete.
+2026-10-17 14:37:24 [    INFO] (MainThread) ControlStation: Logging initialized. Output file: E:\Robotics_Team\Minesweeper\Minesweeper\Minesweeper2026\GUI\logs\minesweeper_station.log
+2026-10-17 14:37:24 [    INFO] (MainThread) ControlStation: Starting Minesweeper Control Station...
+2026-10-17 14:37:24 [    INFO] (MainThread) ControlStation.AppController: Serial background thread started.
+2026-10-17 14:37:24 [    INFO] (Dummy-1) ControlStation.SerialWorker: SerialWorker loop started.
+2026-10-17 14:37:24 [    INFO] (MainThread) ControlStation: GUI window displayed. Entering Qt event loop.
+2026-10-17 14:37:31 [    INFO] (MainThread) ControlStation.SerialWorker: Opening serial port COM5 @ 115200 bps
+2026-10-17 14:37:31 [    INFO] (MainThread) ControlStation.SerialWorker: Serial port COM5 opened successfully.
+2026-10-17 14:37:35 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot ARMED.
+2026-10-17 14:37:36 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:37 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:38 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:38 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:38 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:38 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:39 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:39 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:40 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:41 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:41 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:42 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:42 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:42 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:43 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:44 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:48 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:49 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:49 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:49 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:49 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:50 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:50 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:50 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:50 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:50 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:50 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:50 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:51 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:51 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:51 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:51 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:51 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:51 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:52 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:52 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:37:52 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:39:10 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:39:11 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:39:11 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:04 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:05 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:05 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:11 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:11 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:11 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:12 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:13 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:13 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:14 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:14 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:16 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:18 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:20 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:22 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:40:27 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:41:26 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:41:27 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:41:28 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:41:28 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:41:28 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:41:28 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:41:28 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:41:29 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:41:29 [    INFO] (MainThread) ControlStation.CommandManager: COMMAND: Dispatched STOP.
+2026-10-17 14:42:07 [   ERROR] (Dummy-1) ControlStation.SerialWorker: Serial read error: ClearCommError failed (PermissionError(13, 'The device does not recognize the command.', None, 22))
+2026-10-17 14:42:07 [    INFO] (MainThread) ControlStation.SafetyManager: SAFETY: Robot DISARMED.

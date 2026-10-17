@@ -95,6 +95,12 @@ public:
     void stop();
 
     /**
+     * @brief Direct manual joystick control of gripper velocity
+     * @param g_vel Positive raises lift, negative lowers lift, ~0 stops
+     */
+    void handleVelocityCommand(float g_vel);
+
+    /**
      * @brief Set an individual electromagnet state.
      * @param index Magnet index [0-4]. Values >= NUM_MAGNETS are ignored.
      * @param on    true to energize, false to de-energize

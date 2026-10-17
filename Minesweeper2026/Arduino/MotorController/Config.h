@@ -61,7 +61,7 @@
  * 1 = Monitor command timeouts, battery thresholds, runaway conditions, and e-stop.
  * 0 = Bypass safety monitor state machine (forces robot state to RUNNING).
  */
-#define ENABLE_SAFETY_MONITOR 1
+#define ENABLE_SAFETY_MONITOR 0
 
 /**
  * @brief 6-DOF IMU attitude and motion tracking.
@@ -339,7 +339,7 @@ constexpr float ACCEL_SCALE = 16384.0f;         /**< Accelerometer sensitivity d
 namespace SerialConfig {
 constexpr unsigned long BAUD_RATE = 115200; /**< Serial communication baud rate (115200 bps) */
 constexpr size_t RX_BUFFER_SIZE = 32;       /**< Maximum byte length of inbound command buffer */
-constexpr size_t TX_BUFFER_SIZE = 64;       /**< Maximum byte length of outbound telemetry buffer */
+constexpr size_t TX_BUFFER_SIZE = 96;       /**< Maximum byte length of outbound telemetry buffer */
 constexpr size_t CMD_BUFFER_SIZE = 24;      /**< Maximum byte length of extended 'C' command string */
 } // namespace SerialConfig
 

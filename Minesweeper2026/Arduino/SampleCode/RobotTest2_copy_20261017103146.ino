@@ -91,16 +91,17 @@ constexpr float PWM_SLEW_RATE = 1000.0f;
 
 // -------------------- Sensors / siren / lift-gripper --------------------
 // Sensor pins below follow the supplied original FreeRTOS firmware.
-// Proximity sensors are DIGITAL outputs on D25, D23, D12 and D13.
-constexpr uint8_t PROXIMITY_COUNT = 4;
-constexpr uint8_t PROXIMITY_PINS[PROXIMITY_COUNT] = {25, 23, 12, 13};
-constexpr uint8_t PROXIMITY_ACTIVE_STATE = HIGH;  // Change to LOW if the sensors are active-low.
+constexpr uint8_t PROXIMITY_COUNT = 3;
+constexpr uint8_t PROXIMITY_PINS[PROXIMITY_COUNT] = {25, 23, 12};
+constexpr uint8_t PROXIMITY_ACTIVE_STATE = HIGH;  // Optical proximity sensors are active-high.
 constexpr uint8_t METAL_DETECTOR_PIN = 27;
+constexpr uint8_t METAL_DETECTOR_PIN_2 = 33;      // PCB shield metal detector header
 constexpr uint8_t METAL_ACTIVE_STATE = HIGH;      // Confirmed in original FreeRTOS firmware.
 constexpr uint32_t METAL_DEBOUNCE_MS = 50;
 constexpr uint8_t PROXIMITY_DEBOUNCE_SAMPLES = 2;  // updateSensors runs every 20 ms.
 
 constexpr uint8_t SIREN_PIN = 47;
+constexpr uint8_t SIREN_PIN_SHIELD = 37;          // PCB shield siren relay driver
 constexpr bool SIREN_ACTIVE_HIGH = true;
 constexpr uint8_t MAGNET_PIN = 38;                // Starts disabled; no ROS command wired here.
 
@@ -115,7 +116,7 @@ constexpr uint8_t LIMIT_SWITCH_ACTIVE_STATE = HIGH;
 constexpr bool TOP_LIMIT_MEANS_CLOSED = true;
 // This is the only hardware-direction assumption: confirm on a no-load test.
 constexpr bool LIFT_CLOSE_DIR_HIGH = true;
-constexpr uint8_t LIFT_PWM_PERCENT = 60;
+constexpr uint8_t LIFT_PWM_PERCENT = 80;
 constexpr uint32_t GRIPPER_COMMAND_TIMEOUT_MS = 500;
 constexpr float MAX_GRIPPER_COMMAND = 3.0f;
 
@@ -126,8 +127,8 @@ constexpr uint8_t US_TRIG_PIN = 43;
 constexpr uint8_t US_ECHO_PIN = 45;
 constexpr uint8_t US_AVG_N = 5;
 constexpr uint32_t US_SAMPLE_INTERVAL_MS = 60;
-constexpr uint32_t US_ECHO_TIMEOUT_US = 25000UL;
-constexpr float US_MAX_DISTANCE_CM = 25.0f;
+constexpr uint32_t US_ECHO_TIMEOUT_US = 30000UL;
+constexpr float US_MAX_DISTANCE_CM = 200.0f;
 constexpr float US_OBJECT_CHANGE_CM = 3.0f;
 constexpr uint8_t US_OBJECT_PERSISTENCE = 3;
 constexpr uint8_t US_BASELINE_SAMPLES = 5;
@@ -141,7 +142,7 @@ constexpr bool ULTRASONIC_RELEASE_VERIFY_ENABLED = false;
 constexpr float US_RELEASE_CLEAR_DISTANCE_CM = 20.0f;
 
 // Full-cycle lift parameters are intentionally separate from wheel PID settings.
-constexpr uint8_t CYCLE_LIFT_PWM_PERCENT = 35;
+constexpr uint8_t CYCLE_LIFT_PWM_PERCENT = 75;
 constexpr uint32_t MAGNET_SETTLE_MS = 200;
 constexpr uint32_t RELEASE_DWELL_MS = 750;
 constexpr uint32_t RELEASE_VERIFY_TIMEOUT_MS = 2500;
@@ -440,7 +441,8 @@ void updateSensors() {
     proximity_candidate_samples = 0;
   }
 
-  const bool raw_metal = (digitalRead(METAL_DETECTOR_PIN) == METAL_ACTIVE_STATE);
+  const bool raw_metal = (digitalRead(METAL_DETECTOR_PIN) == METAL_ACTIVE_STATE ||
+                          digitalRead(METAL_DETECTOR_PIN_2) == METAL_ACTIVE_STATE);
   if (raw_metal != metal_last_raw) {
     metal_last_raw = raw_metal;
     metal_last_change_ms = millis();
@@ -462,6 +464,7 @@ void updateAlarmOutputs() {
   siren_state = proximity_triggered || metal_detected || hold_active;
   const bool siren_level = SIREN_ACTIVE_HIGH ? siren_state : !siren_state;
   digitalWrite(SIREN_PIN, siren_level ? HIGH : LOW);
+  digitalWrite(SIREN_PIN_SHIELD, siren_level ? HIGH : LOW);
 
   if (BUZZER_PIN < 0) return;  // No physical buzzer pin was specified in either source.
   if (!siren_state) {
@@ -1206,10 +1209,13 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(ENCODER_L_A), leftEncoderISR, RISING);
 
   for (uint8_t i = 0; i < PROXIMITY_COUNT; ++i) pinMode(PROXIMITY_PINS[i], INPUT);
-  pinMode(METAL_DETECTOR_PIN, INPUT);  // Matches the original FreeRTOS firmware.
+  pinMode(METAL_DETECTOR_PIN, INPUT);
+  pinMode(METAL_DETECTOR_PIN_2, INPUT);
 
   pinMode(SIREN_PIN, OUTPUT);
+  pinMode(SIREN_PIN_SHIELD, OUTPUT);
   digitalWrite(SIREN_PIN, SIREN_ACTIVE_HIGH ? LOW : HIGH);
+  digitalWrite(SIREN_PIN_SHIELD, SIREN_ACTIVE_HIGH ? LOW : HIGH);
   pinMode(MAGNET_PIN, OUTPUT);
   digitalWrite(MAGNET_PIN, LOW);  // Keep electromagnet off at startup.
 

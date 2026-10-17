@@ -221,33 +221,21 @@ uint16_t Sensors::readProximityAveraged(uint8_t pin) const {
 
 uint16_t Sensors::measureUltrasonicCm() const {
     digitalWrite(Pins::US_TRIG, LOW);
-    delayMicroseconds(2);
+    delayMicroseconds(4);
     digitalWrite(Pins::US_TRIG, HIGH);
     delayMicroseconds(10);
     digitalWrite(Pins::US_TRIG, LOW);
 
-    // Wait for echo pin to go HIGH (start of reflection)
-    uint32_t t0 = micros();
-    while (!digitalRead(Pins::US_ECHO)) {
-        if (micros() - t0 > SensorConfig::US_START_TIMEOUT_US) {
-            return SensorConfig::US_MAX_DISTANCE_CM;
-        }
+    unsigned long duration = pulseIn(Pins::US_ECHO, HIGH, 30000UL); // 30 ms timeout (~500 cm)
+    if (duration == 0) {
+        return SensorConfig::US_MAX_DISTANCE_CM;
     }
 
-    // Wait for echo pin to go LOW (end of pulse)
-    uint32_t t1 = micros();
-    while (digitalRead(Pins::US_ECHO)) {
-        if (micros() - t1 > SensorConfig::US_MAX_ECHO_US) {
-            return SensorConfig::US_MAX_DISTANCE_CM;
-        }
-    }
-
-    uint32_t pulse_duration_us = micros() - t1;
-    uint32_t dist = pulse_duration_us / 58UL;
+    uint16_t dist = static_cast<uint16_t>(duration / 58UL);
     if (dist > SensorConfig::US_MAX_DISTANCE_CM) {
         dist = SensorConfig::US_MAX_DISTANCE_CM;
     }
-    return static_cast<uint16_t>(dist);
+    return dist;
 }
 
 /* ============================================================================

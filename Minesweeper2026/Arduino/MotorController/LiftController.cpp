@@ -53,11 +53,11 @@ void LiftController::begin() {
     /* Electromagnet / shared relay pin(s) */
 #if MAGNET_SHARED_RELAY
     pinMode(Pins::MAGNET_RELAY, OUTPUT);
-    digitalWrite(Pins::MAGNET_RELAY, LOW);
+    digitalWrite(Pins::MAGNET_RELAY, HIGH);
 #else
     for (uint8_t i = 0; i < LiftConfig::NUM_MAGNETS; ++i) {
         pinMode(Pins::MAGNET_PINS[i], OUTPUT);
-        digitalWrite(Pins::MAGNET_PINS[i], LOW);
+        digitalWrite(Pins::MAGNET_PINS[i], HIGH);
     }
 #endif
 
@@ -219,11 +219,40 @@ void LiftController::stop() {
     state_ = LiftState::IDLE;
 }
 
+void LiftController::handleVelocityCommand(float g_vel) {
+    if (g_vel > 0.1f) {
+        // Raise upward
+        if (state_ == LiftState::FAULT) clearFault();
+        setAllMagnets(true);
+        if (!isAtTop()) {
+            driveMotor(true);
+            motion_start_ms_ = millis();
+            state_ = LiftState::RAISING;
+        } else {
+            stopMotor();
+        }
+    } else if (g_vel < -0.1f) {
+        // Lower downward
+        if (state_ == LiftState::FAULT) clearFault();
+        setAllMagnets(true);
+        if (!isAtBottom()) {
+            driveMotor(false);
+            motion_start_ms_ = millis();
+            state_ = LiftState::LOWERING;
+        } else {
+            stopMotor();
+        }
+    } else {
+        // Neutral joystick: stop if not running an automated cycle
+        if (state_ == LiftState::RAISING || state_ == LiftState::LOWERING) {
+            stopMotor();
+            state_ = LiftState::IDLE;
+        }
+    }
+}
+
 void LiftController::clearFault() {
     stopMotor();
-    if (!manual_magnet_override_) {
-        setAllMagnets(false);
-    }
     state_ = LiftState::IDLE;
     manual_trigger_ = false;
 }
@@ -272,11 +301,13 @@ void LiftController::setAllMagnets(bool on) {
  * ============================================================================ */
 
 bool LiftController::isAtTop() const {
-    return top_switch_stable_ || (state_ == LiftState::DROPPING);
+    if (top_switch_stable_ && bot_switch_stable_) return false; // Inconsistent/floating
+    return top_switch_stable_;
 }
 
 bool LiftController::isAtBottom() const {
-    return bot_switch_stable_ || (state_ == LiftState::IDLE);
+    if (top_switch_stable_ && bot_switch_stable_) return false; // Inconsistent/floating
+    return bot_switch_stable_;
 }
 
 const char* LiftController::getStateString() const {

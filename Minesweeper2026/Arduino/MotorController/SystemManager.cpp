@@ -100,12 +100,8 @@ void SystemManager::update() {
         motion_.setLeftTarget(l_vel);
 
 #if ENABLE_LIFT
-        // If joystick or ROS commands gripper velocity (e.g. gp01.00 / gn01.00)
-        if (g_vel > 0.5f) {
-            lift_.triggerCycle();
-        } else if (g_vel < -0.5f) {
-            lift_.lower();
-        }
+        // Direct joystick velocity control of gripper (gp / gn from ROS teleop)
+        lift_.handleVelocityCommand(g_vel);
 #endif
 
         // If servo angle commanded (0 to 180 degrees)
@@ -158,6 +154,11 @@ void SystemManager::update() {
 
 void SystemManager::taskControlLoop() {
     float dt = Timing::CONTROL_INTERVAL_MS / 1000.0f;
+    
+    if (millis() - serial_.getLastCommandTime() > SafetyConfig::COMMAND_TIMEOUT_MS) {
+        motion_.setRightTarget(0.0f);
+        motion_.setLeftTarget(0.0f);
+    }
     
     float rad_per_pulse = EEPROMManager::getParams().rad_per_pulse;
     float right_meas_vel = encoderRight_.calculateVelocity(encoderRight_.getPulsesAndReset(), dt, rad_per_pulse);
@@ -282,9 +283,20 @@ void SystemManager::taskHighRateTelemetry() {
 #else
     char gripper_state = 'c';
 #endif
+#if ENABLE_SENSORS
+    bool prox_triggered = sensors_.isAnyProximityTriggered();
+    bool metal_detected = sensors_.isMetalDetected();
+#else
+    bool prox_triggered = false;
+    bool metal_detected = false;
+#endif
     serial_.sendTelemetry(motion_.getRightState().measured_velocity,
                           motion_.getLeftState().measured_velocity,
-                          gripper_state);
+                          prox_triggered,
+                          metal_detected,
+                          gripper_state,
+                          encoderRight_.getTotalPulses(),
+                          encoderLeft_.getTotalPulses());
 }
 
 void SystemManager::taskLowRateTelemetry() {

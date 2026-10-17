@@ -9,47 +9,33 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Safe non-blocking send helpers: only writes if TX buffer has enough room */
+/* Reliable send helpers */
 static void sendStringToPort(HardwareSerial& port, const char* str) {
-    size_t len = strlen(str) + 2;
-    if (port.availableForWrite() >= static_cast<int>(len)) {
-        port.println(str);
-    }
+    port.println(str);
 }
 
 static void sendPrefixAndCharToPort(HardwareSerial& port, const __FlashStringHelper* prefix, char c) {
-    if (port.availableForWrite() >= 6) {
-        port.print(prefix);
-        port.println(c);
-    }
+    port.print(prefix);
+    port.println(c);
 }
 
 static void sendPrefixAndStringToPort(HardwareSerial& port, const __FlashStringHelper* prefix, const char* str) {
-    size_t len = strlen(str) + 6;
-    if (port.availableForWrite() >= static_cast<int>(len)) {
-        port.print(prefix);
-        port.println(str);
-    }
+    port.print(prefix);
+    port.println(str);
 }
 
 static void sendLiftStateToPort(HardwareSerial& port, const char* state_str, uint8_t magnet_mask) {
-    size_t len = strlen(state_str) + 8;
-    if (port.availableForWrite() >= static_cast<int>(len)) {
-        port.print(F("L:"));
-        port.print(state_str);
-        port.print(F(","));
-        port.println(magnet_mask, HEX);
-    }
+    port.print(F("L:"));
+    port.print(state_str);
+    port.print(F(","));
+    port.println(magnet_mask, HEX);
 }
 
 static void sendErrorToPort(HardwareSerial& port, uint8_t error_code, const char* message) {
-    size_t len = strlen(message) + 8;
-    if (port.availableForWrite() >= static_cast<int>(len)) {
-        port.print(F("E:"));
-        port.print(error_code);
-        port.print(F(":"));
-        port.println(message);
-    }
+    port.print(F("E:"));
+    port.print(error_code);
+    port.print(F(":"));
+    port.println(message);
 }
 
 static void broadcastString(const char* str) {
@@ -60,16 +46,10 @@ static void broadcastString(const char* str) {
 }
 
 SerialProtocol::SerialProtocol()
-    : parser_state_(State::WAITING_PREFIX),
-      rx_index_(0),
-      last_command_time_(0),
-      last_rx_byte_time_(0),
-      active_stream_(nullptr),
-      cmd_index_(0),
+    : last_command_time_(0),
+      token_index_(0),
+      new_command_(false),
       cmd_ready_(false),
-      current_motor_(' '),
-      current_sign_('p'),
-      value_index_(0),
       pending_right_vel_(0.0f),
       pending_left_vel_(0.0f),
       pending_gripper_vel_(0.0f),
@@ -78,8 +58,7 @@ SerialProtocol::SerialProtocol()
       left_received_(false),
       gripper_received_(false),
       servo_received_(false) {
-    memset(rx_buffer_, 0, sizeof(rx_buffer_));
-    memset(value_buffer_, 0, sizeof(value_buffer_));
+    memset(token_buffer_, 0, sizeof(token_buffer_));
     memset(cmd_buffer_, 0, sizeof(cmd_buffer_));
 }
 
@@ -89,171 +68,165 @@ void SerialProtocol::begin() {
     Serial2.begin(SerialConfig::BAUD_RATE);
 #endif
     last_command_time_ = millis();
-    last_rx_byte_time_ = millis();
-    active_stream_ = nullptr;
+}
+
+void SerialProtocol::readStream(Stream& port) {
+    while (port.available() > 0) {
+        char c = static_cast<char>(port.read());
+
+        if (c == ',' || c == '\n' || c == '\r') {
+            if (token_index_ > 0) {
+                token_buffer_[token_index_] = '\0';
+                processToken(token_buffer_);
+                token_index_ = 0;
+            }
+            continue;
+        }
+
+        if (token_index_ < sizeof(token_buffer_) - 1) {
+            token_buffer_[token_index_++] = c;
+        } else {
+            token_index_ = 0;
+        }
+    }
+}
+
+void SerialProtocol::processToken(const char* token) {
+    if (token[0] == '\0') return;
+
+    // Direct wheel velocity tokens from ROS or joysticks: rp1.00, rn0.50, lp1.00, ln0.50
+    if ((token[0] == 'r' || token[0] == 'l') && (token[1] == 'p' || token[1] == 'n')) {
+        float val = static_cast<float>(atof(token + 2));
+        if (token[1] == 'n') val = -val;
+        if (token[0] == 'r') {
+            pending_right_vel_ = val;
+            right_received_ = true;
+        } else {
+            pending_left_vel_ = val;
+            left_received_ = true;
+        }
+        last_command_time_ = millis();
+        new_command_ = true;
+        return;
+    }
+
+    // Camera servo direction / velocity token: sp, sn
+    if (token[0] == 's' && (token[1] == 'p' || token[1] == 'n')) {
+        float val = static_cast<float>(atof(token + 2));
+        if (val >= 0.01f) {
+            pending_servo_angle_ = (token[1] == 'p') ? val : -val;
+            servo_received_ = true;
+            new_command_ = true;
+        }
+        last_command_time_ = millis();
+        return;
+    }
+
+    // Gripper velocity token from ROS: gp, gn
+    if (token[0] == 'g' && (token[1] == 'p' || token[1] == 'n')) {
+        float val = static_cast<float>(atof(token + 2));
+        if (token[1] == 'n') val = -val;
+        pending_gripper_vel_ = val;
+        gripper_received_ = true;
+        last_command_time_ = millis();
+        new_command_ = true;
+        return;
+    }
+
+    // Additive tokens matching RobotTest2
+    if (strcmp(token, "cycle:1") == 0) {
+        pending_gripper_vel_ = 1.0f; // Triggers cycle in SystemManager
+        gripper_received_ = true;
+        last_command_time_ = millis();
+        new_command_ = true;
+        return;
+    }
+
+    if (strncmp(token, "CSERVO:", 7) == 0) {
+        pending_servo_angle_ = static_cast<float>(atof(token + 7));
+        servo_received_ = true;
+        last_command_time_ = millis();
+        new_command_ = true;
+        return;
+    }
+
+    if (strncmp(token, "SERVO:", 6) == 0) {
+        pending_servo_angle_ = static_cast<float>(atof(token + 6));
+        servo_received_ = true;
+        last_command_time_ = millis();
+        new_command_ = true;
+        return;
+    }
+
+    // Direct single-letter drive commands (w, a, s, d, x)
+    if (strlen(token) == 1) {
+        const float v = 2.0f;
+        switch (token[0]) {
+            case 'w': case 'W':
+                pending_right_vel_ = +v; pending_left_vel_ = +v;
+                right_received_ = true; left_received_ = true;
+                last_command_time_ = millis(); new_command_ = true;
+                break;
+            case 's': case 'S':
+                pending_right_vel_ = -v; pending_left_vel_ = -v;
+                right_received_ = true; left_received_ = true;
+                last_command_time_ = millis(); new_command_ = true;
+                break;
+            case 'a': case 'A':
+                pending_right_vel_ = +v; pending_left_vel_ = -v;
+                right_received_ = true; left_received_ = true;
+                last_command_time_ = millis(); new_command_ = true;
+                break;
+            case 'd': case 'D':
+                pending_right_vel_ = -v; pending_left_vel_ = +v;
+                right_received_ = true; left_received_ = true;
+                last_command_time_ = millis(); new_command_ = true;
+                break;
+            case 'x': case 'X':
+                pending_right_vel_ = 0.0f; pending_left_vel_ = 0.0f;
+                right_received_ = true; left_received_ = true;
+                last_command_time_ = millis(); new_command_ = true;
+                break;
+            default:
+                break;
+        }
+        return;
+    }
+
+    // Extended command starting with 'C' (e.g. CESTOP, CCLEAR, etc.)
+    if (token[0] == 'C') {
+        strlcpy(cmd_buffer_, token + 1, sizeof(cmd_buffer_));
+        cmd_ready_ = true;
+        last_command_time_ = millis();
+        return;
+    }
 }
 
 bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& gripper_vel, float& servo_angle) {
-    bool packet_complete = false;
-    unsigned long now = millis();
-
-    // Reset stream latch if more than 100 ms elapsed between bytes
-    if (active_stream_ != nullptr && (now - last_rx_byte_time_ > 100)) {
-        resetParser();
-        active_stream_ = nullptr;
-    }
-
-    // Latch active stream so bytes from Serial and Serial2 never interleave
-    if (active_stream_ == nullptr) {
-        if (Serial.available() > 0) active_stream_ = &Serial;
+    new_command_ = false;
+    readStream(Serial);
 #if ENABLE_SERIAL2
-        else if (Serial2.available() > 0) active_stream_ = &Serial2;
+    readStream(Serial2);
 #endif
-    }
 
-    while (active_stream_ != nullptr && active_stream_->available() > 0 && !packet_complete) {
-        char c = active_stream_->read();
-        last_rx_byte_time_ = millis();
-
-        switch (parser_state_) {
-        case State::WAITING_PREFIX:
-            if (c == '\n' || c == '\r') {
-                if (right_received_ && left_received_) {
-                    right_vel = pending_right_vel_;
-                    left_vel = pending_left_vel_;
-                    if (gripper_received_) gripper_vel = pending_gripper_vel_;
-                    if (servo_received_) servo_angle = pending_servo_angle_;
-                    else servo_angle = -1.0f;
-                    processCompletePacket();
-                    packet_complete = true;
-                    active_stream_ = nullptr;
-                } else {
-                    resetParser();
-                    active_stream_ = nullptr;
-                }
-            } else if (c == 'r' || c == 'l' || c == 'g' || c == 's') {
-                // If a new 'r' arrives while a full packet is already parsed (streamed without newline)
-                if (c == 'r' && right_received_ && left_received_) {
-                    right_vel = pending_right_vel_;
-                    left_vel = pending_left_vel_;
-                    if (gripper_received_) gripper_vel = pending_gripper_vel_;
-                    if (servo_received_) servo_angle = pending_servo_angle_;
-                    else servo_angle = -1.0f;
-                    processCompletePacket();
-                    packet_complete = true;
-                }
-                current_motor_ = c;
-                parser_state_ = State::READING_DIRECTION;
-            } else if (c == 'C') {
-                cmd_index_ = 0;
-                parser_state_ = State::READING_COMMAND;
-            }
-            break;
-
-        case State::READING_DIRECTION:
-            if (c == 'p' || c == 'n') {
-                current_sign_ = c;
-                resetValueBuffer();
-                parser_state_ = State::READING_VALUE;
-            } else {
-                resetParser();
-                active_stream_ = nullptr;
-            }
-            break;
-
-        case State::READING_VALUE:
-            if (c == ',' || c == '\n' || c == '\r') {
-                float velocity = static_cast<float>(atof(value_buffer_));
-                if (current_sign_ == 'n') {
-                    velocity = -velocity;
-                }
-
-                if (current_motor_ == 'r') {
-                    pending_right_vel_ = velocity;
-                    right_received_ = true;
-                } else if (current_motor_ == 'l') {
-                    pending_left_vel_ = velocity;
-                    left_received_ = true;
-                } else if (current_motor_ == 'g') {
-                    pending_gripper_vel_ = velocity;
-                    gripper_received_ = true;
-                } else if (current_motor_ == 's') {
-                    pending_servo_angle_ = velocity;
-                    servo_received_ = true;
-                }
-
-                // If newline or end of packet reached
-                if (c == '\n' || c == '\r') {
-                    if (right_received_ && left_received_) {
-                        right_vel = pending_right_vel_;
-                        left_vel = pending_left_vel_;
-                        if (gripper_received_) gripper_vel = pending_gripper_vel_;
-                        if (servo_received_) servo_angle = pending_servo_angle_;
-                        else servo_angle = -1.0f;
-                        processCompletePacket();
-                        packet_complete = true;
-                        active_stream_ = nullptr;
-                    } else {
-                        resetParser();
-                        active_stream_ = nullptr;
-                    }
-                } else {
-                    // Delimiter is comma ','
-                    // If gripper or servo was already received, or if both wheels are ready and
-                    // the stream buffer is empty after brief wait, complete packet
-                    if (right_received_ && left_received_ && (gripper_received_ || servo_received_)) {
-                        right_vel = pending_right_vel_;
-                        left_vel = pending_left_vel_;
-                        gripper_vel = pending_gripper_vel_;
-                        if (servo_received_) servo_angle = pending_servo_angle_;
-                        else servo_angle = -1.0f;
-                        processCompletePacket();
-                        packet_complete = true;
-                        active_stream_ = nullptr;
-                    } else {
-                        parser_state_ = State::WAITING_PREFIX;
-                    }
-                }
-            } else if ((c >= '0' && c <= '9') || c == '.') {
-                if (value_index_ < sizeof(value_buffer_) - 1) {
-                    value_buffer_[value_index_++] = c;
-                    value_buffer_[value_index_] = '\0';
-                } else {
-                    resetParser();
-                    active_stream_ = nullptr;
-                }
-            } else {
-                resetParser();
-                active_stream_ = nullptr;
-            }
-            break;
-
-        case State::READING_COMMAND:
-            if (c == '\n' || c == '\r') {
-                if (cmd_index_ > 0) {
-                    cmd_buffer_[cmd_index_] = '\0';
-                    cmd_ready_ = true;
-                }
-                resetParser();
-                active_stream_ = nullptr;
-            } else {
-                if (cmd_index_ < SerialConfig::CMD_BUFFER_SIZE - 1) {
-                    cmd_buffer_[cmd_index_++] = c;
-                } else {
-                    resetParser();
-                    active_stream_ = nullptr;
-                }
-            }
-            break;
-
-        case State::COMPLETE:
-            resetParser();
-            active_stream_ = nullptr;
-            break;
+    if (new_command_ || right_received_ || left_received_) {
+        right_vel = pending_right_vel_;
+        left_vel = pending_left_vel_;
+        if (gripper_received_) {
+            gripper_vel = pending_gripper_vel_;
+            gripper_received_ = false;
         }
+        if (servo_received_) {
+            servo_angle = pending_servo_angle_;
+            servo_received_ = false;
+        } else {
+            servo_angle = -1.0f;
+        }
+        right_received_ = false;
+        left_received_ = false;
+        return true;
     }
-
-    return packet_complete;
+    return false;
 }
 
 bool SerialProtocol::getExtendedCommand(char* cmd_buf, size_t buf_size) {
@@ -265,36 +238,12 @@ bool SerialProtocol::getExtendedCommand(char* cmd_buf, size_t buf_size) {
     return false;
 }
 
-void SerialProtocol::processCompletePacket() {
-    last_command_time_ = millis();
-    parser_state_ = State::WAITING_PREFIX;
-    right_received_ = false;
-    left_received_ = false;
-    gripper_received_ = false;
-    servo_received_ = false;
-    pending_servo_angle_ = -1.0f;
-}
-
-void SerialProtocol::resetParser() {
-    parser_state_ = State::WAITING_PREFIX;
-    rx_index_ = 0;
-    right_received_ = false;
-    left_received_ = false;
-    gripper_received_ = false;
-    servo_received_ = false;
-    pending_servo_angle_ = -1.0f;
-}
-
-void SerialProtocol::resetValueBuffer() {
-    value_index_ = 0;
-    value_buffer_[0] = '\0';
-}
-
-void SerialProtocol::sendTelemetry(float right_vel, float left_vel, char gripper_state) const {
+void SerialProtocol::sendTelemetry(float right_vel, float left_vel, bool proximity, bool metal,
+                                   char gripper_state, int32_t enc_right, int32_t enc_left) const {
     char buffer[SerialConfig::TX_BUFFER_SIZE];
 
-    char r_sign = (right_vel >= 0) ? 'p' : 'n';
-    char l_sign = (left_vel >= 0)  ? 'p' : 'n';
+    char r_sign = (right_vel >= 0.0f) ? 'p' : 'n';
+    char l_sign = (left_vel >= 0.0f)  ? 'p' : 'n';
 
     char r_val[10], l_val[10];
     dtostrf(fabsf(right_vel), 4, 2, r_val);
@@ -306,8 +255,12 @@ void SerialProtocol::sendTelemetry(float right_vel, float left_vel, char gripper
     char* l_p = l_val;
     while (*l_p == ' ') l_p++;
 
-    // Format: rp0.00,lp0.00,go,
-    snprintf(buffer, sizeof(buffer), "r%c%s,l%c%s,g%c,", r_sign, r_p, l_sign, l_p, gripper_state);
+    char p_char = proximity ? '1' : '0';
+    char m_char = metal ? '1' : '0';
+
+    // Format: rp0.00,lp0.00,p0,m0,gc,er:0,el:0,
+    snprintf(buffer, sizeof(buffer), "r%c%s,l%c%s,p%c,m%c,g%c,er:%ld,el:%ld,",
+             r_sign, r_p, l_sign, l_p, p_char, m_char, gripper_state, (long)enc_right, (long)enc_left);
     broadcastString(buffer);
 }
 

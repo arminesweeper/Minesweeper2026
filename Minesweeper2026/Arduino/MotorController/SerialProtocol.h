@@ -65,29 +65,18 @@ public:
 #endif
 
 private:
-    State parser_state_;
-    char rx_buffer_[SerialConfig::RX_BUFFER_SIZE];
-    size_t rx_index_;
     unsigned long last_command_time_;
-    unsigned long last_rx_byte_time_;
-    Stream* active_stream_;
 
     // Token-based parser (matches RobotTest2)
-    char token_buffer_[32];
-    size_t token_index_;
+    char token_buffer_[64];
+    uint8_t token_index_;
+    bool new_command_;
 
     // Extended command state
     char cmd_buffer_[SerialConfig::CMD_BUFFER_SIZE];
-    size_t cmd_index_;
     bool cmd_ready_;
 
-    // Temporary parsing storage
-    char current_motor_; // 'r', 'l', 'g', 's'
-    char current_sign_;
-    char value_buffer_[8];
-    size_t value_index_;
-
-    // Pending command values
+    // Target command values
     float pending_right_vel_;
     float pending_left_vel_;
     float pending_gripper_vel_;
@@ -97,10 +86,8 @@ private:
     bool gripper_received_;
     bool servo_received_;
 
-    void processToken(const char* token, float& right_vel, float& left_vel, float& gripper_vel, float& servo_angle);
-    void resetParser();
-    void resetValueBuffer();
-    void processCompletePacket();
+    void readStream(Stream& port);
+    void processToken(const char* token);
 };
 
 #endif // SERIALPROTOCOL_H
