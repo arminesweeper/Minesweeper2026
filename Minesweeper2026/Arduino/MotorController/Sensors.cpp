@@ -235,7 +235,7 @@ void Sensors::setBuzzerPattern(BuzzerPattern pattern) {
 
     if (pattern == BuzzerPattern::SILENT) {
         alertOff();
-    } else if (pattern == BuzzerPattern::MINE_DETECT) {
+    } else if (pattern == BuzzerPattern::MINE_DETECT || pattern == BuzzerPattern::ALERT || pattern == BuzzerPattern::ALARM) {
         alertOn(SensorConfig::BUZZER_FREQ_HZ);
         buzzer_on_ = true;
     }
@@ -270,6 +270,12 @@ void Sensors::updateBuzzer() {
         break;
 
     case BuzzerPattern::ALERT: {
+#if BUZZER_IS_SIREN_RELAY
+        if (!buzzer_on_) {
+            alertOn(SensorConfig::BUZZER_FREQ_HZ);
+            buzzer_on_ = true;
+        }
+#else
         constexpr unsigned long ALERT_PERIOD = 200;
         if (elapsed >= ALERT_PERIOD) {
             buzzer_on_ = !buzzer_on_;
@@ -280,10 +286,17 @@ void Sensors::updateBuzzer() {
             }
             buzzer_toggle_ms_ = now;
         }
+#endif
         break;
     }
 
     case BuzzerPattern::ALARM: {
+#if BUZZER_IS_SIREN_RELAY
+        if (!buzzer_on_) {
+            alertOn(SensorConfig::BUZZER_FREQ_HZ);
+            buzzer_on_ = true;
+        }
+#else
         constexpr unsigned long ALARM_PERIOD = 100;
         if (elapsed >= ALARM_PERIOD) {
             buzzer_on_ = !buzzer_on_;
@@ -294,6 +307,7 @@ void Sensors::updateBuzzer() {
             }
             buzzer_toggle_ms_ = now;
         }
+#endif
         break;
     }
 
