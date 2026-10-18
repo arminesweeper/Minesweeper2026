@@ -126,10 +126,50 @@ void LiftController::update(bool object_detected, bool metal_detected) {
 
     switch (state_) {
     case LiftState::IDLE:
+#if ENABLE_LIFT_AUTO_CYCLES
+        /* Automated cycle trigger: when an object enters detection range or manual trigger */
+        if (manual_trigger_ || (object_detected && !sensor_prev_state_)) {
+            manual_trigger_ = false;
+            is_auto_cycling_ = true;
+            manual_active_ = false;
+            setAllMagnets(true);
+            driveMotor(true);
+            motion_start_ms_ = now;
+            state_ = LiftState::RAISING;
+        } else {
+            stopMotor();
+        }
+#else
         stopMotor();
+#endif
         break;
 
     case LiftState::RAISING:
+#if ENABLE_LIFT_AUTO_CYCLES
+        if (is_auto_cycling_) {
+#if ENABLE_LIMIT_SWITCHES
+            if (raw_top || at_top || (now - motion_start_ms_ > LiftConfig::STALL_TIMEOUT_MS)) {
+                stopMotor();
+                if (!manual_magnet_override_) {
+                    setAllMagnets(false);
+                }
+                dwell_start_ms_ = now;
+                state_ = LiftState::DROPPING;
+                break;
+            }
+#else
+            if (now - motion_start_ms_ > LiftConfig::STALL_TIMEOUT_MS) {
+                stopMotor();
+                if (!manual_magnet_override_) {
+                    setAllMagnets(false);
+                }
+                dwell_start_ms_ = now;
+                state_ = LiftState::DROPPING;
+                break;
+            }
+#endif
+        }
+#endif
 #if ENABLE_LIMIT_SWITCHES
         if (raw_top || at_top) {
             stop();
@@ -142,7 +182,50 @@ void LiftController::update(bool object_detected, bool metal_detected) {
         }
         break;
 
+    case LiftState::DROPPING:
+#if ENABLE_LIFT_AUTO_CYCLES
+        if (is_auto_cycling_) {
+            if (now - dwell_start_ms_ >= LiftConfig::DROP_DWELL_MS) {
+                if (!manual_magnet_override_) {
+                    setAllMagnets(false);
+                }
+                driveMotor(false);
+                motion_start_ms_ = now;
+                state_ = LiftState::LOWERING;
+            }
+            break;
+        }
+#endif
+        stopMotor();
+        state_ = LiftState::IDLE;
+        break;
+
     case LiftState::LOWERING:
+#if ENABLE_LIFT_AUTO_CYCLES
+        if (is_auto_cycling_) {
+#if ENABLE_LIMIT_SWITCHES
+            if (raw_bottom || at_bottom || (now - motion_start_ms_ > LiftConfig::STALL_TIMEOUT_MS)) {
+                stopMotor();
+                if (!manual_magnet_override_) {
+                    setAllMagnets(false);
+                }
+                is_auto_cycling_ = false;
+                state_ = LiftState::IDLE;
+                break;
+            }
+#else
+            if (now - motion_start_ms_ > LiftConfig::STALL_TIMEOUT_MS) {
+                stopMotor();
+                if (!manual_magnet_override_) {
+                    setAllMagnets(false);
+                }
+                is_auto_cycling_ = false;
+                state_ = LiftState::IDLE;
+                break;
+            }
+#endif
+        }
+#endif
 #if ENABLE_LIMIT_SWITCHES
         if (raw_bottom || at_bottom) {
             stop();
@@ -155,7 +238,6 @@ void LiftController::update(bool object_detected, bool metal_detected) {
         }
         break;
 
-    case LiftState::DROPPING:
     case LiftState::FAULT:
         stopMotor();
         state_ = LiftState::IDLE;
@@ -168,7 +250,20 @@ void LiftController::update(bool object_detected, bool metal_detected) {
  * ============================================================================ */
 
 void LiftController::triggerCycle() {
-    raise(); // In manual mode, triggerCycle drives lift UP
+#if ENABLE_LIFT_AUTO_CYCLES
+    clearFault();
+    manual_trigger_ = true;
+    is_auto_cycling_ = true;
+    manual_active_ = false;
+    setAllMagnets(true);
+    driveMotor(true);
+    motion_start_ms_ = millis();
+    state_ = LiftState::RAISING;
+#else
+    // All automated cycles are disabled in Config.h (ENABLE_LIFT_AUTO_CYCLES = 0)
+    // Gripper is in pure manual mode; ignore automatic cycle requests
+    stop();
+#endif
 }
 
 void LiftController::raise() {
@@ -291,6 +386,7 @@ const char* LiftController::getStateString() const {
  * ============================================================================ */
 
 void LiftController::driveMotor(bool up) {
+#if ENABLE_LIMIT_SWITCHES
     // Safety check: refuse to drive into an already-active limit switch
     if (up && (isSwitchRawActive(Pins::LIMIT_SW_TOP) || top_switch_stable_)) {
         stopMotor();
@@ -300,6 +396,7 @@ void LiftController::driveMotor(bool up) {
         stopMotor();
         return;
     }
+#endif
 
     bool dir = LiftConfig::LIFT_INVERT_DIR ? !up : up;
     digitalWrite(Pins::LIFT_DIR, dir ? HIGH : LOW);
@@ -321,6 +418,7 @@ void LiftController::applyPWM() {
         return;
     }
 
+#if ENABLE_LIMIT_SWITCHES
     // Instant safety cutoff during movement
     if (motor_dir_up_ && isSwitchRawActive(Pins::LIMIT_SW_TOP)) {
         stopMotor();
@@ -330,6 +428,7 @@ void LiftController::applyPWM() {
         stopMotor();
         return;
     }
+#endif
 
     // Hardware PWM for pins supported by AVR hardware timers (e.g., Pin 7 on Timer 4 OC4B)
     if (digitalPinToTimer(Pins::LIFT_PWM) != NOT_ON_TIMER) {

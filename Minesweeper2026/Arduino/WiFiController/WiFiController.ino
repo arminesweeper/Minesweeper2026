@@ -365,6 +365,80 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     }
     .btn-estop:active { transform: scale(0.97); }
 
+    /* Manual Lift Buttons */
+    .btn-lift-up {
+      padding: 14px 10px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(0,240,255,0.2), rgba(0,102,170,0.3));
+      border: 1px solid rgba(0,240,255,0.5);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .btn-lift-up:active, .btn-lift-up.pressed {
+      background: var(--cyan);
+      color: #000;
+      box-shadow: 0 0 16px var(--cyan-glow);
+      transform: scale(0.97);
+    }
+    .btn-lift-dn {
+      padding: 14px 10px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(0,240,255,0.12), rgba(0,102,170,0.2));
+      border: 1px solid rgba(0,240,255,0.3);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .btn-lift-dn:active, .btn-lift-dn.pressed {
+      background: var(--cyan);
+      color: #000;
+      box-shadow: 0 0 16px var(--cyan-glow);
+      transform: scale(0.97);
+    }
+    .btn-lift-stop {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(255,42,95,0.25), rgba(180,20,50,0.35));
+      border: 1px solid rgba(255,42,95,0.6);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .btn-lift-stop:active, .btn-lift-stop.pressed {
+      background: var(--red);
+      color: #fff;
+      box-shadow: 0 0 16px rgba(255,42,95,0.6);
+      transform: scale(0.97);
+    }
+
     /* Proximity Bars */
     .prox-list {
       display: flex;
@@ -571,8 +645,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       <span>⚡</span>
       <span>METAL DETECTED — TARGET UNDER COILS!</span>
     </div>
-    <button class="btn-act" style="background:#fff; color:#000; border:none; padding:8px 16px; font-weight:900;" onclick="triggerHeroCycle()">
-      CATCH NOW
+    <button class="btn-act" style="background:#fff; color:#000; border:none; padding:8px 16px; font-weight:900;" onclick="sendCmd('magnet/on', 'Magnets Armed')">
+      ARM MAGNETS
     </button>
   </div>
 
@@ -582,7 +656,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       <span>🎯</span>
       <span>TARGET IN GRIPPER RANGE (&le; 15 cm)</span>
     </div>
-    <button class="btn-act emerald" style="padding:6px 14px;" onclick="triggerHeroCycle()">CYCLE LIFT</button>
+    <button class="btn-act emerald" style="padding:6px 14px;" onclick="sendCmd('magnet/on', 'Magnets ON')">ARM MAGNETS</button>
   </div>
 
   <!-- 3-Column Dashboard Grid -->
@@ -622,34 +696,47 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       </div>
     </div>
 
-    <!-- Column 2: Mine Catching & Mechanism -->
+    <!-- Column 2: Mine Catching & Mechanism (Fully Manual) -->
     <div class="card">
       <div class="card-title">
-        <span>Mine Retrieval Mechanism</span>
+        <span>Gripper Mechanism</span>
         <span id="lift-state-badge" style="color:var(--emerald); font-weight:700;">IDLE</span>
       </div>
 
-      <!-- Hero Catch Mine Button -->
-      <button class="btn-hero-cycle" id="heroCycleBtn" onclick="triggerHeroCycle()">
-        <span>🧲</span>
-        <span>CATCH MINE (CYCLE)</span>
-      </button>
-
-      <!-- Limit Switches Status -->
-      <div style="background:rgba(0,0,0,0.35); padding:10px 14px; border-radius:12px; border:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; gap:10px;">
-        <div style="flex:1; display:flex; align-items:center; gap:8px;">
-          <span id="top-sw-dot" style="width:10px; height:10px; border-radius:50%; background:#3a4454; transition:all 0.2s;"></span>
-          <div>
-            <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">Top Limit (D51)</div>
-            <div id="top-sw-text" style="font-size:12px; font-weight:800; color:var(--text-dim);">RELEASED</div>
-          </div>
+      <!-- Manual Gripper Control Panel -->
+      <div style="background:rgba(0,0,0,0.35); padding:14px; border-radius:14px; border:1px solid rgba(0,240,255,0.15); display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:11px; font-weight:800; color:var(--cyan); text-transform:uppercase; letter-spacing:0.5px;">Manual Lift Motor</span>
+          <span style="font-size:10px; padding:2px 8px; border-radius:6px; background:rgba(0,255,136,0.12); color:var(--emerald); font-weight:700;">DIRECT DRIVE</span>
         </div>
-        <div style="flex:1; display:flex; align-items:center; gap:8px;">
-          <span id="bot-sw-dot" style="width:10px; height:10px; border-radius:50%; background:#3a4454; transition:all 0.2s;"></span>
-          <div>
-            <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">Bottom Limit (D53)</div>
-            <div id="bot-sw-text" style="font-size:12px; font-weight:800; color:var(--text-dim);">RELEASED</div>
-          </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <button class="btn-lift-up" id="btnLiftUp">
+            <span style="font-size:20px;">▲</span>
+            <span>HOLD TO RAISE</span>
+          </button>
+          <button class="btn-lift-dn" id="btnLiftDn">
+            <span style="font-size:20px;">▼</span>
+            <span>HOLD TO LOWER</span>
+          </button>
+        </div>
+        <button class="btn-lift-stop" id="btnLiftStop" onclick="sendCmd('lift/stop', 'Lift Stopped')">
+          <span>■ STOP LIFT MOTOR</span>
+        </button>
+        <div style="font-size:10px; color:var(--text-dim); text-align:center;">
+          Press & hold to drive • Release or click Stop to halt immediately
+        </div>
+      </div>
+
+      <!-- Limit Switches Status (Bypassed) -->
+      <div style="background:rgba(0,0,0,0.25); padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span id="top-sw-dot" style="width:8px; height:8px; border-radius:50%; background:#3a4454; transition:all 0.2s;"></span>
+          <span style="font-size:10px; color:var(--text-dim);">Top D51: <b id="top-sw-text" style="color:#aaa;">REL</b></span>
+        </div>
+        <div style="font-size:9px; color:var(--amber); text-transform:uppercase; font-weight:700;">Switches Bypassed</div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span id="bot-sw-dot" style="width:8px; height:8px; border-radius:50%; background:#3a4454; transition:all 0.2s;"></span>
+          <span style="font-size:10px; color:var(--text-dim);">Bot D53: <b id="bot-sw-text" style="color:#aaa;">REL</b></span>
         </div>
       </div>
 
@@ -658,19 +745,12 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div>
           <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Electromagnets</div>
           <div id="mag-status-text" style="font-size:14px; font-weight:800; color:var(--text-dim);">OFF</div>
+          <div style="font-size:9px; color:var(--text-dim); margin-top:2px;">Auto-energizes when mine detected</div>
         </div>
         <div style="display:flex; gap:6px;">
-          <button class="btn-act emerald" style="padding:8px 12px;" onclick="sendCmd('magnet/on', 'Magnets ON')">ON</button>
-          <button class="btn-act red" style="padding:8px 12px;" onclick="sendCmd('magnet/off', 'Magnets OFF')">OFF</button>
+          <button class="btn-act emerald" style="padding:8px 14px; font-size:12px;" onclick="sendCmd('magnet/on', 'Magnets ON')">ON</button>
+          <button class="btn-act red" style="padding:8px 14px; font-size:12px;" onclick="sendCmd('magnet/off', 'Magnets OFF')">OFF</button>
         </div>
-      </div>
-
-      <!-- Manual Lift Controls -->
-      <div class="card-title" style="margin-top:4px;">Manual Lift Position</div>
-      <div class="btn-grid" style="grid-template-columns: 1fr 1fr 1fr;">
-        <button class="btn-act" onclick="sendCmd('lift/up', 'Lift UP')">▲ UP</button>
-        <button class="btn-act red" onclick="sendCmd('lift/stop', 'Lift STOP')">■ STOP</button>
-        <button class="btn-act" onclick="sendCmd('lift/down', 'Lift DOWN')">▼ DOWN</button>
       </div>
 
       <!-- Siren & Audio Alerts -->
@@ -713,7 +793,10 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       </div>
 
       <!-- 5-Channel Proximity Sensors -->
-      <div class="card-title" style="margin-top:4px;">Proximity Array</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; margin-bottom:4px;">
+        <div class="card-title" style="margin:0;">Proximity Array</div>
+        <button id="proxToggleBtn" class="btn-act red" style="padding:3px 10px; font-size:10px; border-radius:8px;" onclick="toggleProximity()">PROX: OFF</button>
+      </div>
       <div class="prox-list">
         <div class="prox-item"><span class="prox-tag">P1</span><div class="prox-track"><div class="prox-fill" id="pb0"></div></div><span class="prox-num" id="pv0">0</span></div>
         <div class="prox-item"><span class="prox-tag">P2</span><div class="prox-track"><div class="prox-fill" id="pb1"></div></div><span class="prox-num" id="pv1">0</span></div>
@@ -742,8 +825,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 
   <!-- Keybind hints -->
   <div class="footer-hints">
-    Keyboard Controls: <span class="key-badge">W</span> <span class="key-badge">A</span> <span class="key-badge">S</span> <span class="key-badge">D</span> Move | <span class="key-badge">SPACE</span> Stop | <span class="key-badge">C</span> Catch Mine | <span class="key-badge">M</span> Magnet | <span class="key-badge">B</span> Siren<br>
-    Gamepad Controls: Left Stick = Drive | <span class="key-badge">A</span> Catch Mine | <span class="key-badge">B</span> Stop | <span class="key-badge">Y</span> Lift Up | <span class="key-badge">X</span> Lift Down | <span class="key-badge">RB</span> Magnets
+    <b>Keyboard:</b> <span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span class="key-badge">D</span> Move | <span class="key-badge">SPACE</span> Stop | <span class="key-badge">U</span>/<span class="key-badge">Y</span> Lift UP | <span class="key-badge">J</span>/<span class="key-badge">X</span> Lift DOWN | <span class="key-badge">M</span> Magnets | <span class="key-badge">B</span> Siren<br>
+    <b>Gamepad:</b> Left Stick / D-Pad = Drive | Right Stick Y or <span class="key-badge">RT</span>/<span class="key-badge">LT</span> / <span class="key-badge">Y</span>/<span class="key-badge">X</span> = Lift UP/DOWN | Right Stick X = Camera Servo | <span class="key-badge">RB</span> = Magnets | <span class="key-badge">LB</span> = Siren | <span class="key-badge">L3</span> = Speed | <span class="key-badge">Back</span> = Proximity | <span class="key-badge">Start</span> = E-Stop
   </div>
 
   <div id="toast">Command Executed</div>
@@ -809,16 +892,55 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       showToast('Speed: ' + mode.toUpperCase());
     }
 
-    // API Send Helpers
+    function cycleSpeedMode() {
+      const speeds = [
+        { mode: 'slow', val: 3.0 },
+        { mode: 'normal', val: 6.0 },
+        { mode: 'turbo', val: 8.5 }
+      ];
+      let idx = speeds.findIndex(s => Math.abs(s.val - maxSpeed) < 0.5);
+      if (idx < 0) idx = 1;
+      let nextIdx = (idx + 1) % speeds.length;
+      let next = speeds[nextIdx];
+      maxSpeed = next.val;
+      document.querySelectorAll('.speed-btn').forEach(b => {
+        b.classList.toggle('active', b.innerText.toLowerCase().includes(next.mode));
+      });
+      document.getElementById('speed-label').innerText = next.mode.toUpperCase() + ' (' + next.val + ')';
+      showToast('Speed: ' + next.mode.toUpperCase());
+    }
+
+    // API Send Helpers with In-Flight Queueing
+    let isDriveInFlight = false;
+    let pendingDrive = null;
+
     function sendDrive(r, l) {
       currentRightVel = r;
       currentLeftVel = l;
-      fetch('/drive?r=' + r.toFixed(2) + '&l=' + l.toFixed(2)).catch(e => console.error(e));
+      if (isDriveInFlight) {
+        pendingDrive = { r, l };
+        return;
+      }
+      isDriveInFlight = true;
+      fetch('/drive?r=' + r.toFixed(2) + '&l=' + l.toFixed(2))
+        .then(() => {
+          isDriveInFlight = false;
+          if (pendingDrive) {
+            const next = pendingDrive;
+            pendingDrive = null;
+            sendDrive(next.r, next.l);
+          }
+        })
+        .catch(e => {
+          isDriveInFlight = false;
+        });
     }
 
     function sendStop() {
-      sendDrive(0, 0);
-      fetch('/stop').catch(e => console.error(e));
+      pendingDrive = null;
+      currentRightVel = 0;
+      currentLeftVel = 0;
+      fetch('/stop').catch(() => {});
       showToast('STOP', true);
     }
 
@@ -834,9 +956,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 
     function triggerHeroCycle() {
       playBeep(900, 0.2);
-      fetch('/lift/cycle').then(r => {
-        if (r.ok) showToast('CATCH CYCLE STARTED');
-      });
+      sendCmd('magnet/on', 'Magnets Armed');
     }
 
     // Camera Servo
@@ -862,7 +982,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       else if (dir === 'left') { r = maxSpeed * 0.7; l = -maxSpeed * 0.7; }
       else if (dir === 'right') { r = -maxSpeed * 0.7; l = maxSpeed * 0.7; }
       sendDrive(r, l);
-      dpadTimer = setInterval(() => sendDrive(r, l), 120);
+      dpadTimer = setInterval(() => sendDrive(r, l), 100);
     }
     function handleDirUp() {
       if (dpadTimer) {
@@ -872,44 +992,132 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       sendStop();
     }
 
-    // Keyboard Controller
+    // Keyboard Controller (Continuous Drive Loop)
     const keysPressed = {};
+    let keyDriveTimer = null;
+
+    function computeKeyboardVelocities() {
+      const isUp = !!(keysPressed['w'] || keysPressed['arrowup']);
+      const isDn = !!(keysPressed['s'] || keysPressed['arrowdown']);
+      const isLt = !!(keysPressed['a'] || keysPressed['arrowleft']);
+      const isRt = !!(keysPressed['d'] || keysPressed['arrowright']);
+
+      // Synchronize visual direction buttons
+      const btnFwd = document.getElementById('btn-fwd');
+      const btnBack = document.getElementById('btn-back');
+      const btnLeft = document.getElementById('btn-left');
+      const btnRight = document.getElementById('btn-right');
+      if (btnFwd) btnFwd.classList.toggle('pressed', isUp);
+      if (btnBack) btnBack.classList.toggle('pressed', isDn);
+      if (btnLeft) btnLeft.classList.toggle('pressed', isLt);
+      if (btnRight) btnRight.classList.toggle('pressed', isRt);
+
+      let fwd = 0;
+      let turn = 0;
+      if (isUp) fwd += 1;
+      if (isDn) fwd -= 1;
+      if (isLt) turn -= 1;
+      if (isRt) turn += 1;
+
+      if (fwd === 0 && turn === 0) {
+        return null;
+      }
+
+      let r = 0, l = 0;
+      if (fwd !== 0 && turn === 0) {
+        r = fwd * maxSpeed;
+        l = fwd * maxSpeed;
+      } else if (fwd === 0 && turn !== 0) {
+        r = -turn * maxSpeed * 0.75;
+        l = turn * maxSpeed * 0.75;
+      } else {
+        r = (fwd * maxSpeed) - (turn * maxSpeed * 0.4);
+        l = (fwd * maxSpeed) + (turn * maxSpeed * 0.4);
+      }
+      return { r, l };
+    }
+
+    function updateKeyboardDrive() {
+      const v = computeKeyboardVelocities();
+      if (!v) {
+        if (keyDriveTimer) {
+          clearInterval(keyDriveTimer);
+          keyDriveTimer = null;
+        }
+        sendStop();
+        return;
+      }
+
+      sendDrive(v.r, v.l);
+
+      if (!keyDriveTimer) {
+        keyDriveTimer = setInterval(() => {
+          const curV = computeKeyboardVelocities();
+          if (!curV) {
+            clearInterval(keyDriveTimer);
+            keyDriveTimer = null;
+            sendStop();
+          } else {
+            sendDrive(curV.r, curV.l);
+          }
+        }, 90);
+      }
+    }
+
     window.addEventListener('keydown', (e) => {
       if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
-      if (keysPressed[e.key]) return;
-      keysPressed[e.key] = true;
-
       const k = e.key.toLowerCase();
-      if (k === 'w' || e.key === 'ArrowUp') {
-        document.getElementById('btn-fwd').classList.add('pressed');
-        sendDrive(maxSpeed, maxSpeed);
-      } else if (k === 's' || e.key === 'ArrowDown') {
-        document.getElementById('btn-back').classList.add('pressed');
-        sendDrive(-maxSpeed, -maxSpeed);
-      } else if (k === 'a' || e.key === 'ArrowLeft') {
-        document.getElementById('btn-left').classList.add('pressed');
-        sendDrive(maxSpeed * 0.7, -maxSpeed * 0.7);
-      } else if (k === 'd' || e.key === 'ArrowRight') {
-        document.getElementById('btn-right').classList.add('pressed');
-        sendDrive(-maxSpeed * 0.7, maxSpeed * 0.7);
+      if (['w', 's', 'a', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
+        if (!keysPressed[k]) {
+          keysPressed[k] = true;
+          updateKeyboardDrive();
+        }
       } else if (e.key === ' ') {
+        for (const key in keysPressed) delete keysPressed[key];
+        if (keyDriveTimer) { clearInterval(keyDriveTimer); keyDriveTimer = null; }
         sendStop();
-      } else if (k === 'c') {
-        triggerHeroCycle();
+        sendCmd('lift/stop', 'Lift Stopped');
+      } else if (k === 'u' || k === 'y') {
+        if (!keysPressed[k]) {
+          keysPressed[k] = true;
+          sendCmd('lift/up', 'Lift UP');
+        }
+      } else if (k === 'j' || k === 'x') {
+        if (!keysPressed[k]) {
+          keysPressed[k] = true;
+          sendCmd('lift/down', 'Lift DOWN');
+        }
       } else if (k === 'm') {
-        sendCmd('magnet/on', 'Magnets Toggled');
+        if (!keysPressed[k]) {
+          keysPressed[k] = true;
+          toggleMagnets();
+        }
       } else if (k === 'b') {
-        sendCmd('siren/on', 'Siren Alert');
+        if (!keysPressed[k]) {
+          keysPressed[k] = true;
+          sendCmd('siren/on', 'Siren Alert');
+        }
       }
     });
 
     window.addEventListener('keyup', (e) => {
-      delete keysPressed[e.key];
       const k = e.key.toLowerCase();
+      delete keysPressed[k];
       if (['w', 's', 'a', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
-        document.querySelectorAll('.btn-dir').forEach(b => b.classList.remove('pressed'));
-        sendStop();
+        updateKeyboardDrive();
       }
+      if (k === 'u' || k === 'y' || k === 'j' || k === 'x') {
+        sendCmd('lift/stop', 'Lift Stopped');
+      }
+    });
+
+    window.addEventListener('blur', () => {
+      for (const k in keysPressed) delete keysPressed[k];
+      if (keyDriveTimer) {
+        clearInterval(keyDriveTimer);
+        keyDriveTimer = null;
+      }
+      sendStop();
     });
 
     // Virtual Touch Joystick Canvas
@@ -972,17 +1180,29 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       const normY = -dy / maxDist; // Up is positive
 
       // Differential Drive mixing
-      const vFwd = normY * maxSpeed;
-      const vTurn = normX * maxSpeed * 0.75;
-      const r = vFwd - vTurn;
-      const l = vFwd + vTurn;
+      joyVFwd = normY * maxSpeed;
+      joyVTurn = normX * maxSpeed * 0.75;
+      const r = joyVFwd - joyVTurn;
+      const l = joyVFwd + joyVTurn;
       sendDrive(r, l);
     }
+
+    let joyTimer = null;
+    let joyVFwd = 0;
+    let joyVTurn = 0;
 
     function joyStart(e) {
       joyActive = true;
       const t = e.touches ? e.touches[0] : e;
       updateJoystick(t.clientX, t.clientY);
+      if (joyTimer) clearInterval(joyTimer);
+      joyTimer = setInterval(() => {
+        if (joyActive) {
+          const r = joyVFwd - joyVTurn;
+          const l = joyVFwd + joyVTurn;
+          sendDrive(r, l);
+        }
+      }, 90);
     }
     function joyMove(e) {
       if (!joyActive) return;
@@ -993,6 +1213,10 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     function joyEnd() {
       if (!joyActive) return;
       joyActive = false;
+      if (joyTimer) {
+        clearInterval(joyTimer);
+        joyTimer = null;
+      }
       joyPos = { x: radius, y: radius };
       drawJoystick(radius, radius);
       sendStop();
@@ -1009,6 +1233,10 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     // HTML5 Gamepad API Integration
     let gpConnected = false;
     let prevButtons = {};
+    let lastGpDriveTime = 0;
+    let lastGpServoTime = 0;
+    let lastGpLiftCmd = 'stop';
+
     window.addEventListener('gamepadconnected', (e) => {
       gpConnected = true;
       document.getElementById('gamepad-badge').style.display = 'inline-flex';
@@ -1028,52 +1256,126 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         if (gamepads[i]) { gp = gamepads[i]; break; }
       }
       if (gp) {
-        // Left stick
+        const now = performance.now();
+
+        // 1. Left Analog Stick (Driving & Steering)
         let ax0 = gp.axes[0] || 0; // steering
         let ax1 = gp.axes[1] || 0; // throttle (up is -1)
         const deadzone = 0.12;
         if (Math.abs(ax0) < deadzone) ax0 = 0;
         if (Math.abs(ax1) < deadzone) ax1 = 0;
 
+        let hasDriveInput = false;
+
         if (Math.abs(ax0) > 0 || Math.abs(ax1) > 0) {
-          const vFwd = -ax1 * maxSpeed;
-          const vTurn = ax0 * maxSpeed * 0.75;
-          const r = vFwd - vTurn;
-          const l = vFwd + vTurn;
-          sendDrive(r, l);
-        } else if (currentRightVel !== 0 || currentLeftVel !== 0) {
-          // If joystick just released
-          if (!joyActive && !dpadTimer && Object.keys(keysPressed).length === 0) {
+          hasDriveInput = true;
+          if (now - lastGpDriveTime >= 90) {
+            lastGpDriveTime = now;
+            const vFwd = -ax1 * maxSpeed;
+            const vTurn = ax0 * maxSpeed * 0.75;
+            const r = vFwd - vTurn;
+            const l = vFwd + vTurn;
+            sendDrive(r, l);
+          }
+        }
+
+        // 2. Gamepad D-Pad (Directional drive fallback when stick is centered)
+        let dUp = gp.buttons[12] && gp.buttons[12].pressed;
+        let dDn = gp.buttons[13] && gp.buttons[13].pressed;
+        let dLt = gp.buttons[14] && gp.buttons[14].pressed;
+        let dRt = gp.buttons[15] && gp.buttons[15].pressed;
+        if (!hasDriveInput && (dUp || dDn || dLt || dRt)) {
+          hasDriveInput = true;
+          if (now - lastGpDriveTime >= 90) {
+            lastGpDriveTime = now;
+            let fw = (dUp ? 1 : 0) - (dDn ? 1 : 0);
+            let tr = (dRt ? 1 : 0) - (dLt ? 1 : 0);
+            let r = 0, l = 0;
+            if (fw !== 0 && tr === 0) { r = fw * maxSpeed; l = fw * maxSpeed; }
+            else if (fw === 0 && tr !== 0) { r = -tr * maxSpeed * 0.75; l = tr * maxSpeed * 0.75; }
+            else { r = (fw * maxSpeed) - (tr * maxSpeed * 0.4); l = (fw * maxSpeed) + (tr * maxSpeed * 0.4); }
+            sendDrive(r, l);
+          }
+        }
+
+        if (!hasDriveInput && (currentRightVel !== 0 || currentLeftVel !== 0)) {
+          if (!joyActive && !dpadTimer && !keyDriveTimer) {
             sendStop();
           }
         }
 
-        // Button A (0): Catch Mine Cycle
-        if (gp.buttons[0] && gp.buttons[0].pressed && !prevButtons[0]) {
-          triggerHeroCycle();
+        // 3. Right Analog Stick Y & Triggers (RT / LT / Y / X) for Gripper Lift
+        let ax3 = gp.axes[3] || 0; // vertical (up is negative)
+        let isLtPressed = gp.buttons[6] && (gp.buttons[6].pressed || gp.buttons[6].value > 0.3);
+        let isRtPressed = gp.buttons[7] && (gp.buttons[7].pressed || gp.buttons[7].value > 0.3);
+        let isYPressed = gp.buttons[3] && gp.buttons[3].pressed;
+        let isXPressed = gp.buttons[2] && gp.buttons[2].pressed;
+
+        let gpLiftCmd = 'stop';
+        if (ax3 < -0.3 || isRtPressed || isYPressed) {
+          gpLiftCmd = 'up';
+        } else if (ax3 > 0.3 || isLtPressed || isXPressed) {
+          gpLiftCmd = 'down';
         }
-        // Button B (1): Emergency Stop
+
+        if (gpLiftCmd !== lastGpLiftCmd) {
+          if (gpLiftCmd === 'up') {
+            sendCmd('lift/up', 'Lift UP');
+          } else if (gpLiftCmd === 'down') {
+            sendCmd('lift/down', 'Lift DOWN');
+          } else if (gpLiftCmd === 'stop') {
+            if (lastGpLiftCmd === 'up' || lastGpLiftCmd === 'down') {
+              sendCmd('lift/stop', 'Lift Stopped');
+            }
+          }
+          lastGpLiftCmd = gpLiftCmd;
+        }
+
+        // 4. Right Analog Stick X for Camera Pan Servo
+        let ax2 = gp.axes[2] || 0; // horizontal pan
+        if (Math.abs(ax2) > 0.25 && now - lastGpServoTime >= 80) {
+          lastGpServoTime = now;
+          let currentAngle = parseInt(document.getElementById('servoSlider').value) || 90;
+          let newAngle = currentAngle + Math.round(ax2 * 4);
+          if (newAngle < 0) newAngle = 0;
+          if (newAngle > 180) newAngle = 180;
+          if (newAngle !== currentAngle) {
+            setServoPreset(newAngle);
+          }
+        }
+
+        // 5. Button Actions (Edge-triggered)
+        // Button A (0): Clear Faults
+        if (gp.buttons[0] && gp.buttons[0].pressed && !prevButtons[0]) {
+          sendCmd('clear', 'Faults Cleared');
+        }
+        // Button B (1): Normal Stop
         if (gp.buttons[1] && gp.buttons[1].pressed && !prevButtons[1]) {
           sendStop();
-        }
-        // Button X (2): Lift Down
-        if (gp.buttons[2] && gp.buttons[2].pressed && !prevButtons[2]) {
-          sendCmd('lift/down', 'Lift Down');
-        }
-        // Button Y (3): Lift Up
-        if (gp.buttons[3] && gp.buttons[3].pressed && !prevButtons[3]) {
-          sendCmd('lift/up', 'Lift Up');
+          sendCmd('lift/stop', 'Lift Stopped');
         }
         // LB (4): Siren Alert
         if (gp.buttons[4] && gp.buttons[4].pressed && !prevButtons[4]) {
           sendCmd('siren/on', 'Siren Alert');
         }
-        // RB (5): Toggle Magnet
+        // RB (5): Toggle Electromagnet
         if (gp.buttons[5] && gp.buttons[5].pressed && !prevButtons[5]) {
-          sendCmd('magnet/on', 'Magnets Toggled');
+          toggleMagnets();
+        }
+        // Back / Select (8): Toggle Proximity Array
+        if (gp.buttons[8] && gp.buttons[8].pressed && !prevButtons[8]) {
+          toggleProximity();
+        }
+        // Start (9): Emergency Stop
+        if (gp.buttons[9] && gp.buttons[9].pressed && !prevButtons[9]) {
+          sendEStop();
+        }
+        // L3 (10, Stick Click): Cycle Speed Mode
+        if (gp.buttons[10] && gp.buttons[10].pressed && !prevButtons[10]) {
+          cycleSpeedMode();
         }
 
-        // Save button state
+        // Save button state for edge detection
         for (let b = 0; b < gp.buttons.length; b++) {
           prevButtons[b] = gp.buttons[b].pressed;
         }
@@ -1218,6 +1520,66 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         })
         .catch(e => console.log('Poll err:', e));
     }, 250);
+
+    // Manual Lift Button Hold-to-Move Bindings
+    function setupLiftButton(btnId, moveCmd) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      let pressing = false;
+
+      const start = (e) => {
+        e.preventDefault();
+        if (pressing) return;
+        pressing = true;
+        btn.classList.add('pressed');
+        sendCmd(moveCmd, moveCmd);
+      };
+      const end = (e) => {
+        e.preventDefault();
+        if (!pressing) return;
+        pressing = false;
+        btn.classList.remove('pressed');
+        sendCmd('lift/stop', 'Lift Stopped');
+      };
+
+      btn.addEventListener('mousedown', start);
+      btn.addEventListener('mouseup', end);
+      btn.addEventListener('mouseleave', end);
+      btn.addEventListener('touchstart', start, {passive:false});
+      btn.addEventListener('touchend', end, {passive:false});
+      btn.addEventListener('touchcancel', end, {passive:false});
+    }
+
+    let proxEnabled = false;
+
+    function toggleProximity() {
+      proxEnabled = !proxEnabled;
+      sendCmd(proxEnabled ? 'prox/on' : 'prox/off', proxEnabled ? 'Proximity Enabled' : 'Proximity Disabled');
+      updateProxButton();
+    }
+
+    function updateProxButton() {
+      const btn = document.getElementById('proxToggleBtn');
+      if (btn) {
+        if (proxEnabled) {
+          btn.innerText = 'PROX: ON';
+          btn.className = 'btn-act emerald';
+        } else {
+          btn.innerText = 'PROX: OFF';
+          btn.className = 'btn-act red';
+        }
+      }
+    }
+
+    function toggleMagnets() {
+      const magText = document.getElementById('mag-status-text');
+      const isCurrentlyOn = magText && magText.innerText.includes('ON');
+      sendCmd(isCurrentlyOn ? 'magnet/off' : 'magnet/on', isCurrentlyOn ? 'Magnets OFF' : 'Magnets ON');
+    }
+
+    setupLiftButton('btnLiftUp', 'lift/up');
+    setupLiftButton('btnLiftDn', 'lift/down');
+    updateProxButton();
   </script>
 </body>
 </html>
@@ -1225,7 +1587,14 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 
 void handleRoot() { server.send(200, "text/html", INDEX_HTML); }
 
-// Continuous analog drive endpoint for joystick
+// Continuous Drive State (repeater & failsafe)
+float activeDriveR = 0.0f;
+float activeDriveL = 0.0f;
+unsigned long lastClientDriveMs = 0;
+unsigned long lastSerialDriveTxMs = 0;
+constexpr unsigned long CLIENT_DRIVE_TIMEOUT_MS = 600;
+
+// Continuous analog drive endpoint for joystick & keyboard
 void handleDrive() {
   if (server.hasArg("r") && server.hasArg("l")) {
     float r = server.arg("r").toFloat();
@@ -1235,9 +1604,14 @@ void handleDrive() {
     if (l > 10.0f) l = 10.0f;
     if (l < -10.0f) l = -10.0f;
 
+    activeDriveR = r;
+    activeDriveL = l;
+    lastClientDriveMs = millis();
+
     char r_sign = (r >= 0.0f) ? 'p' : 'n';
     char l_sign = (l >= 0.0f) ? 'p' : 'n';
     Serial.printf("r%c%05.2f,l%c%05.2f,\n", r_sign, fabs(r), l_sign, fabs(l));
+    lastSerialDriveTxMs = millis();
   }
   server.send(200, "text/plain", "OK");
 }
@@ -1254,22 +1628,37 @@ void handleExtendedCommand() {
 
 // Directional helpers
 void handleForward() {
+  activeDriveR = 4.0f; activeDriveL = 4.0f;
+  lastClientDriveMs = millis();
   Serial.println("rp04.00,lp04.00,");
+  lastSerialDriveTxMs = millis();
   server.send(200, "text/plain", "OK");
 }
 void handleBackward() {
+  activeDriveR = -4.0f; activeDriveL = -4.0f;
+  lastClientDriveMs = millis();
   Serial.println("rn04.00,ln04.00,");
+  lastSerialDriveTxMs = millis();
   server.send(200, "text/plain", "OK");
 }
 void handleLeft() {
+  activeDriveR = 3.0f; activeDriveL = -3.0f;
+  lastClientDriveMs = millis();
   Serial.println("rp03.00,ln03.00,");
+  lastSerialDriveTxMs = millis();
   server.send(200, "text/plain", "OK");
 }
 void handleRight() {
+  activeDriveR = -3.0f; activeDriveL = 3.0f;
+  lastClientDriveMs = millis();
   Serial.println("rn03.00,lp03.00,");
+  lastSerialDriveTxMs = millis();
   server.send(200, "text/plain", "OK");
 }
 void handleStop() {
+  activeDriveR = 0.0f;
+  activeDriveL = 0.0f;
+  lastClientDriveMs = 0;
   Serial.println("rp00.00,lp00.00,");
   server.send(200, "text/plain", "OK");
 }
@@ -1300,6 +1689,22 @@ void handleMagnetOff() {
   Serial.println("CMAGNET:OFF");
   server.send(200, "text/plain", "OK");
 }
+void handleMagnetToggle() {
+  if (magnetState == 1) {
+    handleMagnetOff();
+  } else {
+    handleMagnetOn();
+  }
+}
+
+void handleProxOn() {
+  Serial.println("CPROX:ON");
+  server.send(200, "text/plain", "OK");
+}
+void handleProxOff() {
+  Serial.println("CPROX:OFF");
+  server.send(200, "text/plain", "OK");
+}
 
 void handleSirenOn() {
   Serial.println("CBUZZ:ALERT");
@@ -1311,6 +1716,10 @@ void handleSirenOff() {
 }
 
 void handleEStop() {
+  activeDriveR = 0.0f;
+  activeDriveL = 0.0f;
+  lastClientDriveMs = 0;
+  Serial.println("rp00.00,lp00.00,");
   Serial.println("CESTOP");
   server.send(200, "text/plain", "OK");
 }
@@ -1375,6 +1784,10 @@ void setup() {
 
   server.on("/magnet/on", handleMagnetOn);
   server.on("/magnet/off", handleMagnetOff);
+  server.on("/magnet/toggle", handleMagnetToggle);
+
+  server.on("/prox/on", handleProxOn);
+  server.on("/prox/off", handleProxOff);
 
   server.on("/siren/on", handleSirenOn);
   server.on("/siren/off", handleSirenOff);
@@ -1458,4 +1871,22 @@ void processSerialData() {
 void loop() {
   server.handleClient();
   processSerialData();
+
+  unsigned long now = millis();
+  if (activeDriveR != 0.0f || activeDriveL != 0.0f) {
+    if (now - lastClientDriveMs <= CLIENT_DRIVE_TIMEOUT_MS) {
+      // Periodically transmit drive velocity frames to Mega to prevent safety timeout
+      if (now - lastSerialDriveTxMs >= 70) {
+        lastSerialDriveTxMs = now;
+        char r_sign = (activeDriveR >= 0.0f) ? 'p' : 'n';
+        char l_sign = (activeDriveL >= 0.0f) ? 'p' : 'n';
+        Serial.printf("r%c%05.2f,l%c%05.2f,\n", r_sign, fabs(activeDriveR), l_sign, fabs(activeDriveL));
+      }
+    } else {
+      // Client heartbeat timed out -> immediately stop motors
+      activeDriveR = 0.0f;
+      activeDriveL = 0.0f;
+      Serial.println("rp00.00,lp00.00,");
+    }
+  }
 }

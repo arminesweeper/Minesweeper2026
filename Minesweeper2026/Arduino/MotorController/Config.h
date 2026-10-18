@@ -78,6 +78,13 @@
 #define ENABLE_LIFT 1
 
 /**
+ * @brief Automated lift cycles and auto-lifting modes for the gripper.
+ * 1 = Enable automated mine pickup & drop cycles on sensor trigger.
+ * 0 = Disable ALL auto modes and cycles; gripper is 100% manual direct drive.
+ */
+#define ENABLE_LIFT_AUTO_CYCLES 0
+
+/**
  * @brief Environmental sensing (5x Proximity sensors & Ultrasonic).
  * 1 = Periodically sample proximity array and ultrasonic sensor.
  * 0 = Disable sensor sampling.
@@ -279,7 +286,7 @@ constexpr float INTEGRAL_WINDUP_LIMIT = 200.0f;/**< Absolute limit for accumulat
  */
 
 namespace SafetyConfig {
-constexpr unsigned long COMMAND_TIMEOUT_MS = 500;   /**< Max time between ROS drive packets before auto-stop (500 ms, matches RobotTest2) */
+constexpr unsigned long COMMAND_TIMEOUT_MS = 1000;  /**< Max time between drive packets before auto-stop (1000 ms gives safety headroom for WiFi) */
 constexpr unsigned long WATCHDOG_TIMEOUT_MS = 2000; /**< Maximum loop stall time before watchdog triggers (ms) */
 constexpr uint16_t BATTERY_VOLTAGE_LOW = 10800;     /**< Low battery warning threshold (10.8 V, 3.6V/cell 3S LiPo) */
 constexpr uint16_t BATTERY_VOLTAGE_CRITICAL = 9600; /**< Critical battery e-stop threshold (9.6 V, 3.2V/cell 3S LiPo) */

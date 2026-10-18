@@ -255,8 +255,8 @@ void SystemManager::taskLift() {
 #if ENABLE_LIFT
     LiftState prev_state = lift_.getState();
     uint8_t prev_mag = lift_.getMagnetState();
-    bool prev_top = lift_.isAtTop();
-    bool prev_bot = lift_.isAtBottom();
+    bool prev_top = lift_.isTopSwitchRaw();
+    bool prev_bot = lift_.isBottomSwitchRaw();
 #if ENABLE_SENSORS
     bool metal_detected = sensors_.isMetalDetected();
     bool obj_detected = sensors_.isObjectDetected();
@@ -269,8 +269,8 @@ void SystemManager::taskLift() {
 #endif
     lift_.update(obj_detected, mine_detected);
     safety_.setLiftFault(lift_.hasFault());
-    bool curr_top = lift_.isAtTop();
-    bool curr_bot = lift_.isAtBottom();
+    bool curr_top = lift_.isTopSwitchRaw();
+    bool curr_bot = lift_.isBottomSwitchRaw();
     if (lift_.getState() != prev_state || lift_.getMagnetState() != prev_mag ||
         curr_top != prev_top || curr_bot != prev_bot) {
         serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), curr_top, curr_bot);
@@ -329,7 +329,7 @@ void SystemManager::taskLowRateTelemetry() {
         serial_.sendUltrasonic(sensors_.getUltrasonicDistanceCm());
 #endif
 #if ENABLE_LIFT
-        serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isAtTop(), lift_.isAtBottom());
+        serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isTopSwitchRaw(), lift_.isBottomSwitchRaw());
 #endif
     }
 }
@@ -393,28 +393,37 @@ void SystemManager::processExtendedCommands() {
             serial_.sendStatus("Reset complete");
         }
 #if ENABLE_LIFT
-        else if (strcmp(cmd, "LIFT:UP") == 0 || strcmp(cmd, "LIFT:CYCLE") == 0) {
+        else if (strcmp(cmd, "LIFT:UP") == 0) {
             lift_.raise();
-            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isAtTop(), lift_.isAtBottom());
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isTopSwitchRaw(), lift_.isBottomSwitchRaw());
+        }
+        else if (strcmp(cmd, "LIFT:CYCLE") == 0) {
+#if ENABLE_LIFT_AUTO_CYCLES
+            lift_.triggerCycle();
+#else
+            lift_.stop();
+            serial_.sendStatus("Lift auto-cycles disabled in config");
+#endif
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isTopSwitchRaw(), lift_.isBottomSwitchRaw());
         }
         else if (strcmp(cmd, "LIFT:DN") == 0) {
             lift_.lower();
-            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isAtTop(), lift_.isAtBottom());
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isTopSwitchRaw(), lift_.isBottomSwitchRaw());
         }
         else if (strcmp(cmd, "LIFT:STOP") == 0) {
             lift_.stop();
-            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isAtTop(), lift_.isAtBottom());
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isTopSwitchRaw(), lift_.isBottomSwitchRaw());
         }
         else if (strcmp(cmd, "MAGNET:ON") == 0) {
             lift_.clearFault();
             lift_.setManualMagnetOverride(true);
             lift_.setAllMagnets(true);
-            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isAtTop(), lift_.isAtBottom());
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isTopSwitchRaw(), lift_.isBottomSwitchRaw());
         }
         else if (strcmp(cmd, "MAGNET:OFF") == 0) {
             lift_.setManualMagnetOverride(false);
             lift_.setAllMagnets(false);
-            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isAtTop(), lift_.isAtBottom());
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isTopSwitchRaw(), lift_.isBottomSwitchRaw());
         }
 #endif
 #if ENABLE_SENSORS

@@ -148,10 +148,25 @@ public:
     bool isObjectDetected() const { return sensor_stable_; }
 
     /**
-     * @brief Check if a lift cycle is currently in progress.
+     * @brief Check if an automated lift cycle is currently in progress.
      */
     bool isCycling() const {
-        return state_ == LiftState::RAISING || state_ == LiftState::DROPPING || state_ == LiftState::LOWERING;
+#if ENABLE_LIFT_AUTO_CYCLES
+        return is_auto_cycling_ && (state_ == LiftState::RAISING || state_ == LiftState::DROPPING || state_ == LiftState::LOWERING);
+#else
+        return false;
+#endif
+    }
+
+    /**
+     * @brief Check if automated cycle mode is enabled and active.
+     */
+    bool isAutoCycling() const {
+#if ENABLE_LIFT_AUTO_CYCLES
+        return is_auto_cycling_;
+#else
+        return false;
+#endif
     }
 
     /**
