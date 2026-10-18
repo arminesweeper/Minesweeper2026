@@ -20,6 +20,7 @@ Sensors::Sensors()
       prox_candidate_samples_(0),
       prev_prox_for_edge_(false),
       prev_metal_for_edge_(false),
+      proximity_enabled_(ENABLE_PROXIMITY == 1),
       ultrasonic_distance_cm_(SensorConfig::US_MAX_DISTANCE_CM),
       metal_detected_(false),
       metal_raw_last_(false),
@@ -105,6 +106,7 @@ void Sensors::begin() {
 
     /* Initialize timing */
     unsigned long now = millis();
+    proximity_enabled_ = (ENABLE_PROXIMITY == 1);
     metal_change_ms_ = now;
     buzzer_toggle_ms_ = now;
     led_toggle_ms_ = now;
@@ -121,44 +123,54 @@ void Sensors::begin() {
  * ============================================================================ */
 
 void Sensors::update() {
-    /* Read digital proximity sensors */
+    /* Read digital proximity sensors if enabled */
     bool raw_prox = false;
-    for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
-        bool active = (digitalRead(Pins::PROXIMITY_PINS[i]) == SensorConfig::PROXIMITY_ACTIVE_STATE);
-        proximity_values_[i] = active ? 1023 : 0;
-        if (active) raw_prox = true;
-    }
+    if (proximity_enabled_) {
+        for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
+            bool active = (digitalRead(Pins::PROXIMITY_PINS[i]) == SensorConfig::PROXIMITY_ACTIVE_STATE);
+            proximity_values_[i] = active ? 1023 : 0;
+            if (active) raw_prox = true;
+        }
 
-    /* Debounce aggregate proximity level over consecutive samples (matches RobotTest2) */
-    if (raw_prox == prox_debounced_) {
-        prox_candidate_ = raw_prox;
-        prox_candidate_samples_ = 0;
-    } else if (raw_prox != prox_candidate_) {
-        prox_candidate_ = raw_prox;
-        prox_candidate_samples_ = 1;
-    } else if (prox_candidate_samples_ < 2) {
-        ++prox_candidate_samples_;
-    }
-    if (prox_candidate_samples_ >= 2) {
-        prox_debounced_ = prox_candidate_;
+        /* Debounce aggregate proximity level over consecutive samples (matches RobotTest2) */
+        if (raw_prox == prox_debounced_) {
+            prox_candidate_ = raw_prox;
+            prox_candidate_samples_ = 0;
+        } else if (raw_prox != prox_candidate_) {
+            prox_candidate_ = raw_prox;
+            prox_candidate_samples_ = 1;
+        } else if (prox_candidate_samples_ < 2) {
+            ++prox_candidate_samples_;
+        }
+        if (prox_candidate_samples_ >= 2) {
+            prox_debounced_ = prox_candidate_;
+            prox_candidate_samples_ = 0;
+        }
+    } else {
+        for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
+            proximity_values_[i] = 0;
+        }
+        raw_prox = false;
+        prox_debounced_ = false;
+        prox_candidate_ = false;
         prox_candidate_samples_ = 0;
     }
 
     /* Update metal detector (debounced on Pin 33 and auxiliary Pin 27) */
     updateMetalDetector();
 
-    /* Rising edge detection and siren one-shot hold logic (matches RobotTest2 / Safi reference) */
+    /* Rising edge detection and siren one-shot hold logic */
     unsigned long now = millis();
-    const bool prox_rise = prox_debounced_ && !prev_prox_for_edge_;
+    const bool prox_rise = proximity_enabled_ && prox_debounced_ && !prev_prox_for_edge_;
     const bool metal_rise = metal_detected_ && !prev_metal_for_edge_;
     if (prox_rise || metal_rise) {
         siren_hold_until_ms_ = now + SensorConfig::SIREN_HOLD_MS;
     }
-    prev_prox_for_edge_ = prox_debounced_;
+    prev_prox_for_edge_ = proximity_enabled_ ? prox_debounced_ : false;
     prev_metal_for_edge_ = metal_detected_;
 
     const bool hold_active = (static_cast<int32_t>(siren_hold_until_ms_ - now) > 0);
-    siren_active_ = prox_debounced_ || metal_detected_ || hold_active;
+    siren_active_ = (proximity_enabled_ && prox_debounced_) || metal_detected_ || hold_active;
 
     /* Drive siren hardware directly or via pattern engine */
     if (siren_active_) {
@@ -201,18 +213,31 @@ void Sensors::getAllProximity(uint16_t* values) const {
     }
 }
 
+void Sensors::setProximityEnabled(bool enabled) {
+    proximity_enabled_ = enabled;
+    if (!proximity_enabled_) {
+        for (uint8_t i = 0; i < SensorConfig::NUM_PROXIMITY; ++i) {
+            proximity_values_[i] = 0;
+        }
+        prox_debounced_ = false;
+        prox_candidate_ = false;
+        prox_candidate_samples_ = 0;
+    }
+}
+
 bool Sensors::isProximityTriggered(uint8_t index) const {
-    if (index >= SensorConfig::NUM_PROXIMITY) {
+    if (!proximity_enabled_ || index >= SensorConfig::NUM_PROXIMITY) {
         return false;
     }
     return proximity_values_[index] > SensorConfig::PROXIMITY_THRESHOLD;
 }
 
 bool Sensors::isAnyProximityTriggered() const {
-    return prox_debounced_;
+    return proximity_enabled_ && prox_debounced_;
 }
 
 uint16_t Sensors::readProximityAveraged(uint8_t pin) const {
+    if (!proximity_enabled_) return 0;
     bool active = (digitalRead(pin) == SensorConfig::PROXIMITY_ACTIVE_STATE);
     return active ? 1023 : 0;
 }
@@ -244,15 +269,19 @@ void Sensors::updateMetalDetector() {
 #if ENABLE_METAL_DETECTOR
     bool current_reading = (digitalRead(Pins::METAL_DETECTOR) == SensorConfig::METAL_ACTIVE_STATE) ||
                            (digitalRead(27) == SensorConfig::METAL_ACTIVE_STATE);
+    unsigned long now = millis();
 
-    if (current_reading != metal_raw_last_) {
-        metal_change_ms_ = millis();
-        metal_raw_last_ = current_reading;
+    if (current_reading) {
+        // Fast attack: immediately register detection on rising edge or active level
+        metal_detected_ = true;
+        metal_change_ms_ = now;
+    } else {
+        // Delayed decay: hold detection for debounce duration after signal drops
+        if (now - metal_change_ms_ >= SensorConfig::METAL_DEBOUNCE_MS) {
+            metal_detected_ = false;
+        }
     }
-
-    if (millis() - metal_change_ms_ >= SensorConfig::METAL_DEBOUNCE_MS) {
-        metal_detected_ = metal_raw_last_;
-    }
+    metal_raw_last_ = current_reading;
 #else
     metal_detected_ = false;
 #endif

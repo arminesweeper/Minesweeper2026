@@ -105,6 +105,20 @@ public:
     bool isAnyProximityTriggered() const;
 
     /**
+     * @brief Enable or disable proximity obstacle sensors at runtime.
+     * @param enabled true to enable, false to disable
+     */
+    void setProximityEnabled(bool enabled);
+    bool isProximityEnabled() const { return proximity_enabled_; }
+
+    /**
+     * @brief Check if any mine detection source is active (metal detector, ultrasonic, or proximity if enabled).
+     */
+    bool isMineDetected() const {
+        return isMetalDetected() || isObjectDetected() || (proximity_enabled_ && isAnyProximityTriggered());
+    }
+
+    /**
      * @brief Check if the metal detector is currently triggered.
      * @return true if metal is detected (debounced and enabled)
      */
@@ -173,6 +187,7 @@ private:
     uint8_t prox_candidate_samples_;
     bool prev_prox_for_edge_;
     bool prev_metal_for_edge_;
+    bool proximity_enabled_;
 
     /* Ultrasonic distance sensor state */
     uint16_t ultrasonic_distance_cm_;

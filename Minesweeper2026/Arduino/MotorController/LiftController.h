@@ -191,6 +191,7 @@ private:
     unsigned long motion_start_ms_; ///< millis() when motor motion began
     unsigned long dwell_start_ms_;  ///< millis() when top drop dwell started
     unsigned long magnet_on_time_ms_; ///< millis() when magnet was energized in IDLE
+    unsigned long magnet_hold_until_ms_; ///< millis() until which magnet stays energized after detection
     unsigned long debounce_top_ms_; ///< Last time top switch changed
     unsigned long debounce_bot_ms_; ///< Last time bottom switch changed
     unsigned long debounce_sensor_ms_; ///< Last time optical sensor changed

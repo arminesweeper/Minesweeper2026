@@ -260,11 +260,14 @@ void SystemManager::taskLift() {
 #if ENABLE_SENSORS
     bool metal_detected = sensors_.isMetalDetected();
     bool obj_detected = sensors_.isObjectDetected();
+    bool prox_detected = sensors_.isAnyProximityTriggered();
+    bool mine_detected = metal_detected || obj_detected || prox_detected;
 #else
     bool metal_detected = false;
     bool obj_detected = false;
+    bool mine_detected = false;
 #endif
-    lift_.update(obj_detected, metal_detected);
+    lift_.update(obj_detected, mine_detected);
     safety_.setLiftFault(lift_.hasFault());
     bool curr_top = lift_.isAtTop();
     bool curr_bot = lift_.isAtBottom();
@@ -390,9 +393,18 @@ void SystemManager::processExtendedCommands() {
             serial_.sendStatus("Reset complete");
         }
 #if ENABLE_LIFT
-        else if (strcmp(cmd, "LIFT:UP") == 0 || strcmp(cmd, "LIFT:CYCLE") == 0) lift_.triggerCycle();
-        else if (strcmp(cmd, "LIFT:DN") == 0) lift_.lower();
-        else if (strcmp(cmd, "LIFT:STOP") == 0) lift_.stop();
+        else if (strcmp(cmd, "LIFT:UP") == 0 || strcmp(cmd, "LIFT:CYCLE") == 0) {
+            lift_.raise();
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isAtTop(), lift_.isAtBottom());
+        }
+        else if (strcmp(cmd, "LIFT:DN") == 0) {
+            lift_.lower();
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isAtTop(), lift_.isAtBottom());
+        }
+        else if (strcmp(cmd, "LIFT:STOP") == 0) {
+            lift_.stop();
+            serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isAtTop(), lift_.isAtBottom());
+        }
         else if (strcmp(cmd, "MAGNET:ON") == 0) {
             lift_.clearFault();
             lift_.setManualMagnetOverride(true);
@@ -406,6 +418,14 @@ void SystemManager::processExtendedCommands() {
         }
 #endif
 #if ENABLE_SENSORS
+        else if (strcmp(cmd, "PROX:ON") == 0) {
+            sensors_.setProximityEnabled(true);
+            serial_.sendStatus("Proximity Enabled");
+        }
+        else if (strcmp(cmd, "PROX:OFF") == 0) {
+            sensors_.setProximityEnabled(false);
+            serial_.sendStatus("Proximity Disabled");
+        }
         else if (strcmp(cmd, "BUZZ:ALERT") == 0 || strcmp(cmd, "BUZZ:ON") == 0) sensors_.setBuzzerPattern(BuzzerPattern::ALERT);
         else if (strcmp(cmd, "BUZZ:SILENT") == 0 || strcmp(cmd, "BUZZ:OFF") == 0) sensors_.setBuzzerPattern(BuzzerPattern::SILENT);
 #endif

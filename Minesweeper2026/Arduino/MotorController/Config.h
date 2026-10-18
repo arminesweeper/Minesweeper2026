@@ -85,6 +85,13 @@
 #define ENABLE_SENSORS 1
 
 /**
+ * @brief Optical IR Proximity obstacle sensors (Pins 23, 25, 27, 29, 31).
+ * 1 = Enable proximity sensor scanning and obstacle triggers.
+ * 0 = Disable proximity sensors (avoids false obstacle triggers outdoors/sunlight).
+ */
+#define ENABLE_PROXIMITY 0
+
+/**
  * @brief Pulse induction metal detector input (Pin 33).
  * 1 = Sample digital metal detector input on Pin 33.
  * 0 = Disable metal detector (treated as always false / disconnected for debugging).
@@ -142,6 +149,13 @@
  * 0 = Active-LOW: switch closure pulls pin to GND (LOW).
  */
 #define LIMIT_SWITCH_ACTIVE_HIGH 1
+
+/**
+ * @brief Physical travel limit switches enable flag.
+ * 1 = Use physical limit switches to stop lift travel.
+ * 0 = Bypass limit switches for pure manual gripper control (used when limit switches are unreliable or broken).
+ */
+#define ENABLE_LIMIT_SWITCHES 0
 
 /**
  * @brief Gripper mine detection via ultrasonic sensor.
@@ -283,9 +297,10 @@ constexpr float VOLTAGE_DIVIDER_RATIO = 3.3f;       /**< Resistor divider attenu
 namespace LiftConfig {
 constexpr uint8_t LIFT_PWM_SPEED = 90;             /**< Actuator motor drive speed (reduced from 220 to 90 to prevent breaking limit switches) */
 constexpr unsigned long STALL_TIMEOUT_MS = 8000;   /**< Max motor run duration before aborting as stalled (ms) */
+constexpr unsigned long MANUAL_MOVE_TIMEOUT_MS = 6000; /**< Safety timeout for manual UP/DOWN travel (ms) */
 constexpr unsigned long DEBOUNCE_MS = 5;           /**< Limit switch software debounce duration (ms) */
 constexpr unsigned long DROP_DWELL_MS = 400;       /**< Dwell time at top position with magnet OFF to drop mine (ms) */
-constexpr unsigned long MAGNET_ARM_TIMEOUT_MS = 5000;/**< Max time magnet stays armed (prevents heating) */
+constexpr unsigned long MAGNET_ARM_TIMEOUT_MS = 10000;/**< Max time magnet stays armed after detection (10 seconds, matches Safi reference) */
 constexpr uint8_t NUM_MAGNETS = 5;                 /**< Number of virtual/physical electromagnet channels */
 constexpr bool LIFT_INVERT_DIR = false;            /**< Invert lift motor direction if UP/DOWN are swapped */
 } // namespace LiftConfig
