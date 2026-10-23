@@ -98,8 +98,15 @@
 | `Docs/CommissioningChecklist.md` | No-cut continuity checks |
 | `Docs/CompatibilityReport.md` | This report |
 
----
+## Bottom Line & Final Wiring Revision
 
-## Bottom Line
+1. **Original Strategy (VERSION 3 Sync - August 2026):** Encoders kept on shield copper (`D18–D21`), resolving the hardware I²C conflict via software bit-banging on flying leads.
+2. **Final Production Revision (Safi Physical Robot Sync):**
+   - **Soft-I2C moved to D34 (SDA) and D36 (SCL):** In early tests, D31 was in conflict with Proximity Sensor 5, and D33 was in conflict with the Metal Detector. Relocating Soft-I2C to D34/D36 completely freed all sensor array pins.
+   - **Lift Actuator assigned to D7 (PWM) & D49 (DIR):** Leverages dedicated 16-bit hardware Timer 4 (OC4B), avoiding software PWM jitter and freeing Timer 2.
+   - **Travel Limit Switches assigned to D51 & D53:** Active-HIGH electrical configuration.
+   - **Gripper Ultrasonic Sensor added on D43 (Trig) & D45 (Echo):** For autonomous surface mine catch confirmation.
+   - **Camera Pan Servo isolated on D4:** Dedicated 50 Hz PWM via Timer 3.
 
-Assemble and test with **firmware VERSION 3**, **encoders on shield copper as built**, **MPU on flying leads to D30/D31**, and the **jumper harness** for unrouted functions. Do not cut the PCB.
+All wiring and firmware are now 100% harmonized across `Config.h`, `Pinout.md`, `WiringManual.md`, and `README.md`. No PCB copper cutting is required.
+

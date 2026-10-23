@@ -87,6 +87,7 @@ The Hardware Abstraction Layer isolates hardware-specific code from application 
 ### MotorDriver (Cytron MDD10A)
 
 The MDD10A operates in **sign-magnitude mode**:
+
 - **PWM pin**: Duty cycle controls motor speed (0-255).
 - **DIR pin**: HIGH = forward, LOW = reverse.
 
@@ -156,13 +157,14 @@ The MPU6050 driver uses direct I2C register access via the Wire library.  No ext
 
 ### Sensors
 
-| Sensor | Interface | Read Method |
-|--------|-----------|-------------|
-| Proximity 1-5 | Analog (A1-A5) | `analogRead()` with averaging |
-| Metal Detector | Digital (D27) | `digitalRead()` with debounce |
-| Buzzer | PWM (D6) | `tone()` / `noTone()` patterns |
-| Warning LED | Digital (D13) | Blink patterns via millis() |
-| Temperature | (Reserved) | (Not connected) |
+| Sensor / Actuator | Interface | Read / Control Method | Connection |
+| --- | --- | --- | --- |
+| Proximity Array (1–5) | Digital (`D23, D25, D27, D29, D31`) | `digitalRead()` with threshold filtering | Optical proximity array (APRX1–APRX5 via J39) |
+| Metal Detector | Digital (`D33`) | `digitalRead()` with debouncing | Search coil induction header (J40) |
+| Siren / Horn Relay | Digital (`D37`) | Relay K2 driver (Active-HIGH) | 12V automotive alert siren (J21) |
+| Warning LED | Digital (`D13`) | Blink patterns via `millis()` | Arduino Mega onboard `LED_BUILTIN` |
+| Ultrasonic Distance | Digital (`D43` Trig / `D45` Echo) | Pulse width measurement (`pulseIn()`) | HC-SR04 scoop mine detection |
+| Battery Voltage Monitor | Analog (`A0`) | `analogRead()` scaled via 3.3:1 divider | Main battery sense |
 
 ---
 
@@ -315,7 +317,7 @@ If no valid serial command is received within `COMMAND_TIMEOUT_MS` (1500 ms), th
 ### Runtime Statistics
 
 | Metric | Update Rate | Description |
-|--------|-------------|-------------|
+| -------- | ------------- | ------------- |
 | Loop Count | Every iteration | Total loop() iterations |
 | Control Cycles | 10 Hz | PID computation cycles |
 | Command Count | On receive | Total valid commands received |
@@ -422,7 +424,7 @@ All timing uses `millis()` for non-blocking scheduling.  **No `delay()` calls ex
 ### Task Schedule
 
 | Task | Interval | Priority | Method |
-|------|----------|----------|--------|
+| ------ | ---------- | ---------- | -------- |
 | Serial Receive | Every loop() | Highest | `Serial.available()` polling |
 | Watchdog Reset | Every loop() | Highest | `wdt_reset()` |
 | Safety Monitor | Every loop() | High | `safetyMonitor.update()` |
@@ -477,6 +479,7 @@ Two ISRs are registered, one for each encoder's Phase A pin:
 | `leftEncoderISR()` | RISING edge | D21 (INT2) | Read Phase B, update count |
 
 **ISR design rules:**
+
 - No `digitalRead()` (uses direct port register access via `digitalRead` — acceptable on Mega at current speeds, would use PINx for optimization if needed)
 - No floating-point operations
 - No Serial output
@@ -515,6 +518,7 @@ if (now - last_sensor_time >= SENSOR_INTERVAL_MS) {
 ```
 
 This approach:
+
 - **Avoids `delay()`** (fully non-blocking)
 - **Is deterministic** (each task runs at its configured rate)
 - **Is simple** (no RTOS overhead)
@@ -529,7 +533,7 @@ This approach:
 See [Safety.md](Safety.md) for full documentation.
 
 | State | Entry Condition | Exit Condition |
-|-------|----------------|----------------|
+| ------- | ---------------- | ---------------- |
 | BOOTING | Power-on / WDT reset | Init complete |
 | ACTIVE | Init complete / fault cleared | Timeout / fault / E-Stop |
 | ESTOP_TIMEOUT | No command for 1500 ms | Next valid command |
@@ -542,7 +546,7 @@ See [Safety.md](Safety.md) for full documentation.
 ### Lift State Machine
 
 | State | Entry Condition | Exit Condition |
-|-------|----------------|----------------|
+| ------- | ---------------- | ---------------- |
 | IDLE | Power-on / lower complete | LIFT:UP command |
 | RAISING | LIFT:UP command | Top limit switch |
 | RAISED | Top limit switch reached | LIFT:DN command |
@@ -553,7 +557,7 @@ See [Safety.md](Safety.md) for full documentation.
 ### Buzzer Pattern Machine
 
 | Pattern | Meaning | Sequence |
-|---------|---------|----------|
+| --------- | --------- | ---------- |
 | SILENT | Normal operation | Off |
 | BEEP | Command received acknowledgment | 50 ms on |
 | ALERT | Warning condition | 200 ms on, 200 ms off |

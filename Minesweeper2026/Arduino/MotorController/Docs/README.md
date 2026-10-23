@@ -163,31 +163,35 @@ pio run -t upload  # Upload
 
 ## Pinout Summary
 
-See [Pinout.md](Pinout.md) and [WiringManual.md](WiringManual.md) for the as-fabricated PCB map.
-See [CompatibilityReport.md](CompatibilityReport.md) for the no-PCB-edit sync notes.
+See [Pinout.md](Pinout.md) and [WiringManual.md](WiringManual.md) for the complete hardware wiring details.
 
-| Function | Pin(s) | Type |
-|----------|--------|------|
-| Right Motor PWM | D44 | PWM Output (Timer 5) |
-| Right Motor DIR | D42 | Digital Output |
-| Left Motor PWM | D46 | PWM Output (Timer 5) |
-| Left Motor DIR | D40 | Digital Output |
-| Right Encoder A | D19 (INT2) | External Interrupt |
-| Right Encoder B | D18 | Digital Input |
-| Left Encoder A | D21 (INT2) | External Interrupt (PCB copper) |
-| Left Encoder B | D20 | Digital Input (PCB copper) |
-| MPU6050 SDA | D30 | Soft I2C (flying lead) |
-| MPU6050 SCL | D31 | Soft I2C (flying lead) |
-| Lift Motor PWM | D10 | PWM Output (jumper) |
-| Lift Motor DIR | D8 | Digital Output (jumper) |
-| Magnet relay (all) | D38 | Digital Output |
-| Limit Switch Top | D28 | Digital Input, active HIGH (jumper) |
-| Limit Switch Bottom | D29 | Digital Input, active HIGH (jumper) |
-| Metal Detector | D27 | Digital Input (jumper) |
-| Proximity 1-5 | A1-A5 | Analog Input (jumper to J6) |
-| Battery Voltage | A0 | Analog Input (add-on divider) |
-| Siren relay | D37 | Digital Output (jumper) |
-| Warning LED | D35 | Digital Output |
+| Function | Pin(s) | Type / Timer | Hardware Connection |
+|---|---|---|---|
+| Right Motor PWM | **D44** | Hardware PWM (Timer 5 OC5C) | Cytron MDD10A (J36 Pin 2) |
+| Right Motor DIR | **D42** | Digital Output | Cytron MDD10A (J36 Pin 1) |
+| Left Motor PWM | **D46** | Hardware PWM (Timer 5 OC5A) | Cytron MDD10A (J36 Pin 4) |
+| Left Motor DIR | **D40** | Digital Output | Cytron MDD10A (J36 Pin 3) |
+| Right Encoder A | **D19** | External Interrupt `INT2` | Primary Harness / PCB Copper (J17) |
+| Right Encoder B | **D18** | Digital Input | Primary Harness / PCB Copper (J17) |
+| Left Encoder A | **D21** | External Interrupt `INT0` | Primary Harness / PCB Copper (J16) |
+| Left Encoder B | **D20** | Digital Input | Primary Harness / PCB Copper (J16) |
+| Camera Pan Servo | **D4** | Custom 50 Hz PWM (Timer 3) | Preserved signal header (J13) |
+| Lift Motor PWM | **D7** | Hardware PWM (Timer 4 OC4B) | Lift Driver (J37 / J44) |
+| Lift Motor DIR | **D49** | Digital Output | Lift Driver (J37 / J44) |
+| Limit Switch Top | **D51** | Digital Input (Active HIGH) | Upper travel limit switch |
+| Limit Switch Bottom | **D53** | Digital Input (Active HIGH) | Lower travel limit switch |
+| Ultrasonic Trigger | **D43** | Digital Output | HC-SR04 Gripper Mine Detector |
+| Ultrasonic Echo | **D45** | Digital Input | HC-SR04 Gripper Mine Detector |
+| MPU6050 Soft-I2C SDA | **D34** | Soft-I2C Data (Flying lead) | Avoids Prox5 (D31) clash |
+| MPU6050 Soft-I2C SCL | **D36** | Soft-I2C Clock (Flying lead) | Avoids Metal Detector (D33) clash |
+| Proximity Array (1–5) | **D23, D25, D27, D29, D31** | 5x Digital Inputs | Optical proximity sensors (J39) |
+| Metal Detector | **D33** | Digital Input (Active HIGH) | Search Coil Harness (J40) |
+| Shared Magnet Relay | **D38** | Digital Output | Relay K1 → MAG1–MAG5 Bus |
+| Siren Relay | **D37** | Digital Output | Relay K2 → 12V Automotive Siren |
+| Warning LED | **D13** | Digital Output | Arduino Mega Onboard `LED_BUILTIN` |
+| Battery Voltage Sense | **A0** | Analog Input | Scaled resistor divider (3.3:1) |
+| WiFi Telemetry Link | **D16 (TX2) / D17 (RX2)** | Hardware UART `Serial2` | ESP8266 Web Dashboard (115200 baud) |
+| ROS 2 Primary Link | **D0 (RX0) / D1 (TX0)** | USB CDC Serial0 | Raspberry Pi 4 Link (115200 baud) |
 
 ---
 

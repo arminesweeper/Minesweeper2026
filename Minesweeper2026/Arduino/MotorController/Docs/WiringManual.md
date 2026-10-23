@@ -1,343 +1,196 @@
-# Minesweeper 2026 — Wiring Manual
+# Minesweeper 2026 — Hardware Wiring & Harness Manual
 
-**Audience:** Assembly technicians and bring-up engineers  
-**Hardware:** `Robotics_Mine` KiCad shield + Magnets/Lift + Metal Detector sections  
-**Firmware:** `MotorController` (`Config.h` VERSION 3 — no PCB edits)
+**Audience:** Assembly technicians, electrical engineers, and commissioning personnel  
+**Hardware Platform:** Custom Assiut Robotics PCB (`Robotics_Mine` / `mine_sch.pdf`)  
+**Firmware Baseline:** `MotorController` (`Config.h` synchronized to final physical robot wiring)
 
 ---
 
-## 1. System Overview
+## 1. System Interconnection Architecture
 
 ```mermaid
 flowchart LR
-  BAT[Battery 3S/4
-  S] --> MDD[Cytron MDD10A]
-  BAT --> REG5[5V Logic Supply]
-  BAT --> REG12[12V Rails MD/MG]
-  REG5 --> MEGA[Arduino Mega 2560]
-  REG5 --> ENC[Encoders]
-  REG5 --> MPU[MPU6050]
-  MDD --> MOTL[Left Motor]
-  MDD --> MOTR[Right Motor]
-  MEGA -->|USB Serial| PI[Raspberry Pi 4 ROS2]
-  MEGA -->|Serial2 115200| WIFI[ESP8266 WiFi Module]
-  MEGA --> MDD
-  MEGA --> LIFT[Lift Driver]
-  MEGA --> RELAY[Magnet Relay K1]
-  MEGA --> SIREN[Siren Relay K2]
-  SENS[Proximity + Metal] --> MEGA
+    BAT[12V Battery Pack Tianneng TNE12-25] --> FUSE[Main Fuse 30A]
+    FUSE --> CYTRON[Cytron MDD10A Rev2.0]
+    FUSE --> REG5[5V Regulated Logic PSU]
+    FUSE --> PWR_RAILS[12V Main / 12V_MG Rails]
+
+    REG5 --> MEGA[Arduino Mega 2560]
+    REG5 --> ENC[Encoders Left & Right]
+    REG5 --> MPU[MPU6050 6-DOF IMU]
+
+    CYTRON --> MOT_L[Left Drive Motors]
+    CYTRON --> MOT_R[Right Drive Motors]
+
+    MEGA -->|USB CDC Serial0 115200| RPI[Raspberry Pi 4 / ROS 2]
+    MEGA -->|Hardware Serial2 115200| ESP[ESP8266 WiFi Web Controller]
+
+    MEGA -->|PWM D44/D46, DIR D42/D40| CYTRON
+    MEGA -->|PWM D7, DIR D49| LIFT_DRV[Lift Motor Actuator]
+    MEGA -->|Relay K1 D38| MAG[Electromagnet Array MAG1-MAG5]
+    MEGA -->|Relay K2 D37| SIREN[12V Alert Siren & Strobe]
+    
+    ENC -->|INT0/INT2 Pins 18-21| MEGA
+    MPU -->|Soft-I2C Pins 34, 36| MEGA
+    SENS[5x Proximity D23-D31 + Metal D33] --> MEGA
+    ULTRA[HC-SR04 Ultrasonic D43, D45] --> MEGA
+    LIMITS[Limit Switches D51, D53] --> MEGA
+    SERVO[Camera Pan Servo D4] <-- MEGA
 ```
 
 ---
 
-## 2. Power Distribution
+## 2. Power Distribution Rails
 
-| Rail | Source | Consumers | Notes |
-| ------ | -------- | ----------- | ------- |
-| **VBAT** | Battery pack | Cytron motor power, 12V_MD, 12V_MG | Fuse at battery positive |
-| **12V** (J24) | Battery or regulator | Relays K1/K2 coils, magnet/lift power | Large caps on board |
-| **12V_MD** (J46) | 12V for metal/prox sensors | J1–J5 APRXMT brown pins | Sensor excitation |
-| **12V_MG** (J43) | Magnets & lift power | MAG1–5, LIFT motor | After bring-up, confirm K1 gating |
-| **5V_LOGIC** (J22) | Logic PSU | Mega 5V, encoders, MPU, logic | Bond to Mega 5V |
-| **5V_SERVO** (J23) | Separate 5V | Servo only | Isolate from logic noise |
-| **GND** | Common | All subsystems | Single-point bond near Mega |
+| Rail Name | Source | Terminal Header | Filter Capacitance | Subsystems Served | Notes |
+| :--- | :--- | :---: | :---: | :--- | :--- |
+| **VBAT / 12V** | Battery Positive | `J24` | $2000\,\mu\text{F}$ (C5, C7) | Cytron MDD10A, Relays K1/K2 coils | Fused at 30A near battery terminal |
+| **12V_MG** | Magnet Power Bus | `J43` / Internal Bus | $4000\,\mu\text{F}$ (C3, C13) | Electromagnets MAG1–MAG5, Lift motor | Controlled via Relay K1 (2N2222A) |
+| **12V_MD** | Sensor Excitation | `J46` | Bulk decoupling | Inductive metal detector, proximity sensors | Stabilized DC supply |
+| **5V_LOGIC** | Regulated Buck | `J22` | $2000\,\mu\text{F}$ (C9) + 100nF | Mega 5V rail, Encoders, MPU6050, logic | Clean supply isolated from motors |
+| **5V_SERVO** | Dedicated 5V Reg | `J23` / `J13` | $2000\,\mu\text{F}$ (C11, C12) | Camera Pan Servo | Prevents servo inductive kickback |
+| **GND** | Battery Negative | Common Stud | Ground Plane | Star ground connection for all modules | Single-point bond near Mega |
 
-### Critical grounding rules
-
-1. Cytron GND, Mega GND, and sensor GND **must** share a common ground.
-2. Do not return motor current through sensor signal grounds alone.
-3. Keep motor power wires twisted pairs; keep encoder wires away from motor leads.
-
-### Recommended fusing
-
-| Circuit | Fuse |
-| --------- | ------ |
-| Battery → Cytron | 20–30 A (match motors) |
-| Battery → 12V board rail | 5–10 A |
-| 5V_LOGIC supply | 2–3 A |
+### Critical Grounding & Power Rules
+1. **Common Star Ground:** Cytron power GND, Arduino Mega GND, and sensor logic GND must bond at a single physical terminal near the battery return to prevent high motor return currents from creating ground bounce on sensitive analog/I²C lines.
+2. **Motor Lead Dressing:** Motor output wires must be twisted pairs and routed away from encoder signal harnesses and MPU6050 flying leads.
+3. **Decoupling Capacitors:** Ensure bulk electrolytic capacitors (>11,000 µF total across rails) are fully operational and verified before powering inductive loads.
 
 ---
 
-## 3. Arduino Mega Pin Mapping (Technician Table)
+## 3. Master Technician Pin Connection Table
 
-| Arduino Pin | Signal | Device | How connected |
-| ------------- | -------- | -------- | --------------- |
-| D18 | ENC_R_B (B2) | Right encoder Phase B | PCB copper |
-| D19 | ENC_R_A (A2) | Right encoder Phase A | PCB copper |
-| D20 | ENC_L_B (B1) | Left encoder Phase B | PCB copper |
-| D21 | ENC_L_A (A1) | Left encoder Phase A | PCB copper |
-| D31 | soft SDA | MPU6050 SDA | **Flying lead** (not J29) |
-| D33 | soft SCL | MPU6050 SCL | **Flying lead** (not J38) |
-| D35 | DIR3 | Lift DIR | Jumper → J37 / J44 |
-| D37 | PWM3 | Lift PWM | Jumper → J37 / J44 |
-| D39 | MTLDTCT / MD | Metal detector | Jumper → J6.1 or J40.1 |
-| D41 | LM1 | Limit switch 1 (top) | Jumper → J43/J44 |
-| D43 | LM2 | Limit switch 2 (bottom) | Jumper → J43/J44 |
-| D45 | WARN_LED | Warning LED | Discrete LED + 220 Ω to GND |
-| D4 | SERVO | Optional servo | PCB copper → J13 |
-| D47 | SIREN | Siren relay drive | Jumper → J15.1 |
-| D38 | MAGNET | Magnet relay K1 | PCB copper → J14 |
-| D40 | DIR2 | Left motor DIR Cytron1 | PCB copper → J36 |
-| D42 | DIR1 | Right motor DIR Cytron1 | PCB copper → J36 |
-| D44 | PWM1 | Right motor PWM Cytron1 | PCB copper → J36 |
-| D46 | PWM2 | Left motor PWM Cytron1 | PCB copper → J36 |
-| D8 | DIR1 | Right motor DIR Cytron2 | Jumpers → Pin Header |
-| D9 | PWM1 | Right motor PWM Cytron2 | Jumpers → Pin Header |
-| D10 | DIR2 | Left motor DIR Cytron2 | Jumpers → Pin Header |
-| D11 | PWM2 | Left motor PWM Cytron2 | Jumpers → Pin Header |
-| A0 | BAT_SENSE | Battery monitor | Off-board divider |
-| A1–A5 | AP1–AP5 | Proximity | Jumper → J6 |
-| D0/D1 | USB Serial | Raspberry Pi | Mega USB |
-
----
-
-## 4. IMU Harness (No PCB Edit)
-
-**Do not use shield J29/J38 for MPU data.** Those pads collide with ENC1 on D20/D21 through the Mega.
-
-### Flying-lead pinout
-
-| MPU6050 module | Mega pin | Notes |
-| ---------------- | ---------- | ------- |
-| VCC | 5V (Mega or J22 logic) | 5V module preferred |
-| GND | GND | Common ground |
-| SDA | **D30** | Soft I2C (`IMU_USE_SOFT_I2C`) |
-| SCL | **D31** | Soft I2C |
-| AD0 | GND | Address 0x68 |
-| INT | NC | Unused |
-
-Add 4.7 kΩ pull-ups from SDA/SCL to 5V if the module has none.
-
-Leave J29/J38 unpopulated, or use only for mechanical mounting — never tie module SDA/SCL into those headers while ENC1 is connected.
+| Arduino Mega Pin | Net / Signal Name | Target Device / Header | Physical Connection Type | Operational Function |
+| :---: | :---: | :---: | :--- | :--- |
+| **D18** | `ENC_R_B` | Right Encoder Phase B | Shield Header `J17` Pin 2 | Quadrature direction sensing |
+| **D19** | `ENC_R_A` | Right Encoder Phase A | Shield Header `J17` Pin 3 | External Interrupt `INT2` |
+| **D20** | `ENC_L_B` | Left Encoder Phase B | Shield Header `J16` Pin 2 | Quadrature direction sensing |
+| **D21** | `ENC_L_A` | Left Encoder Phase A | Shield Header `J16` Pin 3 | External Interrupt `INT0` |
+| **D4** | `SERVO` | Camera Pan Servo Signal | Discrete Lead → Header `J13` | Custom 50 Hz PWM via Timer 3 |
+| **D7** | `LIFT_PWM` | Lift Actuator Motor Speed | Jumper → Header `J37` / `J44` | Hardware PWM via Timer 4 (OC4B) |
+| **D49** | `LIFT_DIR` | Lift Actuator Direction | Jumper → Header `J37` / `J44` | Digital Direction (HIGH/LOW) |
+| **D51** | `LIMIT_TOP` | Upper Travel Limit Switch | Jumper → Header `J43` / `J44` | Active-HIGH top travel limit |
+| **D53** | `LIMIT_BOT` | Lower Travel Limit Switch | Jumper → Header `J43` / `J44` | Active-HIGH bottom travel limit |
+| **D43** | `US_TRIG` | HC-SR04 Ultrasonic Trigger | Gripper Scoop Harness | 10 µs pulse output |
+| **D45** | `US_ECHO` | HC-SR04 Ultrasonic Echo | Gripper Scoop Harness | Pulse width proportional to distance |
+| **D23** | `PROX1` | Infrared Proximity Sensor 1 | Sensor Bus `J39` / APRX1 | Digital obstacle detection |
+| **D25** | `PROX2` | Infrared Proximity Sensor 2 | Sensor Bus `J39` / APRX2 | Digital obstacle detection |
+| **D27** | `PROX3` | Infrared Proximity Sensor 3 | Sensor Bus `J39` / APRX3 | Digital obstacle detection |
+| **D29** | `PROX4` | Infrared Proximity Sensor 4 | Sensor Bus `J39` / APRX4 | Digital obstacle detection |
+| **D31** | `PROX5` | Infrared Proximity Sensor 5 | Sensor Bus `J39` / APRX5 | Digital obstacle detection |
+| **D33** | `METAL_DET` | Metal Detector Search Coil | Sensor Header `J40` Pin 1 | Digital mine trigger (Active HIGH) |
+| **D34** | `SOFT_SDA` | MPU6050 IMU Data | **Dedicated Flying Lead** | Soft-I2C Serial Data (avoid D31 clash) |
+| **D36** | `SOFT_SCL` | MPU6050 IMU Clock | **Dedicated Flying Lead** | Soft-I2C Serial Clock (avoid D33 clash) |
+| **D37** | `SIREN` | 12V Siren Relay K2 Driver | Header `J15` Pin 1 (via Q2) | 12V automotive alert horn |
+| **D38** | `MAGNET` | Electromagnet Relay K1 | Header `J14` Pin 1 (via Q1) | Common bus for MAG1–MAG5 |
+| **D40** | `DIR2` | Left Drive Motor Direction | Cytron MDD10A Header `J36` Pin 3 | High = Forward, Low = Reverse |
+| **D42** | `DIR1` | Right Drive Motor Direction| Cytron MDD10A Header `J36` Pin 1 | High = Forward, Low = Reverse |
+| **D44** | `PWM1` | Right Drive Motor Speed | Cytron MDD10A Header `J36` Pin 2 | Timer 5 OC5C Hardware PWM |
+| **D46** | `PWM2` | Left Drive Motor Speed | Cytron MDD10A Header `J36` Pin 4 | Timer 5 OC5A Hardware PWM |
+| **D13** | `WARN_LED` | Diagnostic / Warning LED | Onboard `LED_BUILTIN` | Visual fault indicator |
+| **A0** | `BAT_SENSE` | Main Battery Voltage Divider | Resistor Divider Network | Analog read (3.3:1 attenuation) |
+| **D0 / D1**| `USB CDC` | Raspberry Pi 4 | USB Cable to Pi USB Port | Primary ROS 2 Command Link |
+| **D16 / D17**| `SERIAL2` | ESP8266 WiFi NodeMCU | Jumper to ESP `TX`/`RX` | Web Diagnostic Dashboard Link |
 
 ---
 
-## 5. Encoder Wiring (PCB Copper — Unchanged)
+## 4. IMU Flying-Lead Harness (Soft-I2C)
 
-### ENC1 — Left (J16)
+> [!WARNING]
+> **DO NOT connect the MPU6050 data pins to shield headers J29 or J38.**
+> On the fabricated PCB, J29 and J38 connect to Mega pins D20 and D21, which collide directly with the Left Wheel Encoder (ENC1) Phase A and Phase B interrupts.
 
-| J16 | Net | Mega (as fabricated) |
-| ----- | ----- | ---------------------- |
-| 1 | GND | GND |
-| 2 | B1 | **D20** |
-| 3 | A1 | **D21** |
-| 4 | 5V_LOGIC | 5V |
-
-### ENC2 — Right (J17)
-
-| J17 | Net | Mega |
-| ----- | ----- | ------ |
-| 1 | GND | GND |
-| 2 | B2 | D18 |
-| 3 | A2 | D19 |
-| 4 | 5V_LOGIC | 5V |
-
-No cuts. No green-wire on encoder nets. Use twisted pairs when cable > 30 cm.
+### Approved Flying-Lead Wiring:
+- **MPU6050 VCC:** Connect to 5V (from `J22` Logic Rail or Mega 5V header).
+- **MPU6050 GND:** Connect to common system ground.
+- **MPU6050 SDA:** Connect directly to Arduino Mega **Pin D34**.
+- **MPU6050 SCL:** Connect directly to Arduino Mega **Pin D36**.
+- **Pull-Up Resistors:** If using a raw breakout without onboard pull-ups, install $4.7\,\text{k}\Omega$ resistors from D34 to 5V and from D36 to 5V.
 
 ---
 
-## 6. Motor Driver Wiring — Cytron MDD10A
+## 5. Primary Drive Motor Wiring (Cytron MDD10A)
 
-### Logic header J36 (shield)
+### Header J36 (Logic Interface to Cytron):
+- **Pin 1 (DIR1):** Connects to Mega **D42** (Right Motor Direction)
+- **Pin 2 (PWM1):** Connects to Mega **D44** (Right Motor PWM, Timer 5 OC5C)
+- **Pin 3 (DIR2):** Connects to Mega **D40** (Left Motor Direction)
+- **Pin 4 (PWM2):** Connects to Mega **D46** (Left Motor PWM, Timer 5 OC5A)
+- **Pin 5 (GND):** Common Ground bond
 
-| J36 Pin | Signal | Mega |
-| --------- | -------- | ------ |
-| 1 | DIR1 | D42 |
-| 2 | PWM1 | D44 |
-| 3 | DIR2 | D40 |
-| 4 | PWM2 | D46 |
-| 5 | GND | GND |
-
-### Cytron power / motors (off-board)
-
-| Cytron terminal | Connection |
-| ----------------- | ------------ |
-| B+ / B− | Battery (fused) |
-| M1A / M1B | Right drive motor |
-| M2A / M2B | Left drive motor |
-| GND (logic) | Common with Mega |
-
-Sign-magnitude mode: PWM = speed, DIR = direction (HIGH = forward in firmware default).
-
-If a wheel runs backward, prefer EEPROM `invert_*_motor` over swapping wires after polarity is documented.
+### Cytron Power & Motor Output Terminals:
+- **`POWER + / -`:** Heavy gauge 14 AWG wire from 30A main fused battery rail.
+- **`MOTOR 1 (M1A / M1B)`:** Right drive motors (wired in parallel if 4WD).
+- **`MOTOR 2 (M2A / M2B)`:** Left drive motors (wired in parallel if 4WD).
 
 ---
 
-## 7. Lift / Magnets / Limits / Sensors
+## 6. Lift Mechanism & Limit Switches Harness
 
-(See sections below for connectors; control signals use the jumper harness in §3.)
+### Lift Motor Driver:
+- **PWM Signal:** Mega **Pin D7** (Timer 4 OC4B, speed clamped to 90 / ~35% duty cycle in `LiftConfig::LIFT_PWM_SPEED`).
+- **DIR Signal:** Mega **Pin D49**.
+- **Motor Leads:** Connected to Terminal **`J28 (LIFT)`**.
 
-### Lift control jumpers
-
-| Signal | Mega | Board |
-| -------- | ------ | ------- |
-| PWM3 | D10 | J37 / J44 |
-| DIR3 | D8 | J37 / J44 |
-| LM1 | D28 | J43 / J44 |
-| LM2 | D29 | J43 / J44 |
-
-### Electromagnets
-
-Powered from `12V_MG`. Control is **common relay K1** on Mega **D38**.
-
-### Limit switches
-
-Active HIGH when closed to 12 V (divider). Top = LM1/D28, bottom = LM2/D29.
-
-### Proximity / metal
-
-Jumper J6 AP1–AP5 → Mega A1–A5; J6.1 MD → D27.
-
-### Lift motor power
-
-| Connector | Pins | Notes |
-|-----------|------|-------|
-| J28 LIFT | 12V_MG, GND_MG | Motor leads |
-| External H-bridge / Cytron single | PWM3/DIR3 from J20 or harness | Match driver type in field |
-
-### Electromagnets MAG1–MAG5 (J9–J12, J27)
-
-Powered from `12V_MG`. Control is **common relay K1** driven by Mega **D38** (J14 → Q1 → K1 → J19 MAGNET SW).
-
-Verify during bring-up whether `12V_MG` is always live or gated by K1.
-
-### Limit switches (J45 LIMIT1, J35 LIMIT2)
-
-| Switch | Board net | Mega | Polarity |
-|--------|-----------|------|----------|
-| LIMIT1 | LM1 (via divider) | D28 | Active HIGH when closed to 12V |
-| LIMIT2 | LM2 (via divider) | D29 | Active HIGH when closed to 12V |
-
-Map physically: top = LM1 (D28), bottom = LM2 (D29). Swap in firmware only if bench test shows inverted.
+### Travel Limit Switches:
+- **Top Limit Switch (LIMIT1):** Connect to Mega **Pin D51** (Active-HIGH configuration).
+- **Bottom Limit Switch (LIMIT2):** Connect to Mega **Pin D53** (Active-HIGH configuration).
+- *Operational note:* In `Config.h`, `#define ENABLE_LIMIT_SWITCHES 0` is currently set for direct manual teleoperation. If automated homing cycles are re-enabled, verify that pressing the upper physical lever asserts logic HIGH on D51.
 
 ---
 
-## 8. Metal Detector / Proximity Section
+## 7. Electromagnet Array & Alert Siren
 
-### Sensor connectors J1–J5 (APRXMT, 4-pin)
+### Electromagnets (MAG1–MAG5):
+- Outputs: Connectors **`J9, J10, J11, J12, J27`**.
+- Gated Power Rail: `12V_MG` via Relay **K1**.
+- Control Signal: Mega **Pin D38** drives transistor Q1 (`2N2222A`) to switch Relay K1.
+- Flyback Protection: Diode D1 (`1N4007`) across relay coil.
+- Firmware Protection: 8-second auto-off timer active to prevent coil thermal overload.
 
-| Pin | Color net | Function |
-| ----- | ----------- | ---------- |
-| 1 | WHITE | Sensor-specific |
-| 2 | OUT | Signal → divider → APn |
-| 3 | BLU | GND_MD |
-| 4 | BRWN | 12V_MD |
-
-### Conditioned outputs J6 (`OI54321GV` / `V G 1 2 3 4 5 M I O` family)
-
-| J6 | Net | Mega jumper |
-| ---- | ----- | ------------- |
-| 1 | MD | D27 |
-| 2 | AP5 | A5 |
-| 3 | AP4 | A4 |
-| 4 | AP3 | A3 |
-| 5 | AP2 | A2 |
-| 6 | AP1 | A1 |
-| 7 | GND_MD | GND |
-| 8 | 12V_MD | Do not feed Mega 5V pin |
-
-Dividers: 10k / 3.9k from ~12 V OUT → ~3.4 V max at APn (safe for Mega ADC).
-
-### Metal detector J40 / J42
-
-| Conn | Use |
-|------|-----|
-| J42 MD | 2-pin module: MD, GND_MD |
-| J40 | Breakout MTLDTCT + APRX1–5 |
-
-Prefer **J6.1 MD** to Mega D27 (already level-appropriate if module is open-collector / 5V logic). Confirm polarity on bench (`METAL` active LOW in firmware).
+### 12V Automotive Siren:
+- Load Output: Connector **`J21`** (Switched 12V).
+- Control Signal: Mega **Pin D37** drives transistor Q2 (`2N2222A`) to switch Relay **K2**.
+- Flyback Protection: Diode D2 (`1N4007`) across relay coil.
+- Logic Polarity: Active-HIGH in final `Config.h` (`#define SIREN_ACTIVE_HIGH 1`).
 
 ---
 
-## 10. Siren / Indicators
+## 8. Sensor Subsystem Wiring
 
-| Function | Mega | Board | Wiring |
-| ---------- | ------ | ------- | -------- |
-| Siren | D37 | J15 → R21 → Q2 → K2 | Digital HIGH = on |
-| Siren load | — | J21 / J18 | 12V switched |
-| Warning LED | D35 | Discrete | Anode via 220 Ω, cathode GND |
-| Servo (opt.) | D36 | J13 | Signal / 5V_SERVO / GND |
+### Optical Proximity Array (APRX1–APRX5):
+- Sensors: 5× downward-facing photoelectric proximity sensors.
+- Digital Signal Inputs: Mega Pins **`D23, D25, D27, D29, D31`** via header **`J39`**.
+- Status Display: 5× blue indicator LEDs on interface board give direct visual feedback.
 
----
+### Metal Detector Search Coil:
+- Sensor Output: Connect to Mega **Pin D33** via header **`J40`**.
+- Signal Logic: Digital high indicates electromagnetic target detection.
 
-## 11. Raspberry Pi 4
-
-| Connection | Detail |
-| ------------ | -------- |
-| USB | Pi USB ↔ Mega USB (Serial 115200) |
-| Power | Pi via official PSU or regulated 5V; **not** from Mega 5V |
-| GND | Bond Pi GND to robot GND if using additional GPIO (none required for baseline) |
-| ROS 2 | Publish/subscribe velocity + telemetry per `Docs/Communication.md` |
-
-USB_A on shield (J7) is **power-only** (D+/D− NC) — do not use for Pi data.
+### Ultrasonic Distance Sensor (HC-SR04):
+- **VCC:** 5V Logic Rail.
+- **GND:** System GND.
+- **Trig:** Arduino Mega **Pin D43**.
+- **Echo:** Arduino Mega **Pin D45**.
 
 ---
 
-## 12. WiFi Module (ESP8266)
+## 9. Communication & Auxiliary Modules
 
-The ESP8266 NodeMCU handles the Web Dashboard and communicates with the Arduino Mega via `Serial2` at 115200 baud.
+### Raspberry Pi 4 (ROS 2 Primary Brain):
+- Connection: Standard USB Type-A to Type-B cable connecting Raspberry Pi USB 3.0 to Arduino Mega USB port.
+- Baud Rate: **115200 baud** (Fixed CDC ACM).
+- Power: Powered via independent high-efficiency 5V 3A step-down regulator (DO NOT power RPi from Mega 5V pin).
 
-| Connection | ESP8266 Pin | Mega Pin | Notes |
-| ------------ | ----------- | -------- | ------- |
-| **Power** | `3V3` | `3.3V` | Must be powered from Mega 3.3V (if current is sufficient) or external 3.3V regulator. |
-| **Ground** | `GND` | `GND` | Common ground is required. |
-| **TX** | `TX` (or `TX0`) | `D17` (RX2) | Data from ESP8266 to Mega. |
-| **RX** | `RX` (or `RX0`) | `D16` (TX2) | Data from Mega to ESP8266. A 5V-to-3.3V logic level shifter or voltage divider (e.g. 1kΩ / 2kΩ) is recommended on this line to protect the ESP8266, although direct connection often works in practice. |
+### ESP8266 WiFi Telemetry Module:
+- Connection: Connected to Arduino Mega **`Serial2`** port.
+  - `ESP8266 TX` ────→ `Mega D17 (RX2)`
+  - `ESP8266 RX` ────→ `Mega D16 (TX2)` (through voltage divider or 3.3V logic level shifter)
+  - `ESP8266 GND` ───→ `System Common GND`
+  - `ESP8266 VCC` ───→ `Regulated 3.3V Rail`
+- Baud Rate: **115200 baud**.
 
----
-
-## 12. Battery Sense (Add-On)
-
-PCB has **no** battery ADC path. Add:
-
-```
-VBAT ── R1 (23k) ──●── R2 (10k) ── GND
-                   │
-                  Mega A0
-```
-
-Ratio ≈ 3.3 matches `SafetyConfig::VOLTAGE_DIVIDER_RATIO`. Keep sense wires short; add 100 nF at A0 to GND if noisy.
-
----
-
-## 13. Connector Index (Shield / Board)
-
-| Ref | Label | Role |
-| ----- | ------- | ------ |
-| J22 | 5V LOGIC | Logic power in |
-| J23 | 5V SERVO | Servo power in |
-| J24 | 12V | Main 12V in |
-| J36 | CYTRON | Drive PWM/DIR |
-| J37 | LIFT | PWM3/DIR3 breakout |
-| J16/J17 | ENC1/ENC2 | Encoders |
-| J29/J38 | MPU6050 | **Do not use for SDA/SCL** — soft I2C on D30/D31 |
-| J14 | MGNT | Magnet relay input from Mega D38 |
-| J15 | SIRENS | Siren relay input |
-| J1–J5 | APRXMT | Proximity sensors |
-| J6 / J39 | Bus | Prox/metal interconnect |
-| J40 | METAL DETECTOR | Sensor breakout |
-| J42 | MD | Metal detector 2-pin |
-| J9–J12,J27 | MAG1–5 | Magnet power |
-| J28 | LIFT | Lift motor power |
-| J45/J35 | LIMIT1/2 | Limit switches |
-| J43/J44 | Lift bus | V/G/PWM3/DIR3/LM1/LM2 |
-| J7 | USB_A | 5V power tap only |
-| J13 | SERVO | Servo header |
-
----
-
-## 14. Assembly Sequence
-
-1. Mount shield; verify no shorts Mega ↔ GND/5V.
-2. Install Mega; power **5V_LOGIC only** (no motors).
-3. Flash firmware VERSION 3; confirm ready banner on serial.
-4. Connect MPU6050 via **flying leads to D30/D31** (not J29 data); verify WHO_AM_I.
-5. Connect encoders on J16/J17 as fabricated; spin by hand; watch telemetry.
-6. Confirm IMU still OK while spinning left encoder (proves soft-I2C isolation).
-7. Connect Cytron logic only; bench-test DIR/PWM at low duty with motors unloaded.
-8. Wire lift/limits/magnets/siren jumpers.
-9. Connect proximity/metal; validate ADC and MD bit.
-10. Apply motor power under e-stop discipline; run PID tests.
-11. Fit battery sense; calibrate thresholds.
-
-Detailed checks: [CommissioningChecklist.md](CommissioningChecklist.md).
+### Battery Voltage Sense Divider:
+- External Divider Circuit: $23\,\text{k}\Omega$ (R1) and $10\,\text{k}\Omega$ (R2) connected between Battery Positive and Ground.
+- Tap Output: Connected to Arduino Mega Analog Pin **`A0`**.
+- Attenuation Ratio: 3.3:1 ($14.8\text{ V} \rightarrow 4.48\text{ V}$ safe ADC input).

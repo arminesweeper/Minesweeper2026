@@ -1,145 +1,149 @@
 # Hardware Commissioning Checklist
 
-Use this before competition / field deployment. Check boxes in order. Do not skip Critical items.
+**Audience:** Assembly technicians and commissioning engineers  
+**Hardware Baseline:** As-built robot wiring (synchronized with `Config.h` and `Docs/Pinout.md`)
+
+Use this checklist before competition trials and field deployment. Check all boxes in sequence. Do not skip Critical safety checks.
 
 ---
 
-## A. Continuity & Harness (Critical — No PCB Cuts)
+## A. Continuity & Harness (Critical — No Short Circuits)
 
-- [ ] Battery disconnected; capacitors discharged
-- [ ] Mega D20 continuity to ENC1 B1 (J16) — **expected**
-- [ ] Mega D21 continuity to ENC1 A1 (J16) — **expected**
-- [ ] Mega D18 ↔ ENC2 B2; D19 ↔ ENC2 A2
-- [ ] MPU SDA/SCL **not** connected to J29/J38 data pins
-- [ ] MPU SDA ↔ Mega D30; MPU SCL ↔ Mega D31 (flying leads)
-- [ ] Soft-I2C pull-ups present (on module or discrete 4.7 kΩ)
-- [ ] Mega D44/D42/D46/D40 ↔ J36 PWM1/DIR1/PWM2/DIR2
-- [ ] Mega D38 ↔ J14 magnet drive
-- [ ] Lift/limit/siren/metal jumpers installed per WiringManual
-- [ ] No short between 12V and 5V / GND
-- [ ] Common GND: Mega ↔ Cytron ↔ sensor boards
-
----
-
-## B. Power Rails
-
-- [ ] 5V_LOGIC stable 4.9–5.2 V under Mega idle load
-- [ ] 5V_SERVO present (if servo used)
-- [ ] 12V rail present at J24 (within battery range)
-- [ ] 12V_MD present at J46 when intended
-- [ ] 12V_MG present at magnet/lift section
-- [ ] Fuse installed on battery positive
-- [ ] Polarity of all PSU inputs verified
-
----
-
-## C. Firmware Boot
-
-- [ ] Correct board: Arduino Mega 2560 selected
-- [ ] Firmware flashes without error
-- [ ] Serial 115200 shows `MC:READY` (or project ready banner)
-- [ ] No continuous watchdog resets
+- [ ] Battery disconnected; large filter capacitors completely discharged.
+- [ ] Left wheel encoder (ENC1) Phase B continuity to Mega **D20** (via J16 Pin 2).
+- [ ] Left wheel encoder (ENC1) Phase A continuity to Mega **D21** (via J16 Pin 3, INT0).
+- [ ] Right wheel encoder (ENC2) Phase B continuity to Mega **D18** (via J17 Pin 2).
+- [ ] Right wheel encoder (ENC2) Phase A continuity to Mega **D19** (via J17 Pin 3, INT2).
+- [ ] MPU6050 SDA and SCL **NOT** connected to shield headers J29/J38 (avoids D20/D21 clash).
+- [ ] MPU6050 Soft-I2C flying leads verified: **SDA ↔ Mega D34**, **SCL ↔ Mega D36**.
+- [ ] Soft-I2C pull-ups present (4.7 kΩ pull-ups to 5V verified on SDA/SCL lines).
+- [ ] Cytron MDD10A logic header (J36) continuity verified:
+  - Mega **D44** ↔ PWM1 (Right Speed, Timer 5 OC5C)
+  - Mega **D42** ↔ DIR1 (Right Direction)
+  - Mega **D46** ↔ PWM2 (Left Speed, Timer 5 OC5A)
+  - Mega **D40** ↔ DIR2 (Left Direction)
+- [ ] Magnet Relay K1 drive continuity: Mega **D38** ↔ Transistor Q1 base.
+- [ ] Siren Relay K2 drive continuity: Mega **D37** ↔ Transistor Q2 base.
+- [ ] Lift motor driver jumpers installed: **PWM ↔ Mega D7** (Timer 4 OC4B), **DIR ↔ Mega D49**.
+- [ ] Travel limit switch leads verified: **Top ↔ Mega D51**, **Bottom ↔ Mega D53**.
+- [ ] Ultrasonic sensor leads verified: **Trig ↔ Mega D43**, **Echo ↔ Mega D45**.
+- [ ] Camera Pan Servo lead verified: **Signal ↔ Mega D4** (Timer 3).
+- [ ] Proximity sensor array inputs verified: **D23, D25, D27, D29, D31**.
+- [ ] Metal detector search coil input verified: **Mega D33**.
+- [ ] Multimeter continuity check: No short circuit between 12V rails and 5V or GND.
+- [ ] Star ground integrity: Verified common GND across Battery, Mega, Cytron, and sensor boards.
 
 ---
 
-## D. IMU (Soft I2C)
+## B. Power Rails & Fusing
 
-- [ ] MPU on D30/D31 flying leads (not shield J29 data)
-- [ ] MPU6050 detected (WHO_AM_I / no IMU fault)
-- [ ] Yaw/pitch/roll change when tilted
-- [ ] IMU still OK while left encoder is spun (isolation check)
-
----
-
-## E. Encoders
-
-- [ ] Spin right wheel forward → positive right velocity in telemetry
-- [ ] Spin right wheel reverse → negative right velocity
-- [ ] Spin left wheel forward → positive left velocity (after invert flag)
-- [ ] No count activity on left when right spun (crosstalk)
-- [ ] IMU still OK while spinning encoders (proves I2C/encoder isolation)
+- [ ] 30A main inline fuse installed on battery positive lead.
+- [ ] 5V_LOGIC rail stable between 4.9 V and 5.2 V under Arduino Mega idle load.
+- [ ] 5V_SERVO rail present and isolated from logic power (if servo installed).
+- [ ] 12V Main power rail present at terminal `J24` (matches battery voltage, 12.0 V – 13.2 V).
+- [ ] 12V_MD sensor rail present at terminal `J46`.
+- [ ] 12V_MG magnet rail present at terminal `J43` / magnet section.
+- [ ] Correct polarity verified on all power terminals before energizing.
 
 ---
 
-## F. Drive Motors (Unloaded / jack stands)
+## C. Firmware Boot & Diagnostics
 
-- [ ] Command small `rp` / `lp` velocities
-- [ ] Right motor direction matches command (else set invert flag)
-- [ ] Left motor direction matches command
-- [ ] Both stop on command timeout / e-stop
-- [ ] No Cytron overtemperature / abnormal current at stall
-
----
-
-## G. Lift & Limits
-
-- [ ] Jumpers D10/D8/D28/D29 installed
-- [ ] Raise command moves lift up
-- [ ] Top limit (LM1/D28) stops raise → RAISED
-- [ ] Lower command moves lift down
-- [ ] Bottom limit (LM2/D29) stops lower
-- [ ] Stall timeout enters FAULT if switch disconnected
-- [ ] clearFault recovers
+- [ ] Arduino IDE / CLI configured for: **Arduino Mega 2560** (ATmega2560).
+- [ ] Firmware compiles and uploads cleanly without errors.
+- [ ] Serial monitor at 115200 baud outputs ready banner and telemetry packets.
+- [ ] Onboard diagnostic LED (**D13**) displays normal heartbeat without watchdog resets.
 
 ---
 
-## H. Magnets & Siren
+## D. IMU (Soft-I2C on D34/D36)
 
-- [ ] D38 HIGH closes K1 / energizes magnets (as designed)
-- [ ] D38 LOW releases
-- [ ] Magnet ROS mask bits all map to shared relay behavior
-- [ ] D37 HIGH sounds siren; LOW silences
-- [ ] Pattern ALERT/ALARM toggles audible output
-
----
-
-## I. Sensors
-
-- [ ] A1–A5 jumpers to J6 AP1–AP5
-- [ ] Proximity ADC changes with target
-- [ ] Threshold triggers match field needs (tune `PROXIMITY_THRESHOLD`)
-- [ ] Metal detector D27 goes active on metal; debounced in telemetry
-- [ ] Mine-detect siren pattern engages on rising edge
+- [ ] MPU6050 powered via clean 5V and connected to flying leads **D34 (SDA)** and **D36 (SCL)**.
+- [ ] MPU6050 detected by firmware (`WHO_AM_I` register returns 0x68).
+- [ ] Telemetry confirms pitch, roll, and yaw angles respond smoothly when tilting the robot.
+- [ ] IMU data remains clean and jitter-free while spinning the left drive wheel by hand (proves isolation from D20/D21 encoder interrupts).
 
 ---
 
-## J. Battery Monitor (if fitted)
+## E. Encoders & Odometry Feedback
 
-- [ ] Divider on A0 installed (ratio 3.3)
-- [ ] Reported mV within ~5% of multimeter
-- [ ] Low / critical thresholds trigger expected safety behavior
-
----
-
-## K. ROS 2 / Pi Link
-
-- [ ] USB enumerates on Pi
-- [ ] Velocity commands accepted
-- [ ] Telemetry / odometry / IMU topics (or serial streams) update
-- [ ] E-stop command stops motors within one control period
+- [ ] Manually spin right wheel forward → Telemetry registers positive velocity and accumulating ticks (~385 PPR).
+- [ ] Manually spin right wheel in reverse → Telemetry registers negative velocity.
+- [ ] Manually spin left wheel forward → Telemetry registers positive velocity.
+- [ ] Manually spin left wheel in reverse → Telemetry registers negative velocity.
+- [ ] Zero crosstalk: Spinning right wheel produces zero tick count on left wheel channel.
 
 ---
 
-## L. Integrated Motion
+## F. Primary Drive Motors (Jack Stands / Unloaded)
 
-- [ ] Straight-line drive ~1 m
-- [ ] Spin in place
-- [ ] PID stable (no hunting at constant velocity)
-- [ ] Slip / encoder fault behavior acceptable
-- [ ] Full mission dry-run without motor power faults
+- [ ] Chassis safely elevated on test stands with wheels off the ground.
+- [ ] Send small forward command (`rp01.00,lp01.00,`) → Both drive wheels rotate forward.
+- [ ] Send reverse command (`rn01.00,ln01.00,`) → Both drive wheels rotate in reverse.
+- [ ] Disconnect USB cable or stop sending commands → Watchdog halts both motors within 1.0–1.5 seconds.
+- [ ] Verify Cytron status LEDs (DL1–DL4) illuminate cleanly without excessive heat or stall current.
 
 ---
 
-## Sign-off
+## G. Lift Mechanism & Limit Switches
 
-| Role | Name | Date | Result |
-|------|------|------|--------|
-| Technician | | | Pass / Fail |
-| Firmware eng. | | | Pass / Fail |
-| Team lead | | | Pass / Fail |
+- [ ] Lift motor connected to Terminal `J28` with PWM on **D7** and DIR on **D49**.
+- [ ] Send raise command (`CLIFT:UP\n` or `gp01.00,`) → Lift mechanism elevates smoothly at safe speed (`LIFT_PWM_SPEED = 90`).
+- [ ] Send lower command (`CLIFT:DN\n`) → Lift descends smoothly.
+- [ ] Manually depress Upper Limit Switch (**D51**) → Lift stops immediately (when `ENABLE_LIMIT_SWITCHES 1`).
+- [ ] Manually depress Lower Limit Switch (**D53**) → Lift stops immediately (when `ENABLE_LIMIT_SWITCHES 1`).
+- [ ] Lift stall timeout triggers FAULT safely if limit switch is disconnected.
 
-Notes:
+---
 
-_________________________________________________________________
+## H. Electromagnet Array & Siren Relay
 
-_________________________________________________________________
+- [ ] Send magnet enable command (`CMAG:ALL:ON\n` or `gp01.00`) → Relay K1 clicks; all 5 magnet headers (`MAG1–MAG5`) energize.
+- [ ] Verify 8-second auto-off timer: Magnets automatically de-energize after timeout to prevent overheating.
+- [ ] Send siren test command (`CSIREN:ON\n` / Pattern ALERT) → Relay K2 clicks; 12V siren sounds.
+- [ ] Send siren silence command (`CSIREN:OFF\n`) → Siren silences immediately.
+
+---
+
+## I. Sensor Array & Detection Logic
+
+- [ ] Wave target in front of each proximity sensor (APRX1–APRX5 on **D23, D25, D27, D29, D31**) → Respective blue LED lights up on interface board.
+- [ ] Bring metallic target near search coil (**D33**) → Metal detector digital bit transitions to HIGH in telemetry.
+- [ ] Place sample surface mine in gripper scoop → HC-SR04 ultrasonic sensor (**D43/D45**) detects target within calibrated scoop distance.
+- [ ] Camera Pan Servo responds to position commands (`sp90.00,`, `sp0.00,`, `sp180.00,`) on **D4** smoothly.
+
+---
+
+## J. Battery Voltage Monitor
+
+- [ ] Voltage divider harness connected to Battery Positive and grounded at common stud.
+- [ ] Sense lead securely connected to Mega Analog Pin **`A0`**.
+- [ ] Measured multimeter battery voltage matches telemetry reported voltage within $\pm 0.1\text{ V}$.
+- [ ] Safety cutoffs verified: System generates low voltage alert at 10.8V and critical e-stop at 9.6V.
+
+---
+
+## K. High-Level Communications (ROS 2 & ESP8266)
+
+- [ ] **USB Link:** Raspberry Pi detects Mega on `/dev/ttyUSB0` or `/dev/ttyACM0` at 115200 baud.
+- [ ] ROS 2 hardware interface publishes `/odom`, `/joint_states`, and accepts `/cmd_vel` without dropped packets.
+- [ ] **WiFi Link:** ESP8266 boots, connects on `Serial2` (**D16/D17**), and serves Web Dashboard at `http://192.168.4.1`.
+- [ ] Real-time battery status, lift position, and sensor indicators update dynamically in the Web Dashboard.
+
+---
+
+## L. Field Commissioning Sign-Off
+
+| Inspection Role | Engineer Name | Date | Verification Status |
+| :--- | :--- | :---: | :---: |
+| **Electrical / Harness Engineer** | | | [ ] PASS  [ ] FAIL |
+| **Firmware & Control Engineer** | | | [ ] PASS  [ ] FAIL |
+| **Team Technical Lead** | | | [ ] PASS  [ ] FAIL |
+
+**Commissioning Notes & Field Calibration Values:**
+```
+Right Wheel PID: Kp = 11.5, Ki = 7.5, Kd = 0.1, Kff = 0.5
+Left Wheel PID:  Kp = 12.8, Ki = 8.3, Kd = 0.1, Kff = 0.5
+Battery Open Circuit Voltage: _________ V
+Field Notes: ___________________________________________________________
+```
