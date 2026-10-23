@@ -36,7 +36,7 @@ void MotorDriver::setOutput(float pwm) {
 
   // Update hardware
   setDirection(forward);
-  writePWM(static_cast<uint8_t>(abs(pwm)));
+  writePWM(static_cast<uint8_t>(fabsf(pwm)));
 }
 
 void MotorDriver::stop() {

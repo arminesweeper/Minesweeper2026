@@ -9,6 +9,7 @@
 
 #include "Config.h"
 #include <Arduino.h>
+#include <math.h>
 
 /**
  * @brief Motor driver channel configuration
@@ -48,7 +49,7 @@ public:
 
   float getOutput() const { return current_output_; }
   bool isForward() const { return is_forward_; }
-  bool isStopped() const { return abs(current_output_) < 0.5f; }
+  bool isStopped() const { return fabsf(current_output_) < 0.5f; }
 
   void setInverted(bool inverted) { inverted_ = inverted; }
 

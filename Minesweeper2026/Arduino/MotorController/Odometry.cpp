@@ -6,6 +6,7 @@
 
 #include "Odometry.h"
 #include "EEPROMManager.h"
+#include <math.h>
 
 Odometry::Odometry() : distance_traveled_(0.0) {
   pose_.x = 0.0;
@@ -32,7 +33,7 @@ void Odometry::update(double right_vel, double left_vel, double dt_sec) {
   double omega_robot = (v_right - v_left) / params.wheel_base_m;
 
   // Integrate position using exact integration for constant velocity
-  if (abs(omega_robot) < 1e-6) {
+  if (fabs(omega_robot) < 1e-6) {
     // Straight line motion
     pose_.x += v_robot * dt_sec * cos(pose_.theta);
     pose_.y += v_robot * dt_sec * sin(pose_.theta);
@@ -49,7 +50,7 @@ void Odometry::update(double right_vel, double left_vel, double dt_sec) {
   pose_.theta = normalizeAngle(pose_.theta);
 
   // Accumulate distance
-  distance_traveled_ += abs(v_robot) * dt_sec;
+  distance_traveled_ += fabs(v_robot) * dt_sec;
 #endif
 }
 

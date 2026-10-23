@@ -6,6 +6,7 @@
 
 #include "Safety.h"
 #include <avr/wdt.h>
+#include <math.h>
 
 SafetyMonitor::SafetyMonitor()
     : state_(SystemState::BOOT), estop_trigger_time_(0), 
@@ -73,7 +74,7 @@ void SafetyMonitor::checkMotorStall(float right_vel, float left_vel, float right
     const unsigned long STALL_TIME_MS = 6000;
 
     // Right Wheel
-    if (abs(right_pwm) > STALL_PWM_THRESHOLD && abs(right_vel) < STALL_VEL_THRESHOLD) {
+    if (fabsf(right_pwm) > STALL_PWM_THRESHOLD && fabsf(right_vel) < STALL_VEL_THRESHOLD) {
         if (stall_timer_r_ == 0) stall_timer_r_ = millis();
         else if (millis() - stall_timer_r_ > STALL_TIME_MS) faults_.motor_stall_r = true;
     } else {
@@ -82,7 +83,7 @@ void SafetyMonitor::checkMotorStall(float right_vel, float left_vel, float right
     }
 
     // Left Wheel
-    if (abs(left_pwm) > STALL_PWM_THRESHOLD && abs(left_vel) < STALL_VEL_THRESHOLD) {
+    if (fabsf(left_pwm) > STALL_PWM_THRESHOLD && fabsf(left_vel) < STALL_VEL_THRESHOLD) {
         if (stall_timer_l_ == 0) stall_timer_l_ = millis();
         else if (millis() - stall_timer_l_ > STALL_TIME_MS) faults_.motor_stall_l = true;
     } else {

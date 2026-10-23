@@ -5,6 +5,7 @@
  */
 
 #include "MotionController.h"
+#include <math.h>
 
 MotionController::MotionController() { reset(); }
 
@@ -12,7 +13,7 @@ void MotionController::begin() { reset(); }
 
 void MotionController::setRightTarget(float velocity) {
   const RobotParameters& params = EEPROMManager::getParams();
-  if (abs(velocity) > params.max_velocity) {
+  if (fabsf(velocity) > params.max_velocity) {
     velocity = (velocity > 0.0f) ? params.max_velocity : -params.max_velocity;
   }
   right_state_.target_velocity = velocity;
@@ -20,7 +21,7 @@ void MotionController::setRightTarget(float velocity) {
 
 void MotionController::setLeftTarget(float velocity) {
   const RobotParameters& params = EEPROMManager::getParams();
-  if (abs(velocity) > params.max_velocity) {
+  if (fabsf(velocity) > params.max_velocity) {
     velocity = (velocity > 0.0f) ? params.max_velocity : -params.max_velocity;
   }
   left_state_.target_velocity = velocity;
@@ -67,16 +68,16 @@ void MotionController::updatePWM(float dt_sec) {
   
   // Apply deadband
   float target_pwm_r = right_state_.target_pwm;
-  if (abs(right_state_.profiled_velocity) < 0.01f) {
+  if (fabsf(right_state_.profiled_velocity) < 0.01f) {
     target_pwm_r = 0.0f;
-  } else if (abs(target_pwm_r) > 0.0f && abs(target_pwm_r) < params.min_pwm_deadband) {
+  } else if (fabsf(target_pwm_r) > 0.0f && fabsf(target_pwm_r) < params.min_pwm_deadband) {
     target_pwm_r = (target_pwm_r >= 0.0f) ? params.min_pwm_deadband : -params.min_pwm_deadband;
   }
 
   float target_pwm_l = left_state_.target_pwm;
-  if (abs(left_state_.profiled_velocity) < 0.01f) {
+  if (fabsf(left_state_.profiled_velocity) < 0.01f) {
     target_pwm_l = 0.0f;
-  } else if (abs(target_pwm_l) > 0.0f && abs(target_pwm_l) < params.min_pwm_deadband) {
+  } else if (fabsf(target_pwm_l) > 0.0f && fabsf(target_pwm_l) < params.min_pwm_deadband) {
     target_pwm_l = (target_pwm_l >= 0.0f) ? params.min_pwm_deadband : -params.min_pwm_deadband;
   }
 
@@ -110,8 +111,8 @@ void MotionController::emergencyStop() {
 }
 
 bool MotionController::isStopped() const {
-  return abs(right_state_.profiled_velocity) < 0.01f &&
-         abs(left_state_.profiled_velocity) < 0.01f;
+  return fabsf(right_state_.profiled_velocity) < 0.01f &&
+         fabsf(left_state_.profiled_velocity) < 0.01f;
 }
 
 void MotionController::reset() {

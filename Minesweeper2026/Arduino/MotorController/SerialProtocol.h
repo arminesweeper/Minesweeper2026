@@ -25,12 +25,22 @@ public:
 
     /**
      * @brief Process incoming serial data
+     * @param right_vel Target right velocity (rad/s)
+     * @param left_vel Target left velocity (rad/s)
+     * @param gripper_vel Target gripper velocity
+     * @param has_gripper_cmd true if gripper velocity token was present in inbound stream
+     * @param servo_angle Target servo angle (0-180), or -1 if not updated
      * @return true if a complete velocity command packet was received
      */
-    bool processInput(float& right_vel, float& left_vel, float& gripper_vel, float& servo_angle);
+    bool processInput(float& right_vel, float& left_vel, float& gripper_vel, bool& has_gripper_cmd, float& servo_angle);
+    bool processInput(float& right_vel, float& left_vel, float& gripper_vel, float& servo_angle) {
+        bool dummy_has_gripper = false;
+        return processInput(right_vel, left_vel, gripper_vel, dummy_has_gripper, servo_angle);
+    }
     bool processInput(float& right_vel, float& left_vel, float& gripper_vel) {
         float dummy_servo = -1.0f;
-        return processInput(right_vel, left_vel, gripper_vel, dummy_servo);
+        bool dummy_has_gripper = false;
+        return processInput(right_vel, left_vel, gripper_vel, dummy_has_gripper, dummy_servo);
     }
 
     bool getExtendedCommand(char* cmd_buf, size_t buf_size);
@@ -67,9 +77,15 @@ public:
 private:
     unsigned long last_command_time_;
 
-    // Token-based parser (matches RobotTest2)
-    char token_buffer_[64];
-    uint8_t token_index_;
+    // Isolated token parsers per UART stream to prevent buffer cross-talk
+    struct StreamParserState {
+        char token_buffer[64];
+        uint8_t token_index;
+    };
+    StreamParserState parser_serial_;
+#if ENABLE_SERIAL2
+    StreamParserState parser_serial2_;
+#endif
     bool new_command_;
 
     // Extended command state
@@ -86,7 +102,7 @@ private:
     bool gripper_received_;
     bool servo_received_;
 
-    void readStream(Stream& port);
+    void readStream(Stream& port, StreamParserState& parser);
     void processToken(const char* token);
 };
 

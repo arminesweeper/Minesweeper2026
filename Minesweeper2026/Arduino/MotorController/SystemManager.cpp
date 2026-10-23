@@ -95,13 +95,16 @@ void SystemManager::update() {
 
     // Process serial input (Non-blocking)
     float r_vel = 0.0f, l_vel = 0.0f, g_vel = 0.0f, s_angle = -1.0f;
-    if (serial_.processInput(r_vel, l_vel, g_vel, s_angle)) {
+    bool has_g_cmd = false;
+    if (serial_.processInput(r_vel, l_vel, g_vel, has_g_cmd, s_angle)) {
         motion_.setRightTarget(r_vel);
         motion_.setLeftTarget(l_vel);
 
 #if ENABLE_LIFT
         // Direct joystick velocity control of gripper (gp / gn from ROS teleop)
-        lift_.handleVelocityCommand(g_vel);
+        if (has_g_cmd) {
+            lift_.handleVelocityCommand(g_vel);
+        }
 #endif
 
         // If servo angle commanded (0 to 180 degrees)
@@ -110,13 +113,12 @@ void SystemManager::update() {
         }
 
         diag_.incrementCommandCount();
-        if (safety_.getState() == SystemState::ESTOP) {
-            safety_.clearEStop();
-        }
         if (safety_.getState() == SystemState::FAULT && !safety_.hasFault()) {
             safety_.clearFaults();
         }
-        safety_.forceState(SystemState::RUNNING);
+        if (safety_.getState() != SystemState::ESTOP && safety_.getState() != SystemState::SHUTDOWN) {
+            safety_.forceState(SystemState::RUNNING);
+        }
     }
     processExtendedCommands();
 
@@ -153,7 +155,14 @@ void SystemManager::update() {
 }
 
 void SystemManager::taskControlLoop() {
-    float dt = Timing::CONTROL_INTERVAL_MS / 1000.0f;
+    static uint32_t last_control_us = 0;
+    uint32_t now_us = micros();
+    float dt = (last_control_us > 0) ? (now_us - last_control_us) * 1e-6f : (Timing::CONTROL_INTERVAL_MS / 1000.0f);
+    last_control_us = now_us;
+
+    // Guard against abnormal dt spikes under scheduler anomalies
+    if (dt < 0.005f) dt = 0.005f;
+    if (dt > 0.100f) dt = 0.100f;
     
     if (millis() - serial_.getLastCommandTime() > SafetyConfig::COMMAND_TIMEOUT_MS) {
         motion_.setRightTarget(0.0f);
@@ -380,13 +389,16 @@ void SystemManager::processExtendedCommands() {
         // Note: SerialProtocol strips the leading 'C', so "CESTOP" arrives as "ESTOP"
         if (strcmp(cmd, "ESTOP") == 0) safety_.triggerEStop();
         else if (strcmp(cmd, "CLEAR") == 0) {
+            safety_.clearEStop();
             safety_.clearFaults();
 #if ENABLE_LIFT
             lift_.clearFault();
 #endif
-            serial_.sendStatus("Faults Cleared");
+            serial_.sendStatus("Faults and E-Stop Cleared");
         }
         else if (strcmp(cmd, "RESET") == 0) {
+            safety_.clearEStop();
+            safety_.clearFaults();
             odom_.reset();
             imu_.resetYaw();
             diag_.resetStats();

@@ -11,7 +11,10 @@
 
 /* Reliable send helpers */
 static void sendStringToPort(HardwareSerial& port, const char* str) {
-    port.println(str);
+    size_t len = strlen(str) + 2; // account for \r\n
+    if (port.availableForWrite() >= len) {
+        port.println(str);
+    }
 }
 
 static void sendPrefixAndCharToPort(HardwareSerial& port, const __FlashStringHelper* prefix, char c) {
@@ -51,7 +54,6 @@ static void broadcastString(const char* str) {
 
 SerialProtocol::SerialProtocol()
     : last_command_time_(0),
-      token_index_(0),
       new_command_(false),
       cmd_ready_(false),
       pending_right_vel_(0.0f),
@@ -62,7 +64,10 @@ SerialProtocol::SerialProtocol()
       left_received_(false),
       gripper_received_(false),
       servo_received_(false) {
-    memset(token_buffer_, 0, sizeof(token_buffer_));
+    memset(&parser_serial_, 0, sizeof(parser_serial_));
+#if ENABLE_SERIAL2
+    memset(&parser_serial2_, 0, sizeof(parser_serial2_));
+#endif
     memset(cmd_buffer_, 0, sizeof(cmd_buffer_));
 }
 
@@ -74,23 +79,23 @@ void SerialProtocol::begin() {
     last_command_time_ = millis();
 }
 
-void SerialProtocol::readStream(Stream& port) {
+void SerialProtocol::readStream(Stream& port, StreamParserState& parser) {
     while (port.available() > 0) {
         char c = static_cast<char>(port.read());
 
         if (c == ',' || c == '\n' || c == '\r') {
-            if (token_index_ > 0) {
-                token_buffer_[token_index_] = '\0';
-                processToken(token_buffer_);
-                token_index_ = 0;
+            if (parser.token_index > 0) {
+                parser.token_buffer[parser.token_index] = '\0';
+                processToken(parser.token_buffer);
+                parser.token_index = 0;
             }
             continue;
         }
 
-        if (token_index_ < sizeof(token_buffer_) - 1) {
-            token_buffer_[token_index_++] = c;
+        if (parser.token_index < sizeof(parser.token_buffer) - 1) {
+            parser.token_buffer[parser.token_index++] = c;
         } else {
-            token_index_ = 0;
+            parser.token_index = 0;
         }
     }
 }
@@ -164,7 +169,7 @@ void SerialProtocol::processToken(const char* token) {
 
     // Direct single-letter drive commands (w, a, s, d, x)
     if (strlen(token) == 1) {
-        const float v = 2.0f;
+        const float v = DefaultParams::MAX_VELOCITY * 0.5f;
         switch (token[0]) {
             case 'w': case 'W':
                 pending_right_vel_ = +v; pending_left_vel_ = +v;
@@ -206,11 +211,11 @@ void SerialProtocol::processToken(const char* token) {
     }
 }
 
-bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& gripper_vel, float& servo_angle) {
+bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& gripper_vel, bool& has_gripper_cmd, float& servo_angle) {
     new_command_ = false;
-    readStream(Serial);
+    readStream(Serial, parser_serial_);
 #if ENABLE_SERIAL2
-    readStream(Serial2);
+    readStream(Serial2, parser_serial2_);
 #endif
 
     if (new_command_ || right_received_ || left_received_) {
@@ -218,7 +223,10 @@ bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& grip
         left_vel = pending_left_vel_;
         if (gripper_received_) {
             gripper_vel = pending_gripper_vel_;
+            has_gripper_cmd = true;
             gripper_received_ = false;
+        } else {
+            has_gripper_cmd = false;
         }
         if (servo_received_) {
             servo_angle = pending_servo_angle_;
@@ -230,6 +238,7 @@ bool SerialProtocol::processInput(float& right_vel, float& left_vel, float& grip
         left_received_ = false;
         return true;
     }
+    has_gripper_cmd = false;
     return false;
 }
 

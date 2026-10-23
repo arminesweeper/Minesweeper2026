@@ -178,7 +178,7 @@
  *   - Drive Motors: Right (PWM 44, DIR 42), Left (PWM 46, DIR 40)
  *   - Encoders: Right (INT2 D19, D18), Left (INT0 D21, D20)
  *   - Lift Actuator: PWM 7 (Timer 4 OC4B), DIR 49
- *   - Limit Switches: Top 53, Bottom 51 (Active-HIGH)
+ *   - Limit Switches: Top 51, Bottom 53 (Active-HIGH)
  *   - Ultrasonic Sensor: Trig 43, Echo 45 (HC-SR04)
  *   - Proximity Array: Digital inputs D23, D25, D27, D29, D31
  *   - Metal Detector: D33 (Active-HIGH)
@@ -208,8 +208,8 @@ constexpr uint8_t IMU_SCL = 36; /**< Soft-I2C Serial Clock line (moved to D36 to
 /* --- Lift Mechanism & Travel Limit Switches --- */
 constexpr uint8_t LIFT_PWM = 7;         /**< Lift actuator motor speed PWM (Timer 4 OC4B, hardware PWM) */
 constexpr uint8_t LIFT_DIR = 49;        /**< Lift actuator motor direction pin */
-constexpr uint8_t LIMIT_SW_TOP = 51;    /**< Upper travel limit switch (Active HIGH, D53) */
-constexpr uint8_t LIMIT_SW_BOTTOM = 53                ; /**< Lower travel limit switch (Active HIGH, D51) */
+constexpr uint8_t LIMIT_SW_TOP = 51;    /**< Upper travel limit switch (Active HIGH, D51) */
+constexpr uint8_t LIMIT_SW_BOTTOM = 53; /**< Lower travel limit switch (Active HIGH, D53) */
 
 /* --- HC-SR04 Ultrasonic Distance Sensor (Gripper mine detection) --- */
 constexpr uint8_t US_TRIG = 43;         /**< Ultrasonic trigger pulse output */
@@ -254,7 +254,7 @@ constexpr unsigned long CONTROL_INTERVAL_MS = 20;   /**< Velocity PID control lo
 constexpr unsigned long IMU_INTERVAL_MS = 20;       /**< IMU sampling & attitude filter period (20 ms = 50 Hz) */
 constexpr unsigned long SENSOR_INTERVAL_MS = 20;    /**< Metal detector & proximity scan period (20 ms = 50 Hz, matches RobotTest2) */
 constexpr unsigned long LIFT_INTERVAL_MS = 10;      /**< Automated lift state machine update period (10 ms = 100 Hz for instant switch response) */
-constexpr unsigned long TELEMETRY_INTERVAL_MS = 10; /**< High-rate serial telemetry period (10 ms = 100 Hz, matches ros2_control read loop) */
+constexpr unsigned long TELEMETRY_INTERVAL_MS = 20; /**< High-rate serial telemetry period (20 ms = 50 Hz, matches ros2_control read loop) */
 } // namespace Timing
 
 /* ============================================================================
@@ -372,7 +372,7 @@ constexpr size_t CMD_BUFFER_SIZE = 24;      /**< Maximum byte length of extended
  * ============================================================================
  */
 
-struct RobotParameters {
+struct __attribute__((packed)) RobotParameters {
   uint32_t magic_number; /**< Validation signature (0x4D494E45) ensuring EEPROM is formatted */
   uint16_t version;      /**< Configuration structure schema revision */
 

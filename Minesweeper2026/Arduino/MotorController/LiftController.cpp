@@ -32,6 +32,7 @@ LiftController::LiftController()
       manual_magnet_override_(false),
       is_auto_cycling_(false),
       manual_active_(false),
+      manual_joystick_active_(false),
       motor_running_(false),
       motor_dir_up_(false) {}
 
@@ -74,6 +75,7 @@ void LiftController::begin() {
     manual_magnet_override_ = false;
     is_auto_cycling_ = false;
     manual_active_ = false;
+    manual_joystick_active_ = false;
     motor_running_ = false;
     motor_dir_up_ = false;
     magnet_hold_until_ms_ = 0;
@@ -240,7 +242,7 @@ void LiftController::update(bool object_detected, bool metal_detected) {
 
     case LiftState::FAULT:
         stopMotor();
-        state_ = LiftState::IDLE;
+        // Latch in FAULT until clearFault() or manual reset is called
         break;
     }
 }
@@ -288,16 +290,30 @@ void LiftController::stop() {
     stopMotor();
     is_auto_cycling_ = false;
     manual_active_ = false;
+    manual_joystick_active_ = false;
     state_ = LiftState::IDLE;
 }
 
 void LiftController::handleVelocityCommand(float g_vel) {
     if (g_vel > 0.1f) {
-        raise();
+        clearFault();
+        manual_joystick_active_ = true;
+        manual_active_ = true;
+        is_auto_cycling_ = false;
+        driveMotor(true);
+        motion_start_ms_ = millis();
+        state_ = LiftState::RAISING;
     } else if (g_vel < -0.1f) {
-        lower();
+        clearFault();
+        manual_joystick_active_ = true;
+        manual_active_ = true;
+        is_auto_cycling_ = false;
+        driveMotor(false);
+        motion_start_ms_ = millis();
+        state_ = LiftState::LOWERING;
     } else {
-        if (manual_active_) {
+        if (manual_joystick_active_) {
+            manual_joystick_active_ = false;
             stop();
         }
     }
@@ -309,6 +325,7 @@ void LiftController::clearFault() {
     manual_trigger_ = false;
     is_auto_cycling_ = false;
     manual_active_ = false;
+    manual_joystick_active_ = false;
 }
 
 /* ============================================================================

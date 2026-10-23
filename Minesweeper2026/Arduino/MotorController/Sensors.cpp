@@ -47,10 +47,8 @@ static void alertOff() {
 #if BUZZER_IS_SIREN_RELAY
 #if SIREN_ACTIVE_HIGH
     digitalWrite(Pins::BUZZER, LOW);
-    digitalWrite(47, LOW); // Mirror to Pin 47
 #else
     digitalWrite(Pins::BUZZER, HIGH);
-    digitalWrite(47, HIGH);
 #endif
 #else
     noTone(Pins::BUZZER);
@@ -62,10 +60,8 @@ static void alertOn(uint16_t freq_hz) {
     (void)freq_hz;
 #if SIREN_ACTIVE_HIGH
     digitalWrite(Pins::BUZZER, HIGH);
-    digitalWrite(47, HIGH); // Mirror to Pin 47
 #else
     digitalWrite(Pins::BUZZER, LOW);
-    digitalWrite(47, LOW);
 #endif
 #else
     tone(Pins::BUZZER, freq_hz);
@@ -77,10 +73,9 @@ static void alertOn(uint16_t freq_hz) {
  * ============================================================================ */
 
 void Sensors::begin() {
-    /* Metal detector: digital input (Active HIGH on D33, auxiliary D27) */
+    /* Metal detector: digital input (Active HIGH on D33) */
 #if ENABLE_METAL_DETECTOR
     pinMode(Pins::METAL_DETECTOR, INPUT);
-    pinMode(27, INPUT);
 #endif
 
     /* Digital proximity sensors (direct digital inputs, active HIGH) */
@@ -93,11 +88,9 @@ void Sensors::begin() {
     digitalWrite(Pins::US_TRIG, LOW);
     pinMode(Pins::US_ECHO, INPUT);
 
-    /* Buzzer / siren relay: output, initially off (Pin 37 and Pin 47) */
+    /* Buzzer / siren relay: output, initially off (Pin 37) */
     alertOff();
     pinMode(Pins::BUZZER, OUTPUT);
-    pinMode(47, OUTPUT);
-    pinMode(37, OUTPUT);
     alertOff();
 
     /* Warning LED: output, initially off */
@@ -113,8 +106,7 @@ void Sensors::begin() {
     siren_hold_until_ms_ = 0;
     prev_prox_for_edge_ = false;
     prev_metal_for_edge_ = false;
-    metal_raw_last_ = (digitalRead(Pins::METAL_DETECTOR) == SensorConfig::METAL_ACTIVE_STATE) ||
-                      (digitalRead(27) == SensorConfig::METAL_ACTIVE_STATE);
+    metal_raw_last_ = (digitalRead(Pins::METAL_DETECTOR) == SensorConfig::METAL_ACTIVE_STATE);
     metal_detected_ = metal_raw_last_;
 }
 
@@ -253,8 +245,9 @@ uint16_t Sensors::measureUltrasonicCm() const {
     delayMicroseconds(10);
     digitalWrite(Pins::US_TRIG, LOW);
 
-    unsigned long duration = pulseIn(Pins::US_ECHO, HIGH, 25000UL); // 25 ms timeout (~430 cm)
-    if (duration > 50 && duration < 25000UL) {
+    // Bounded timeout matching SensorConfig::US_MAX_ECHO_US (prevents blocking cooperative loop)
+    unsigned long duration = pulseIn(Pins::US_ECHO, HIGH, SensorConfig::US_MAX_ECHO_US);
+    if (duration > 50 && duration < SensorConfig::US_MAX_ECHO_US) {
         uint16_t dist = static_cast<uint16_t>(duration / 58UL);
         return (dist > 0) ? dist : 1;
     }
@@ -267,8 +260,7 @@ uint16_t Sensors::measureUltrasonicCm() const {
 
 void Sensors::updateMetalDetector() {
 #if ENABLE_METAL_DETECTOR
-    bool current_reading = (digitalRead(Pins::METAL_DETECTOR) == SensorConfig::METAL_ACTIVE_STATE) ||
-                           (digitalRead(27) == SensorConfig::METAL_ACTIVE_STATE);
+    bool current_reading = (digitalRead(Pins::METAL_DETECTOR) == SensorConfig::METAL_ACTIVE_STATE);
     unsigned long now = millis();
 
     if (current_reading) {

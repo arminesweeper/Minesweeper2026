@@ -217,7 +217,8 @@ private:
     bool manual_trigger_;           ///< Flag for joystick/serial trigger
     bool manual_magnet_override_;   ///< Operator manual magnet hold flag
     bool is_auto_cycling_;          ///< Automated pickup/drop sequence is actively running
-    bool manual_active_;            ///< Manual joystick movement is actively commanding motor
+    bool manual_active_;            ///< Manual movement is actively commanding motor
+    bool manual_joystick_active_;   ///< Continuous velocity joystick actively driving
     bool motor_running_;            ///< Lift motor active flag
     bool motor_dir_up_;             ///< Lift motor current direction (true = UP, false = DOWN)
 
