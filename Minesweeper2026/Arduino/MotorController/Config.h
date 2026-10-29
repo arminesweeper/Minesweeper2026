@@ -71,11 +71,18 @@
 #define ENABLE_IMU 0
 
 /**
- * @brief Automated mine lift mechanism & electromagnets.
- * 1 = Enable lift motor controller, upper/lower limit switches, and magnet cycle.
- * 0 = Disable lift subsystem.
+ * @brief Automated mine lift mechanism.
+ * 1 = Enable lift motor controller, upper/lower limit switches, and travel control.
+ * 0 = Disable lift motor subsystem.
  */
-#define ENABLE_LIFT 1
+#define ENABLE_LIFT 0
+
+/**
+ * @brief Electromagnet mine extraction subsystem.
+ * 1 = Enable electromagnets and magnet relay control (Pin 38).
+ * 0 = Disable electromagnets (relay forced OFF, prevents coil heating & power draw).
+ */
+#define ENABLE_MAGNETS 0
 
 /**
  * @brief Automated lift cycles and auto-lifting modes for the gripper.
@@ -106,6 +113,13 @@
 #define ENABLE_METAL_DETECTOR 1
 
 /**
+ * @brief Metal detector input electrical logic level.
+ * 1 = Active-HIGH: sensor output delivers logic HIGH when metal is present (standard).
+ * 0 = Active-LOW: sensor output pulls pin to LOW (GND) when metal is present.
+ */
+#define METAL_DETECTOR_ACTIVE_HIGH 1
+
+/**
  * @brief Auxiliary hardware serial port (Serial2 on Pins 16/17).
  * 1 = Enable Serial2 communication for ESP8266 / WiFi Web Controller.
  * 0 = Disable Serial2 (saves RX/TX buffers and interrupts when only USB is used).
@@ -125,7 +139,7 @@
  * 1 = Use software bit-banged I2C on dedicated pins (Pins::IMU_SDA, Pins::IMU_SCL).
  * 0 = Use hardware Wire on D20/D21 (only if Encoder 1 is physically disconnected).
  */
-#define IMU_USE_SOFT_I2C 1
+#define IMU_USE_SOFT_I2C 0
 
 /**
  * @brief Electromagnet PCB relay routing configuration.
@@ -134,6 +148,13 @@
  * 0 = Discrete GPIO per magnet (requires external multi-channel driver board).
  */
 #define MAGNET_SHARED_RELAY 1
+
+/**
+ * @brief 12V Alert Siren subsystem enable flag.
+ * 1 = Enable 12V automotive siren on metal mine detection and serial commands.
+ * 0 = Disable siren output (relay forced OFF; useful for bench testing without noise).
+ */
+#define ENABLE_SIREN 1
 
 /**
  * @brief Siren output driver type.
@@ -169,7 +190,7 @@
  * 1 = Use HC-SR04 ultrasonic distance sensor (Pins 43 & 45) to detect mine catch.
  * 0 = Manual trigger / command only.
  */
-#define USE_ULTRASONIC_OBJECT_DETECT 1
+#define USE_ULTRASONIC_OBJECT_DETECT 0
 
 /* ============================================================================
  * HARDWARE PIN DEFINITIONS — Synchronized with Physical Robot Wiring
@@ -324,7 +345,7 @@ constexpr uint16_t PROXIMITY_THRESHOLD = 500;    /**< Threshold (0-1023) for pro
 constexpr uint8_t NUM_PROXIMITY = 5;             /**< Total number of digital proximity sensors connected */
 constexpr uint8_t PROXIMITY_ACTIVE_STATE = HIGH; /**< Sensor logic level indicating obstacle detected (HIGH for active-high IR modules) */
 constexpr unsigned long METAL_DEBOUNCE_MS = 50;  /**< Minimum trigger confirmation time for metal detector (ms) */
-constexpr uint8_t METAL_ACTIVE_STATE = HIGH;     /**< Sensor logic level indicating metal is detected */
+constexpr uint8_t METAL_ACTIVE_STATE = METAL_DETECTOR_ACTIVE_HIGH ? HIGH : LOW; /**< Sensor logic level indicating metal is detected */
 constexpr unsigned long SIREN_HOLD_MS = 1500;    /**< Duration siren stays on after detection edge (ms) */
 constexpr uint8_t ADC_SAMPLES = 1;               /**< Number of ADC conversions per read (1 = fast non-blocking) */
 constexpr uint16_t BUZZER_FREQ_HZ = 500;         /**< Audio tone frequency in Hz (used only if piezo is fitted) */

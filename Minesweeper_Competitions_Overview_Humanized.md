@@ -45,42 +45,42 @@ flowchart TD
     classDef sensors fill:#0f172a,stroke:#a78bfa,stroke-width:2px,color:#f8fafc;
     classDef altPath fill:#0f172a,stroke:#f472b6,stroke-width:2px,stroke-dasharray: 4 4,color:#f8fafc;
 
-    subgraph HighLayer ["💻 طبقة التحكم العليا والمشغل (Operator & Autonomy)"]
-        OP["🖥️ محطة المشغل (Operator Station / Laptop)"]:::highLevel
-        RPI["🍓 Raspberry Pi 4 (ROS 2 Humble)<br/><i>SLAM • Vision • Path Planning</i>"]:::highLevel
-        ESP["📡 وحدة ESP8266 (Web Dashboard)<br/><i>تحكم يدوي مباشر + فحص ميداني</i>"]:::altPath
+    subgraph HighLayer ["Operator & High-Level Autonomy Layer"]
+        OP["Operator Station / Laptop<br/>(Gamepad / Web GUI)"]:::highLevel
+        RPI["Raspberry Pi 4 (ROS 2 Humble)<br/><i>SLAM • Vision • Path Planning</i>"]:::highLevel
+        ESP["ESP8266 Wi-Fi Module<br/>(Local Web Dashboard)<br/><i>Manual Control • Diagnostics</i>"]:::altPath
     end
 
-    subgraph LowLayer ["⚙️ طبقة المتحكم المدمج اللحظي (Firmware & Real-Time)"]
-        MEGA["🎛️ <b>Arduino Mega 2560</b><br/>• PID Velocity Loop<br/>• Watchdog & State Machine<br/>• Odometry & Safety Interlocks"]:::lowLevel
+    subgraph LowLayer ["Low-Level Real-Time Controller (Firmware)"]
+        MEGA["<b>Arduino Mega 2560</b><br/>• PID Velocity Loop<br/>• Watchdog & State Machine<br/>• Odometry & Safety Interlocks"]:::lowLevel
     end
 
-    subgraph ActuationLayer ["⚡ مشغلات الحركة والقدرة (Actuation & Power)"]
-        CYTRON["🔌 Cytron MDD10A (Dual H-Bridge)<br/>10A Continuous / 30A Peak"]:::actuation
-        MOTORS["🚜 4x DC Geared Motors<br/>(منظومة الدفع الرباعي)"]:::actuation
-        LIFT["🏗️ Lift Motor & Tailgate<br/>(محرك الرافعة الميكانيكية)"]:::actuation
-        RELAYS["🔔 Relays & Drivers (2N2222A)<br/>سيرين التنبيه • المغناطيس الكهربائي"]:::actuation
+    subgraph ActuationLayer ["Power & Actuation Stage"]
+        CYTRON["Cytron MDD10A (Dual H-Bridge)<br/>10A Continuous / 30A Peak"]:::actuation
+        MOTORS["4x DC Geared Motors<br/>(4WD Drivetrain)"]:::actuation
+        LIFT["Lift Motor & Tailgate<br/>(Mechanical Actuator)"]:::actuation
+        RELAYS["Relays & Drivers (2N2222A)<br/>Warning Siren • Electromagnet"]:::actuation
     end
 
-    subgraph SensingLayer ["🎯 منظومة الحساسات والتغذية الراجعة (Sensors & Feedback)"]
-        ENC["🔄 Optical Encoders (PPR = 385)<br/><i>قراءات السرعة وحساب المسافة</i>"]:::sensors
-        SENS["🧭 MPU6050 IMU (Soft-I2C)<br/>5x Proximity Sensors<br/>Metal Detector Coil • Limit Switches"]:::sensors
+    subgraph SensingLayer ["Sensor & Feedback Array"]
+        ENC["Optical Quadrature Encoders (PPR = 385)<br/><i>Speed & Odometry Feedback</i>"]:::sensors
+        SENS["MPU6050 6-DOF IMU (Soft-I2C)<br/>5x Proximity Sensors<br/>Metal Detector Coil • Limit Switches"]:::sensors
     end
 
     %% Routing
-    OP <==>|"📶 Wi-Fi (ROS 2 Network)"| RPI
-    OP -.->|"📶 Direct Wi-Fi (AP / WebSockets)"| ESP
+    OP <==>|"Wi-Fi (ROS 2 Network)"| RPI
+    OP -.->|"Direct Wi-Fi (AP / WebSockets)"| ESP
 
-    RPI <===>|"🔌 USB Serial (Serial0) @ 115200 baud<br/>[حزم السرعة cmd_vel + تيليميتري]"| MEGA
-    ESP <===>|"⚡ Hardware UART (Serial2) @ 115200 baud<br/>[أوامر فورية WASD + قراءة الحساسات]"| MEGA
+    RPI <===>|"USB CDC Serial (Serial0) @ 115200 baud<br/>[cmd_vel packets + Telemetry]"| MEGA
+    ESP <===>|"Hardware UART (Serial2) @ 115200 baud<br/>[Manual commands + Sensor readouts]"| MEGA
 
-    MEGA -->|"إشارات PWM + الاتجاه DIR"| CYTRON
-    CYTRON -->|"تيار القدرة الفعلي"| MOTORS
-    MEGA -->|"التحكم بالرافعة"| LIFT
-    MEGA -->|"إشارات تشغيل الريلاي"| RELAYS
+    MEGA -->|"PWM + Direction (DIR)"| CYTRON
+    CYTRON -->|"High Current Power"| MOTORS
+    MEGA -->|"PWM / DIR Signals"| LIFT
+    MEGA -->|"Trigger Signals"| RELAYS
 
-    ENC -->|"مقاطعات Hardware (D18-D21)"| MEGA
-    SENS -->|"Analog / Digital / I2C"| MEGA
+    ENC -->|"Hardware Interrupts (D18-D21)"| MEGA
+    SENS -->|"Analog / Digital / Soft-I2C"| MEGA
 ```
 
 #### خط سير البيانات (Control Pipeline)
@@ -98,7 +98,7 @@ $$\text{Encoders \& Sensors} \xrightarrow[\text{Real-time Interrupts}]{\text{Raw
 | **معدل النقل** | `115200 baud` | `115200 baud` |
 | **المعالج المضيف** | Raspberry Pi 4 (ROS 2 Humble Nodes) | وحدة ESP8266 (خادم ويب محلي مدمج) |
 | **نمط القيادة** | ملاحة ذاتية، تخطيط مسارات، وتفادي عوائق | تحكم يدوي فوري (WASD، Touch Joystick، Gamepad) |
-| **البيانات المتبادلة** | سرعات خطية وزاوية (`cmd_vel`) $\leftrightarrow$ أودومتري كامل وحالة الروبوت | أوامر حركة مبسطة $\leftrightarrow$ قراءات البطارية، الحساسات، والمفاتيح |
+| **البيانات المتبادلة** | سرعات خطية وزاوية (`cmd_vel`) $\leftrightarrow$ أودومتري كامل (Odometry & State) | أوامر حركة مبسطة $\leftrightarrow$ قراءات البطارية، الـ Proximity Sensors، والـ Limit Switches |
 | **القيمة العملية للفريق** | تشغيل المهام التنافسية الذكية وحساب الخرائط | عزل الأعطال الميدانية واختبار الهاردوير دون الحاجة لـ ROS 2 |
 
 > [!TIP]
@@ -214,9 +214,9 @@ $$\text{Encoders \& Sensors} \xrightarrow[\text{Real-time Interrupts}]{\text{Raw
 
 قبل ما نعتمد التغيير، نختبر خرج الريلاي من غير ما نوصل السيرين لو ده ممكن، ونقيس حالة الـ pin عند التشغيل والإيقاف. كمان لازم حالة الإقلاع الافتراضية تكون آمنة بحيث السيرين ما تشتغلش من غير أمر.
 
-### 2.6 قراءات حساسات الاقتراب مش منطقية
+### 2.6 قراءات الـ Proximity Sensors مش منطقية
 
-اتذكرت قراءات زي `1023` من غير وجود جسم، وتنزل لقيمة صغيرة عند تقريب جسم من الحساس. ده ممكن يكون بسبب طبيعة الحساس، أو توصيله، أو دائرة تجميع الإشارات، أو إن الكود مفترض إن القراءة بتزيد مع الاقتراب بينما الواقع العكس.
+اتذكرت قراءات زي `1023` من غير وجود جسم، وتنزل لقيمة صغيرة عند تقريب جسم من الـ Proximity Sensor. ده ممكن يكون بسبب طبيعة الحساس، أو توصيله، أو دائرة تجميع الإشارات، أو إن الكود مفترض إن القراءة بتزيد كل ما الجسم يقرّب بينما الواقع العكس.
 
 **الخطوات:**
 
@@ -315,7 +315,7 @@ $$\text{Encoders \& Sensors} \xrightarrow[\text{Real-time Interrupts}]{\text{Raw
 | D53 | `LIMIT_TOP` | المفتاح العلوي حسب الجدول |
 | D43 | `US_TRIG` | Trigger لحساس Ultrasonic |
 | D45 | `US_ECHO` | Echo لحساس Ultrasonic |
-| D23 / D25 / D27 / D29 | `PROX1..4` | حساسات الاقتراب |
+| D23 / D25 / D27 / D29 | `PROX1..4` | Proximity Sensors |
 | D31 | `PROX5 / SDA` | فيه تعارض محتمل لازم يتحسم |
 | D33 | `MD_PIN / SCL` | فيه تعارض محتمل لازم يتحسم |
 | D37 | `SIREN` | خرج السيرين |

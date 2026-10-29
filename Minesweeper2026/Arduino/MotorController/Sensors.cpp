@@ -56,6 +56,7 @@ static void alertOff() {
 }
 
 static void alertOn(uint16_t freq_hz) {
+#if ENABLE_SIREN
 #if BUZZER_IS_SIREN_RELAY
     (void)freq_hz;
 #if SIREN_ACTIVE_HIGH
@@ -66,6 +67,10 @@ static void alertOn(uint16_t freq_hz) {
 #else
     tone(Pins::BUZZER, freq_hz);
 #endif
+#else
+    (void)freq_hz;
+    alertOff();
+#endif
 }
 
 /* ============================================================================
@@ -73,9 +78,13 @@ static void alertOn(uint16_t freq_hz) {
  * ============================================================================ */
 
 void Sensors::begin() {
-    /* Metal detector: digital input (Active HIGH on D33) */
+    /* Metal detector: digital input (Pin 33) */
 #if ENABLE_METAL_DETECTOR
+#if METAL_DETECTOR_ACTIVE_HIGH
     pinMode(Pins::METAL_DETECTOR, INPUT);
+#else
+    pinMode(Pins::METAL_DETECTOR, INPUT_PULLUP);
+#endif
 #endif
 
     /* Digital proximity sensors (direct digital inputs, active HIGH) */
@@ -83,10 +92,12 @@ void Sensors::begin() {
         pinMode(Pins::PROXIMITY_PINS[i], INPUT);
     }
 
+#if USE_ULTRASONIC_OBJECT_DETECT
     /* HC-SR04 Ultrasonic sensor */
     pinMode(Pins::US_TRIG, OUTPUT);
     digitalWrite(Pins::US_TRIG, LOW);
     pinMode(Pins::US_ECHO, INPUT);
+#endif
 
     /* Buzzer / siren relay: output, initially off (Pin 37) */
     alertOff();
@@ -148,21 +159,24 @@ void Sensors::update() {
         prox_candidate_samples_ = 0;
     }
 
-    /* Update metal detector (debounced on Pin 33 and auxiliary Pin 27) */
+    /* Update metal detector (debounced on Pin 33) */
     updateMetalDetector();
 
-    /* Rising edge detection and siren one-shot hold logic */
+    /* Rising edge detection and siren one-shot hold logic (triggered on confirmed metal detection) */
     unsigned long now = millis();
-    const bool prox_rise = proximity_enabled_ && prox_debounced_ && !prev_prox_for_edge_;
+    const bool prox_rise =
+        proximity_enabled_ && prox_debounced_ && !prev_prox_for_edge_;
+
     const bool metal_rise = metal_detected_ && !prev_metal_for_edge_;
-    if (prox_rise || metal_rise) {
+    if (metal_rise || prox_rise) {
         siren_hold_until_ms_ = now + SensorConfig::SIREN_HOLD_MS;
     }
     prev_prox_for_edge_ = proximity_enabled_ ? prox_debounced_ : false;
     prev_metal_for_edge_ = metal_detected_;
 
     const bool hold_active = (static_cast<int32_t>(siren_hold_until_ms_ - now) > 0);
-    siren_active_ = (proximity_enabled_ && prox_debounced_) || metal_detected_ || hold_active;
+    siren_active_ = (proximity_enabled_ && prox_debounced_) ||
+                    metal_detected_ || hold_active;
 
     /* Drive siren hardware directly or via pattern engine */
     if (siren_active_) {
@@ -175,6 +189,7 @@ void Sensors::update() {
         updateBuzzer();
     }
 
+#if USE_ULTRASONIC_OBJECT_DETECT
     /* Read HC-SR04 ultrasonic distance every 60 ms (prevents sensor freeze/ringing) */
     static unsigned long last_us_time = 0;
     if (now - last_us_time >= 60) {
@@ -184,6 +199,7 @@ void Sensors::update() {
             ultrasonic_distance_cm_ = raw_dist;
         }
     }
+#endif
 
     updateLED();
 }

@@ -71,7 +71,7 @@ void SystemManager::begin() {
 #if ENABLE_SENSORS
     sensors_.begin();
 #endif
-#if ENABLE_LIFT
+#if ENABLE_LIFT || ENABLE_MAGNETS
     lift_.begin();
 #endif
 
@@ -261,7 +261,7 @@ void SystemManager::taskSensors() {
 }
 
 void SystemManager::taskLift() {
-#if ENABLE_LIFT
+#if ENABLE_LIFT || ENABLE_MAGNETS
     LiftState prev_state = lift_.getState();
     uint8_t prev_mag = lift_.getMagnetState();
     bool prev_top = lift_.isTopSwitchRaw();
@@ -426,15 +426,25 @@ void SystemManager::processExtendedCommands() {
             lift_.stop();
             serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isTopSwitchRaw(), lift_.isBottomSwitchRaw());
         }
+#endif
+#if ENABLE_LIFT || ENABLE_MAGNETS
         else if (strcmp(cmd, "MAGNET:ON") == 0) {
+#if ENABLE_MAGNETS
             lift_.clearFault();
             lift_.setManualMagnetOverride(true);
             lift_.setAllMagnets(true);
+#else
+            serial_.sendStatus("Magnets disabled in config");
+#endif
             serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isTopSwitchRaw(), lift_.isBottomSwitchRaw());
         }
         else if (strcmp(cmd, "MAGNET:OFF") == 0) {
+#if ENABLE_MAGNETS
             lift_.setManualMagnetOverride(false);
             lift_.setAllMagnets(false);
+#else
+            serial_.sendStatus("Magnets disabled in config");
+#endif
             serial_.sendLiftState(lift_.getStateString(), lift_.getMagnetState(), lift_.isTopSwitchRaw(), lift_.isBottomSwitchRaw());
         }
 #endif

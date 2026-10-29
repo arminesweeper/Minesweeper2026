@@ -102,6 +102,7 @@ void LiftController::update(bool object_detected, bool metal_detected) {
     const unsigned long now = millis();
     const bool mine_detected = metal_detected || object_detected;
 
+#if ENABLE_MAGNETS
     /* Electromagnet control: energize immediately whenever mine is detected */
     if (mine_detected) {
         setAllMagnets(true);
@@ -114,6 +115,9 @@ void LiftController::update(bool object_detected, bool metal_detected) {
             setAllMagnets(false);
         }
     }
+#else
+    magnet_state_ = 0;
+#endif
 
 #if ENABLE_LIMIT_SWITCHES
     /* Read debounced switch states only when limit switches are enabled */
@@ -333,6 +337,7 @@ void LiftController::clearFault() {
  * ============================================================================ */
 
 void LiftController::setMagnet(uint8_t index, bool on) {
+#if ENABLE_MAGNETS
     if (index >= LiftConfig::NUM_MAGNETS) {
         return;
     }
@@ -350,9 +355,22 @@ void LiftController::setMagnet(uint8_t index, bool on) {
 #else
     digitalWrite(Pins::MAGNET_PINS[index], on ? HIGH : LOW);
 #endif
+#else
+    (void)index;
+    (void)on;
+    magnet_state_ = 0;
+#if MAGNET_SHARED_RELAY
+    digitalWrite(Pins::MAGNET_RELAY, LOW);
+#else
+    for (uint8_t i = 0; i < LiftConfig::NUM_MAGNETS; ++i) {
+        digitalWrite(Pins::MAGNET_PINS[i], LOW);
+    }
+#endif
+#endif
 }
 
 void LiftController::setAllMagnets(bool on) {
+#if ENABLE_MAGNETS
 #if MAGNET_SHARED_RELAY
     magnet_state_ = on ? 0x1F : 0x00;
     digitalWrite(Pins::MAGNET_RELAY, on ? HIGH : LOW);
@@ -365,6 +383,17 @@ void LiftController::setAllMagnets(bool on) {
     if (on) {
         magnet_on_time_ms_ = millis();
     }
+#else
+    (void)on;
+    magnet_state_ = 0;
+#if MAGNET_SHARED_RELAY
+    digitalWrite(Pins::MAGNET_RELAY, LOW);
+#else
+    for (uint8_t i = 0; i < LiftConfig::NUM_MAGNETS; ++i) {
+        digitalWrite(Pins::MAGNET_PINS[i], LOW);
+    }
+#endif
+#endif
 }
 
 /* ============================================================================
